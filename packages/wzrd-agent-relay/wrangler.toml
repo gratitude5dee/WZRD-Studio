@@ -1,0 +1,22 @@
+name = "wzrd-agent-relay"
+main = "src/index.ts"
+compatibility_date = "2026-06-06"
+compatibility_flags = ["nodejs_compat"]
+
+[durable_objects]
+bindings = [
+  { name = "WZRD_AGENT_PTY", class_name = "WzrdAgentPtySession" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["WzrdAgentPtySession"]
+
+[observability]
+enabled = true
+
+# Set with `wrangler secret put`:
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   DAYTONA_API_KEY
+#   DAYTONA_RELAY_JWT_SECRET

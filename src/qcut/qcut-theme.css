@@ -1,0 +1,48 @@
+/*
+ * QCut theme tokens scoped to the QCut editor root.
+ *
+ * WZRD-EDIT (Phase 2): Keep styling scoped under `.qcut-root` so the rest of
+ * WZRD.Studio is untouched.
+ */
+
+.qcut-root {
+	/* Make sure native inputs/scrollbars pick a dark palette */
+	color-scheme: dark;
+
+	/* Map QCut's shadcn-style CSS variables onto WZRD's dark chrome */
+	--background: 222 38% 6%; /* ~ #0A0D16 */
+	--foreground: 210 40% 96%;
+
+	--card: 222 38% 8%;
+	--card-foreground: 210 40% 96%;
+
+	--popover: 222 38% 8%;
+	--popover-foreground: 210 40% 96%;
+
+	--primary: 45 100% 55%; /* WZRD-ish yellow */
+	--primary-foreground: 0 0% 0%;
+
+	--secondary: 220 18% 18%;
+	--secondary-foreground: 210 40% 96%;
+
+	--muted: 220 18% 16%;
+	--muted-foreground: 215 16% 65%;
+
+	--accent: 220 18% 18%;
+	--accent-foreground: 210 40% 96%;
+
+	--destructive: 0 72% 51%;
+	--destructive-foreground: 210 40% 98%;
+
+	--border: 220 14% 20%;
+	--input: 220 14% 20%;
+	--ring: 45 100% 55%;
+
+	--radius: 0.75rem;
+}
+
+/* Ensure the QCut subtree inherits WZRD's base font smoothing */
+.qcut-root {
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}

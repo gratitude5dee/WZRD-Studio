@@ -1,0 +1,762 @@
+import { ExportEngine } from "./export-engine";
+import type { ExportSettings, ExportSettingsWithAudio } from "@qcut-app/types/export";
+import { TimelineTrack } from "@qcut-app/types/timeline";
+import { MediaItem } from "@qcut-app/stores/media/media-store";
+import { debugLog, debugError, debugWarn } from "@qcut-app/lib/debug/debug-config";
+import { useEffectsStore } from "@qcut-app/stores/ai/effects-store";
+import { platform } from "@qcut/platform-core";
+
+// Engine types available
+export const ExportEngineType = {
+	STANDARD: "standard",
+	OPTIMIZED: "optimized",
+	WEBCODECS: "webcodecs",
+	MUXER: "muxer",
+	FFMPEG: "ffmpeg",
+	CLI: "cli",
+	REMOTION: "remotion",
+} as const;
+
+export type ExportEngineType =
+	(typeof ExportEngineType)[keyof typeof ExportEngineType];
+
+// Browser capability detection results
+export interface BrowserCapabilities {
+	hasWebCodecs: boolean;
+	hasOffscreenCanvas: boolean;
+	hasWorkers: boolean;
+	hasSharedArrayBuffer: boolean;
+	deviceMemoryGB: number;
+	maxTextureSize: number;
+	supportedCodecs: string[];
+	performanceScore: number; // 0-100 scale
+}
+
+// Engine recommendation based on capabilities
+export interface EngineRecommendation {
+	engineType: ExportEngineType;
+	reason: string;
+	capabilities: BrowserCapabilities;
+	estimatedPerformance: "high" | "medium" | "low";
+}
+
+export class ExportEngineFactory {
+	private static instance: ExportEngineFactory;
+	private capabilities: BrowserCapabilities | null = null;
+
+	/** Get the singleton factory instance. */
+	static getInstance(): ExportEngineFactory {
+		if (!ExportEngineFactory.instance) {
+			ExportEngineFactory.instance = new ExportEngineFactory();
+		}
+		return ExportEngineFactory.instance;
+	}
+
+	private constructor() {
+		// Private constructor for singleton
+	}
+
+	/** Detect browser capabilities (cached after first call). */
+	async detectCapabilities(): Promise<BrowserCapabilities> {
+		if (this.capabilities) {
+			return this.capabilities;
+		}
+
+		const capabilities: BrowserCapabilities = {
+			hasWebCodecs: this.detectWebCodecs(),
+			hasOffscreenCanvas: this.detectOffscreenCanvas(),
+			hasWorkers: this.detectWorkers(),
+			hasSharedArrayBuffer: this.detectSharedArrayBuffer(),
+			deviceMemoryGB: this.detectDeviceMemory(),
+			maxTextureSize: await this.detectMaxTextureSize(),
+			supportedCodecs: this.detectSupportedCodecs(),
+			performanceScore: await this.calculatePerformanceScore(),
+		};
+
+		this.capabilities = capabilities;
+		return capabilities;
+	}
+
+	/** Get engine recommendation based on capabilities and requirements. */
+	async getEngineRecommendation(
+		settings: ExportSettings,
+		duration: number,
+		complexity: "low" | "medium" | "high" = "medium",
+		tracks?: TimelineTrack[]
+	): Promise<EngineRecommendation> {
+		// Auto-select Remotion engine when timeline contains Remotion elements
+		// Check before detectCapabilities() to avoid unnecessary browser API calls
+		if (tracks) {
+			const hasRemotionElements = tracks.some(
+				(t) => t.type === "remotion" && t.elements.length > 0
+			);
+			if (hasRemotionElements) {
+				debugLog(
+					"[ExportEngineFactory] 🎬 Remotion engine auto-selected (timeline has Remotion elements)"
+				);
+				// Use cached capabilities if available, otherwise detect
+				const capabilities =
+					this.capabilities ?? (await this.detectCapabilities());
+				return {
+					engineType: ExportEngineType.REMOTION,
+					reason:
+						"Timeline contains Remotion elements — using Remotion export engine for frame pre-rendering and compositing",
+					capabilities,
+					estimatedPerformance: "medium",
+				};
+			}
+		}
+
+		const capabilities = await this.detectCapabilities();
+
+		// 🚀 FORCE CLI FFmpeg in Electron - most stable and performant
+		// DEBUG OVERRIDE: Allow forcing regular engine for sticker debugging
+		const forceRegularEngine =
+			localStorage.getItem("qcut_force_regular_engine") === "true";
+
+		console.log("🔍 EXPORT ENGINE DEBUG - Starting engine selection:");
+		console.log("  - Force regular engine override:", forceRegularEngine);
+		console.log("  - Is Electron environment:", this.isElectron());
+		console.log("  - Platform isElectron:", platform().isElectron);
+		console.log(
+			"  - FFmpeg CLI available:",
+			typeof platform().ffmpeg.exportVideoCLI === "function"
+		);
+
+		if (forceRegularEngine) {
+			debugLog(
+				"[ExportEngineFactory] 🔧 DEBUG OVERRIDE: Forcing regular export engine for sticker debugging"
+			);
+			console.log(
+				"⚠️ EXPORT ENGINE: Using regular engine due to debug override"
+			);
+		}
+
+		if (this.isElectron() && !forceRegularEngine) {
+			debugLog(
+				"[ExportEngineFactory] 🖥️  Electron detected - using CLI FFmpeg (most stable)"
+			);
+			console.log(
+				"🚀 EXPORT ENGINE SELECTION: CLI FFmpeg chosen for Electron environment"
+			);
+			console.log("  - Reason: Native FFmpeg provides best performance");
+			console.log("  - Expected performance: HIGH");
+			return {
+				engineType: ExportEngineType.CLI,
+				reason:
+					"Electron environment - using native CLI FFmpeg for best performance and stability",
+				capabilities,
+				estimatedPerformance: "high",
+			};
+		}
+
+		// Calculate memory requirements for browser environments
+		const estimatedMemoryGB = this.estimateMemoryRequirements(
+			settings,
+			duration
+		);
+
+		// iPad/browser with WebCodecs → mediabunny muxer engine (MP4 via WebCodecs)
+		// Skip on simulator (WebCodecs APIs exist but CanvasSource stalls in WKWebView sim)
+		if (
+			capabilities.hasWebCodecs &&
+			!this.isSimulator() &&
+			(await this.probeWebCodecsEncoder())
+		) {
+			console.log(
+				"🚀 EXPORT ENGINE SELECTION: Muxer (mediabunny) chosen for WebCodecs-capable browser/iPad"
+			);
+			return {
+				engineType: ExportEngineType.MUXER,
+				reason:
+					"WebCodecs (Hardware H.264) — using browser-native video encoding via mediabunny",
+				capabilities,
+				estimatedPerformance: "high",
+			};
+		}
+
+		// REMOVED: FFmpeg WASM engine - disabled due to timeout issues
+		// Now falls through to Optimized or Standard engine for browsers
+
+		// Browser fallback - optimized engine if available
+		if (capabilities.hasOffscreenCanvas && capabilities.hasWorkers) {
+			console.log(
+				"🚀 EXPORT ENGINE SELECTION: Optimized Canvas chosen for modern browser"
+			);
+			console.log("  - Reason: Not in Electron, using browser Canvas APIs");
+			console.log("  - Has OffscreenCanvas:", capabilities.hasOffscreenCanvas);
+			console.log("  - Has Workers:", capabilities.hasWorkers);
+			console.log("  ⚠️ NOT USING FFMPEG - Browser environment detected");
+			return {
+				engineType: ExportEngineType.OPTIMIZED,
+				reason: "Browser with modern Canvas APIs",
+				capabilities,
+				estimatedPerformance: "medium",
+			};
+		}
+
+		// Final fallback to standard engine for maximum compatibility
+		console.log(
+			"🚀 EXPORT ENGINE SELECTION: Standard Canvas chosen as final fallback"
+		);
+		console.log("  - Reason: Limited browser capabilities");
+		console.log("  - Performance score:", capabilities.performanceScore);
+		console.log("  ⚠️ NOT USING FFMPEG - Using fallback Canvas engine");
+		return {
+			engineType: ExportEngineType.STANDARD,
+			reason: "Using standard engine for maximum browser compatibility",
+			capabilities,
+			estimatedPerformance:
+				capabilities.performanceScore >= 40 ? "medium" : "low",
+		};
+	}
+
+	/** Create an export engine instance based on recommendation or explicit type. */
+	async createEngine(
+		canvas: HTMLCanvasElement,
+		settings: ExportSettingsWithAudio,
+		tracks: TimelineTrack[],
+		mediaItems: MediaItem[],
+		totalDuration: number,
+		engineType?: ExportEngineType
+	): Promise<ExportEngine> {
+		console.log("🏗️ EXPORT ENGINE CREATION - Starting engine creation:");
+		console.log("  - Requested engine type:", engineType || "auto-select");
+		console.log("  - Total duration:", totalDuration);
+		console.log("  - Export settings:", settings);
+
+		let selectedEngineType = engineType;
+		if (!selectedEngineType) {
+			console.log("  - No engine type specified, getting recommendation...");
+			const recommendation = await this.getEngineRecommendation(
+				settings,
+				totalDuration,
+				"medium",
+				tracks
+			);
+			selectedEngineType = recommendation.engineType;
+			console.log("  - Recommended engine:", selectedEngineType);
+			console.log("  - Recommendation reason:", recommendation.reason);
+		}
+
+		console.log(
+			`🏗️ EXPORT ENGINE CREATION: Creating ${selectedEngineType} engine instance`
+		);
+
+		switch (selectedEngineType) {
+			case ExportEngineType.OPTIMIZED:
+				// Import optimized engine dynamically
+				try {
+					const { OptimizedExportEngine } = await import(
+						"./export-engine-optimized"
+					);
+					return new OptimizedExportEngine(
+						canvas,
+						settings,
+						tracks,
+						mediaItems,
+						totalDuration
+					);
+				} catch (error) {
+					debugWarn(
+						"Failed to load optimized engine, falling back to standard:",
+						error
+					);
+					return new ExportEngine(
+						canvas,
+						settings,
+						tracks,
+						mediaItems,
+						totalDuration
+					);
+				}
+
+			case ExportEngineType.FFMPEG:
+				// FFmpeg WASM engine removed - fall back to Standard engine
+				console.log(
+					"🚀 EXPORT ENGINE CREATION: FFmpeg WASM removed, using Standard engine instead"
+				);
+				return new ExportEngine(
+					canvas,
+					settings,
+					tracks,
+					mediaItems,
+					totalDuration
+				);
+
+			case ExportEngineType.CLI:
+				// Native FFmpeg CLI engine (Electron only)
+				console.log(
+					"📌 CLI ENGINE SELECTED - Checking Electron availability..."
+				);
+				if (this.isElectron()) {
+					try {
+						console.log("✅ Electron detected - Loading CLI FFmpeg engine");
+						console.log("  - platform isElectron:", platform().isElectron);
+						console.log(
+							"  - ffmpeg.exportVideoCLI available:",
+							typeof platform().ffmpeg.exportVideoCLI === "function"
+						);
+
+						debugLog(
+							"[ExportEngineFactory] 🚀 Loading CLI FFmpeg engine for Electron"
+						);
+						console.log(
+							"🏗️ EXPORT ENGINE CREATION: Creating CLI engine with effects support"
+						);
+						const { CLIExportEngine } = await import("./export-engine-cli");
+						console.log("✅ CLI Export Engine module loaded successfully");
+
+						// Get effects store for CLI engine
+						const effectsStore = useEffectsStore.getState();
+						console.log("📦 Export: Effects store available:", !!effectsStore);
+
+						const cliEngine = new CLIExportEngine(
+							canvas,
+							settings,
+							tracks,
+							mediaItems,
+							totalDuration,
+							effectsStore // NEW: Pass effects store
+						);
+						console.log(
+							"🚀 SUCCESS: CLI FFmpeg engine created and ready to use"
+						);
+						return cliEngine;
+					} catch (error) {
+						debugError(
+							"[ExportEngineFactory] ❌ Failed to load CLI engine:",
+							error
+						);
+						console.error(
+							"❌ CLI ENGINE FAILED: Falling back to Standard Canvas engine"
+						);
+						console.error(
+							"❌ Reason:",
+							error instanceof Error ? error.message : String(error)
+						);
+						console.error("❌ Full error details:", error);
+						debugLog(
+							"[ExportEngineFactory] 🔄 Falling back to Standard Canvas engine"
+						);
+						// FFmpeg WASM removed - use Standard engine as fallback
+						console.log(
+							"⚠️ FALLBACK: Using Standard Canvas engine instead of FFmpeg"
+						);
+						return new ExportEngine(
+							canvas,
+							settings,
+							tracks,
+							mediaItems,
+							totalDuration
+						);
+					}
+				} else {
+					console.log(
+						"🌐 BROWSER ENVIRONMENT: Using Standard Canvas engine (CLI not available in browser)"
+					);
+					console.log("  - isElectron() returned false");
+					console.log("  - platform isElectron:", platform().isElectron);
+					console.log("  ⚠️ NOT USING FFMPEG - Browser environment detected");
+					debugWarn(
+						"[ExportEngineFactory] ⚠️  CLI engine only available in Electron, using Standard engine for browser"
+					);
+					return new ExportEngine(
+						canvas,
+						settings,
+						tracks,
+						mediaItems,
+						totalDuration
+					);
+				}
+
+			case ExportEngineType.MUXER:
+				// Mediabunny muxer engine (iPad / WebCodecs browsers)
+				try {
+					console.log(
+						"🚀 EXPORT ENGINE CREATION: Creating Muxer (mediabunny) engine"
+					);
+					const { ExportEngineMuxer } = await import("./export-engine-muxer");
+					return new ExportEngineMuxer(
+						canvas,
+						settings,
+						tracks,
+						mediaItems,
+						totalDuration
+					);
+				} catch (error) {
+					debugWarn(
+						"Failed to load muxer engine, falling back to standard:",
+						error
+					);
+					return new ExportEngine(
+						canvas,
+						settings,
+						tracks,
+						mediaItems,
+						totalDuration
+					);
+				}
+
+			case ExportEngineType.WEBCODECS:
+				// Legacy WebCodecs engine — now falls through to muxer or optimized
+				debugLog("WebCodecs engine redirecting to muxer engine");
+				try {
+					const { ExportEngineMuxer } = await import("./export-engine-muxer");
+					return new ExportEngineMuxer(
+						canvas,
+						settings,
+						tracks,
+						mediaItems,
+						totalDuration
+					);
+				} catch (error) {
+					return new ExportEngine(
+						canvas,
+						settings,
+						tracks,
+						mediaItems,
+						totalDuration
+					);
+				}
+
+			case ExportEngineType.REMOTION:
+				// Remotion export engine for timelines with Remotion elements
+				console.log(
+					"🎬 REMOTION ENGINE SELECTED - Creating Remotion export engine..."
+				);
+				try {
+					const { RemotionExportEngine, requiresRemotionExport } = await import(
+						"../remotion/export-engine-remotion"
+					);
+
+					// Verify timeline actually has Remotion elements
+					if (!requiresRemotionExport(tracks)) {
+						console.log(
+							"⚠️ No Remotion elements found, falling back to Standard engine"
+						);
+						return new ExportEngine(
+							canvas,
+							settings,
+							tracks,
+							mediaItems,
+							totalDuration
+						);
+					}
+
+					console.log("✅ Creating Remotion export engine");
+					return new RemotionExportEngine(
+						canvas,
+						settings,
+						tracks,
+						mediaItems,
+						totalDuration
+					);
+				} catch (error) {
+					debugError(
+						"[ExportEngineFactory] Failed to load Remotion engine:",
+						error
+					);
+					console.error(
+						"❌ Remotion engine failed, falling back to Standard engine"
+					);
+					return new ExportEngine(
+						canvas,
+						settings,
+						tracks,
+						mediaItems,
+						totalDuration
+					);
+				}
+
+			default:
+				console.log(
+					"🏗️ EXPORT ENGINE CREATION: Creating Standard Canvas engine (default case)"
+				);
+				return new ExportEngine(
+					canvas,
+					settings,
+					tracks,
+					mediaItems,
+					totalDuration
+				);
+		}
+	}
+
+	/** Check if WebCodecs APIs (VideoEncoder, VideoDecoder, VideoFrame) are available. */
+	private detectWebCodecs(): boolean {
+		return (
+			typeof VideoEncoder !== "undefined" &&
+			typeof VideoDecoder !== "undefined" &&
+			typeof VideoFrame !== "undefined"
+		);
+	}
+
+	/** Check if OffscreenCanvas is available. */
+	private detectOffscreenCanvas(): boolean {
+		return typeof OffscreenCanvas !== "undefined";
+	}
+
+	/** Check if Worker and SharedWorker are available. */
+	private detectWorkers(): boolean {
+		return typeof Worker !== "undefined" && typeof SharedWorker !== "undefined";
+	}
+
+	/** Check if SharedArrayBuffer is available. */
+	private detectSharedArrayBuffer(): boolean {
+		return typeof SharedArrayBuffer !== "undefined";
+	}
+
+	/** Detect device memory in GB (uses navigator.deviceMemory or estimates). */
+	private detectDeviceMemory(): number {
+		// Use navigator.deviceMemory if available (Chrome/Edge)
+		if ("deviceMemory" in navigator) {
+			return (navigator as any).deviceMemory;
+		}
+
+		// Fallback estimation based on other factors
+		const screenPixels = window.screen.width * window.screen.height;
+		const isHighRes = screenPixels > 2_073_600; // > 1920x1080
+		const hardwareConcurrency = navigator.hardwareConcurrency || 4;
+
+		// Rough estimation
+		if (isHighRes && hardwareConcurrency >= 8) {
+			return 16; // High-end device
+		}
+		if (hardwareConcurrency >= 4) {
+			return 8; // Mid-range device
+		}
+		return 4; // Low-end device
+	}
+
+	/** Detect maximum WebGL texture size. */
+	private async detectMaxTextureSize(): Promise<number> {
+		try {
+			const canvas = document.createElement("canvas");
+			const gl =
+				canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+			if (gl) {
+				return (gl as WebGLRenderingContext).getParameter(
+					(gl as WebGLRenderingContext).MAX_TEXTURE_SIZE
+				);
+			}
+		} catch (error) {
+			debugWarn("Failed to detect max texture size:", error);
+		}
+		return 4096; // Safe default
+	}
+
+	/** Detect supported MediaRecorder codecs. */
+	private detectSupportedCodecs(): string[] {
+		const codecs = [
+			"video/webm;codecs=vp9",
+			"video/webm;codecs=vp8",
+			"video/mp4;codecs=h264",
+			"video/mp4;codecs=avc1.42E01E",
+			"video/quicktime",
+		];
+
+		return codecs.filter((codec) => MediaRecorder.isTypeSupported(codec));
+	}
+
+	/** Calculate a 0-100 performance score based on hardware and API support. */
+	private async calculatePerformanceScore(): Promise<number> {
+		let score = 0;
+
+		// Base score from hardware concurrency (0-30 points)
+		const cores = navigator.hardwareConcurrency || 4;
+		score += Math.min(cores * 3, 30);
+
+		// Device memory score (0-25 points)
+		const memoryGB = this.detectDeviceMemory();
+		score += Math.min(memoryGB * 3, 25);
+
+		// Canvas performance test (0-25 points)
+		const canvasScore = await this.testCanvasPerformance();
+		score += canvasScore;
+
+		// Modern API support (0-20 points)
+		if (this.detectWebCodecs()) score += 8;
+		if (this.detectOffscreenCanvas()) score += 6;
+		if (this.detectWorkers()) score += 4;
+		if (this.detectSharedArrayBuffer()) score += 2;
+
+		return Math.min(score, 100);
+	}
+
+	/** Benchmark canvas 2D drawing performance (returns 5-25 score). */
+	private async testCanvasPerformance(): Promise<number> {
+		return new Promise((resolve) => {
+			const canvas = document.createElement("canvas");
+			canvas.width = 1920;
+			canvas.height = 1080;
+			const ctx = canvas.getContext("2d");
+
+			if (!ctx) {
+				resolve(10); // Low score if no 2D context
+				return;
+			}
+
+			const startTime = performance.now();
+
+			// Simple performance test - draw many rectangles
+			for (let i = 0; i < 1000; i++) {
+				ctx.fillStyle = `hsl(${i % 360}, 50%, 50%)`;
+				ctx.fillRect(
+					Math.random() * canvas.width,
+					Math.random() * canvas.height,
+					100,
+					100
+				);
+			}
+
+			const endTime = performance.now();
+			const duration = endTime - startTime;
+
+			// Score based on performance (faster = higher score)
+			// Under 50ms = 25 points, over 200ms = 5 points
+			const score = Math.max(5, Math.min(25, 25 - (duration - 50) * 0.2));
+			resolve(Math.round(score));
+		});
+	}
+
+	/** Estimate memory requirements in GB for the given export settings and duration. */
+	private estimateMemoryRequirements(
+		settings: ExportSettings,
+		duration: number
+	): number {
+		// Simple memory estimation in GB
+		const pixelsPerFrame = settings.width * settings.height;
+		const bytesPerFrame = pixelsPerFrame * 4; // RGBA
+		const framesPerSecond = 30;
+		const totalFrames = duration * framesPerSecond;
+
+		// Estimate buffer overhead (2x for double buffering + overhead)
+		const estimatedBytes = bytesPerFrame * 2.5;
+		return estimatedBytes / (1024 * 1024 * 1024); // Convert to GB
+	}
+
+	/** Get current capabilities (returns cached value or null if not yet detected). */
+	getCurrentCapabilities(): BrowserCapabilities | null {
+		return this.capabilities;
+	}
+
+	/** Force refresh capabilities (clears cache and re-detects). */
+	async refreshCapabilities(): Promise<BrowserCapabilities> {
+		this.capabilities = null;
+		return this.detectCapabilities();
+	}
+
+	/** Check if FFmpeg WASM is available (always false — removed). */
+	static async isFFmpegAvailable(): Promise<boolean> {
+		// Always return false as FFmpeg WASM export is disabled
+		return false;
+	}
+
+	/** Check if running in Electron environment with native FFmpeg CLI. */
+	private isElectron(): boolean {
+		return platform().isElectron;
+	}
+
+	/**
+	 * Detect iOS Simulator where WebCodecs APIs exist but CanvasSource stalls.
+	 * Simulator: Capacitor platform "ios" but navigator.platform is "MacIntel"
+	 * and UA contains "Macintosh" (no "iPad" anywhere).
+	 * Real iPad: UA contains "iPad" or navigator.platform is "iPad".
+	 */
+	private isSimulator(): boolean {
+		const cap = (window as any).Capacitor;
+		if (!cap || cap.getPlatform() !== "ios") return false;
+		// Real iPad: "iPad" in platform/UA, or iPadOS 13+ which reports "MacIntel" with touch
+		const isRealIPad =
+			/iPad/.test(navigator.platform) ||
+			/iPad/.test(navigator.userAgent) ||
+			(navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+		if (!isRealIPad) {
+			console.log(
+				"⚠️ isSimulator: detected iOS Simulator (Capacitor ios + MacIntel platform)"
+			);
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Probe whether WebCodecs VideoEncoder actually works (not just API presence).
+	 * Simulators expose the API but the encoder stalls. This test configures,
+	 * encodes multiple frames, and checks the encoder drains within 3 seconds.
+	 */
+	private async probeWebCodecsEncoder(): Promise<boolean> {
+		try {
+			if (typeof VideoEncoder === "undefined") return false;
+
+			const probeW = 854;
+			const probeH = 480;
+			const support = await VideoEncoder.isConfigSupported({
+				codec: "avc1.42001f",
+				width: probeW,
+				height: probeH,
+				bitrate: 2_500_000,
+				hardwareAcceleration: "no-preference",
+			});
+			if (!support.supported) return false;
+
+			// Encode 10 frames at export resolution to verify the encoder can sustain throughput
+			let outputCount = 0;
+			const encoder = new VideoEncoder({
+				output: () => {
+					outputCount++;
+				},
+				error: () => {},
+			});
+			encoder.configure({
+				codec: "avc1.42001f",
+				width: probeW,
+				height: probeH,
+				bitrate: 2_500_000,
+				hardwareAcceleration: "no-preference",
+			});
+
+			const canvas = new OffscreenCanvas(probeW, probeH);
+			const ctx = canvas.getContext("2d");
+			if (ctx) {
+				ctx.fillStyle = "#ff0000";
+				ctx.fillRect(0, 0, probeW, probeH);
+			}
+
+			for (let i = 0; i < 10; i++) {
+				const frame = new VideoFrame(canvas, {
+					timestamp: i * 33_333,
+				});
+				encoder.encode(frame, { keyFrame: i === 0 });
+				frame.close();
+			}
+
+			try {
+				await Promise.race([
+					encoder.flush(),
+					new Promise((_, reject) =>
+						setTimeout(() => reject(new Error("probe timeout")), 3_000)
+					),
+				]);
+			} finally {
+				try {
+					encoder.close();
+				} catch {
+					// Encoder may already be closed or errored
+				}
+			}
+
+			const ok = outputCount >= 5;
+			console.log(
+				ok
+					? `✅ WebCodecs probe: encoder functional (${outputCount} outputs)`
+					: `⚠️ WebCodecs probe: encoder produced ${outputCount} outputs, insufficient`
+			);
+			return ok;
+		} catch {
+			console.log("⚠️ WebCodecs probe: encoder not functional, falling back");
+			return false;
+		}
+	}
+}

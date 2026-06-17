@@ -1,0 +1,451 @@
+/**
+ * GMI Cloud API Client
+ *
+ * HTTP client for GMI Cloud video generation APIs.
+ * Implements the ProviderClient interface for use with the ProviderRouter.
+ *
+ * Transport resolves in priority order:
+ *  1. Local API key (env `VITE_GMI_API_KEY` or Electron secure storage) — direct call.
+ *  2. QCut session token — relay through the license server (`/api/ai/proxy`,
+ *     `/api/ai/status`). Enables logged-in users without a local key.
+ *  3. Error surfaced to the caller with an actionable sign-in/configure hint.
+ *
+ * When the relay is used, the client also estimates and attaches a credit
+ * amount so the server deducts from the user's QCut balance atomically.
+ * Failed / cancelled / timed-out jobs trigger a refund call so credits
+ * never burn silently.
+ *
+ * API: https://console.gmicloud.ai
+ * Auth: Bearer token (direct) or QCut session (relay).
+ */
+
+import { platform } from "@qcut/platform-core";
+import { useLicenseStore } from "@qcut-app/stores/license-store";
+import { AI_MODELS } from "@qcut-app/components/editor/media-panel/views/ai/constants/ai-constants";
+import { estimateCreditCost } from "../credit-costs";
+import {
+	getSessionToken,
+	proxyStatus,
+	proxySubmit,
+	refundCredits,
+	type ProxySubmitCredits,
+} from "../ai-video/core/license-relay";
+import { InsufficientCreditsError } from "../ai-video/core/relay-errors";
+import type { CreditBalanceInfo } from "../ai-video/core/relay-types";
+import type {
+	ProviderClient,
+	ProviderSubmitResult,
+	ProviderPollResult,
+	ProviderSubmitOptions,
+	ProviderPollOptions,
+} from "../ai-video/core/provider-types";
+
+const GMI_API_BASE =
+	"https://console.gmicloud.ai/api/v1/ie/requestqueue/apikey";
+
+// User-facing. Keep actionable for end users; the developer-only escape
+// hatch (VITE_GMI_API_KEY) is logged to DevTools instead of surfaced here.
+const MISSING_CREDENTIALS_MESSAGE =
+	"GMI unavailable. Please sign in to your QCut account and try again.";
+
+let cachedGmiApiKey: string | null = null;
+
+interface PendingDeduction {
+	credits: ProxySubmitCredits;
+	sessionToken: string;
+}
+
+/**
+ * Pending credit deductions awaiting outcome. Keyed by GMI request ID
+ * so the poll loop can refund on failure without carrying state through
+ * the ProviderClient interface.
+ */
+const pendingRelayDeductions = new Map<string, PendingDeduction>();
+
+/** Retrieve the GMI API key from env or Electron secure storage. */
+async function getGmiApiKey(): Promise<string | undefined> {
+	const envKey = import.meta.env.VITE_GMI_API_KEY;
+	if (envKey) return envKey;
+
+	if (cachedGmiApiKey) return cachedGmiApiKey;
+
+	try {
+		const keys = await platform().apiKeys.get();
+		if (keys?.gmiApiKey) {
+			cachedGmiApiKey = keys.gmiApiKey;
+			return cachedGmiApiKey;
+		}
+	} catch {
+		// Platform not initialized — skip
+	}
+	return undefined;
+}
+
+/** Clear the cached GMI API key. */
+export function clearGmiApiKeyCache(): void {
+	cachedGmiApiKey = null;
+}
+
+/** Exposed for tests — clears the pending-refund tracker. */
+export function clearGmiPendingDeductions(): void {
+	pendingRelayDeductions.clear();
+}
+
+/** GMI API request status shape. */
+interface GmiRequestStatusResponse {
+	request_id?: string;
+	id?: string;
+	status: "queued" | "processing" | "success" | "failed" | "cancelled";
+	outcome?: {
+		video_url?: string;
+		media_urls?: Array<{ id: string; url: string }>;
+		thumbnail_image_url?: string;
+	};
+	error?: string;
+}
+
+/** Sleep utility for polling intervals. */
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function readErrorDetail(response: Response): Promise<string> {
+	const errorData = await response.json().catch(() => ({}));
+	const data = errorData as Record<string, unknown>;
+	return (
+		(data.detail as string | undefined) ||
+		(data.message as string | undefined) ||
+		// The license-server relay shapes its own errors as `{ error: "..." }`
+		// — pick that up so messages like "API key not configured for provider: gmi"
+		// aren't swallowed by the generic statusText fallback.
+		(data.error as string | undefined) ||
+		response.statusText
+	);
+}
+
+/**
+ * Reverse-lookup a renderer modelKey from the GMI endpoint string.
+ *
+ * `providerRouter.submit(endpoint, payload, "gmi")` passes the endpoint
+ * (`"seedance-2-0-260128"`) as the first arg, but `estimateCreditCost`
+ * keys on the renderer modelKey (`"gmi_seedance_2_0_260128_t2v"`). Without
+ * this reverse hop every relay call silently under-bills to 1 credit.
+ *
+ * Searches all endpoint shapes in `AIModel.endpoints` (text_to_video,
+ * image_to_video, text_to_image, clone_voice, etc.) since the same
+ * endpoint might power multiple capability flavours (T2V vs I2V vs
+ * Ref2V for Seedance). First match wins — any of them will share the
+ * same `price` string for the family.
+ */
+function findModelKeyByEndpoint(endpoint: string): string | undefined {
+	for (const model of AI_MODELS) {
+		const endpoints = model.endpoints as Record<string, string> | undefined;
+		if (!endpoints) continue;
+		for (const value of Object.values(endpoints)) {
+			if (value === endpoint) return model.id;
+		}
+	}
+	return undefined;
+}
+
+/**
+ * Build the credit entry the relay attaches to a submit. Returns
+ * `undefined` when the model is missing a pricing entry or duration
+ * doesn't apply (`estimateCreditCost` falls back to 1 for unknowns,
+ * but we'd rather not deduct anything we can't explain to the user).
+ */
+function buildCreditsForModel(
+	endpoint: string,
+	payload: Record<string, unknown>
+): ProxySubmitCredits | undefined {
+	const duration = Number(payload.duration);
+	const durationSeconds =
+		Number.isFinite(duration) && duration > 0 ? duration : undefined;
+
+	const modelKey = findModelKeyByEndpoint(endpoint) ?? endpoint;
+	const amount = estimateCreditCost(modelKey, { durationSeconds });
+	if (!Number.isFinite(amount) || amount <= 0) return undefined;
+	return {
+		amount,
+		modelKey,
+		description: `GMI — ${modelKey}${
+			durationSeconds ? ` (${durationSeconds}s)` : ""
+		}`,
+	};
+}
+
+/** Parse the balance payload the server sends on 402 and happy paths. */
+function parseBalanceFromResponse(
+	data: unknown
+): CreditBalanceInfo | undefined {
+	if (!data || typeof data !== "object") return undefined;
+	const credits = (data as Record<string, unknown>).credits;
+	if (!credits || typeof credits !== "object") return undefined;
+	const obj = credits as Record<string, unknown>;
+	if (
+		typeof obj.planCredits === "number" &&
+		typeof obj.topUpCredits === "number" &&
+		typeof obj.totalCredits === "number" &&
+		typeof obj.planCreditsResetAt === "string"
+	) {
+		return obj as unknown as CreditBalanceInfo;
+	}
+	return undefined;
+}
+
+function scheduleRefund(
+	credits: ProxySubmitCredits,
+	reason: string,
+	sessionToken: string
+): void {
+	// Fire and forget — never throw from this path, otherwise a refund
+	// failure would mask the underlying provider error.
+	refundCredits({
+		amount: credits.amount,
+		modelKey: credits.modelKey,
+		description: `${credits.description} — refund (${reason})`,
+		sessionToken,
+	})
+		.then(() => {
+			// Re-sync balance so the UI reflects the refund.
+			useLicenseStore
+				.getState()
+				.checkLicense()
+				.catch(() => {
+					/* ignore */
+				});
+		})
+		.catch((error) => {
+			console.warn("[gmi-client] refund call failed:", error);
+		});
+}
+
+/** GMI Cloud provider client. */
+export const gmiClient: ProviderClient = {
+	name: "gmi",
+
+	async isAvailable(): Promise<boolean> {
+		if (await getGmiApiKey()) return true;
+		const token = await getSessionToken();
+		return token.length > 0;
+	},
+
+	async submit(
+		model: string,
+		payload: Record<string, unknown>,
+		options?: ProviderSubmitOptions
+	): Promise<ProviderSubmitResult> {
+		const apiKey = await getGmiApiKey();
+		const body = { model, payload };
+
+		let response: Response;
+		let relayCredits: ProxySubmitCredits | undefined;
+		let sessionTokenForRefund = "";
+
+		if (apiKey) {
+			response = await fetch(`${GMI_API_BASE}/requests`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${apiKey}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(body),
+				signal: options?.signal,
+			});
+		} else {
+			const sessionToken = await getSessionToken();
+			if (!sessionToken) {
+				throw new Error(MISSING_CREDENTIALS_MESSAGE);
+			}
+			sessionTokenForRefund = sessionToken;
+			relayCredits = buildCreditsForModel(model, payload);
+			response = await proxySubmit({
+				provider: "gmi",
+				endpoint: `${GMI_API_BASE}/requests`,
+				method: "POST",
+				body,
+				signal: options?.signal,
+				sessionToken,
+				credits: relayCredits,
+			});
+		}
+
+		if (response.status === 402 && relayCredits) {
+			const errorBody = await response.json().catch(() => ({}));
+			throw new InsufficientCreditsError({
+				required: relayCredits.amount,
+				balance: parseBalanceFromResponse(errorBody),
+				modelKey: model,
+			});
+		}
+
+		if (!response.ok) {
+			const detail = await readErrorDetail(response);
+			// Relay deducts atomically before forwarding (ai-proxy.ts:88-115), so
+			// a provider-side error leaves the deduction orphaned. The server's
+			// refund cap rejects refunds exceeding actual deductions, so
+			// pre-deduction relay errors (400/403/413/503) are safely no-ops.
+			if (relayCredits && sessionTokenForRefund) {
+				scheduleRefund(
+					relayCredits,
+					"submit-http-error",
+					sessionTokenForRefund
+				);
+			}
+			throw new Error(`GMI API error (${response.status}): ${detail}`);
+		}
+
+		// GMI Cloud returns `request_id` (snake_case); some older responses used
+		// `id`. Accept either — matches the native-pipeline parser at
+		// `electron/native-pipeline/infra/api-caller.ts:753-757`.
+		const result = (await response.json()) as {
+			request_id?: string;
+			id?: string;
+		};
+		const requestId = result.request_id ?? result.id;
+		if (!requestId) {
+			// Deduction happened server-side but we can't correlate it to a
+			// request — refund immediately so the user isn't charged for a
+			// black-hole submit.
+			if (relayCredits && sessionTokenForRefund) {
+				scheduleRefund(relayCredits, "no-request-id", sessionTokenForRefund);
+			}
+			throw new Error("GMI API returned no request ID");
+		}
+
+		if (relayCredits && sessionTokenForRefund) {
+			pendingRelayDeductions.set(requestId, {
+				credits: relayCredits,
+				sessionToken: sessionTokenForRefund,
+			});
+			// Fire-and-forget license refresh so the renderer's balance chip
+			// reflects the deduction. Errors are non-critical — the next
+			// checkLicense() call picks up the ground truth.
+			useLicenseStore
+				.getState()
+				.checkLicense()
+				.catch(() => {
+					/* ignore */
+				});
+		}
+		return { requestId, provider: "gmi" };
+	},
+
+	async poll(
+		requestId: string,
+		options?: ProviderPollOptions
+	): Promise<ProviderPollResult> {
+		const apiKey = await getGmiApiKey();
+		const sessionToken = apiKey ? "" : await getSessionToken();
+
+		if (!apiKey && !sessionToken) {
+			throw new Error(MISSING_CREDENTIALS_MESSAGE);
+		}
+
+		const maxAttempts = options?.maxAttempts ?? 360;
+		const intervalMs = options?.pollIntervalMs ?? 5000;
+
+		const finish = (
+			result: ProviderPollResult,
+			reason: "provider-failed" | "poll-http-error" = "provider-failed"
+		): ProviderPollResult => {
+			const pending = pendingRelayDeductions.get(requestId);
+			pendingRelayDeductions.delete(requestId);
+			if (pending && result.status === "failed") {
+				scheduleRefund(pending.credits, reason, pending.sessionToken);
+			}
+			return result;
+		};
+
+		for (let attempt = 0; attempt < maxAttempts; attempt++) {
+			let response: Response;
+			try {
+				response = apiKey
+					? await fetch(`${GMI_API_BASE}/requests/${requestId}`, {
+							method: "GET",
+							headers: { Authorization: `Bearer ${apiKey}` },
+							signal: options?.signal,
+						})
+					: await proxyStatus({
+							provider: "gmi",
+							requestId,
+							signal: options?.signal,
+							sessionToken,
+						});
+			} catch (error) {
+				// Network error / AbortError — refund the deduction so a
+				// transient connection blip doesn't burn the user's credits.
+				finish(
+					{
+						status: "failed",
+						error:
+							error instanceof Error
+								? `GMI poll transport error: ${error.message}`
+								: "GMI poll transport error",
+					},
+					"poll-http-error"
+				);
+				throw error;
+			}
+
+			if (!response.ok) {
+				// HTTP 4xx/5xx — refund before surfacing the error so a
+				// provider-side 5xx doesn't leave the deduction orphaned in
+				// `pendingRelayDeductions` (which is lost on page reload).
+				const err = new Error(
+					`GMI poll failed (${response.status}): ${response.statusText}`
+				);
+				finish(
+					{
+						status: "failed",
+						error: err.message,
+					},
+					"poll-http-error"
+				);
+				throw err;
+			}
+
+			const data = (await response.json()) as GmiRequestStatusResponse;
+
+			const normalized: ProviderPollResult = {
+				status:
+					data.status === "success"
+						? "completed"
+						: data.status === "cancelled"
+							? "failed"
+							: data.status,
+				videoUrl: data.outcome?.video_url || data.outcome?.media_urls?.[0]?.url,
+				thumbnailUrl: data.outcome?.thumbnail_image_url,
+				error: data.error,
+			};
+
+			if (data.status === "processing") {
+				normalized.progress = Math.min(
+					90,
+					Math.round((attempt / maxAttempts) * 90)
+				);
+			}
+
+			if (normalized.status === "completed" || normalized.status === "failed") {
+				if (normalized.status === "completed") {
+					normalized.progress = 100;
+				}
+				if (options?.onProgress) {
+					options.onProgress(normalized);
+				}
+				return finish(normalized);
+			}
+
+			if (options?.onProgress) {
+				options.onProgress(normalized);
+			}
+
+			await sleep(intervalMs);
+		}
+
+		return finish({
+			status: "failed",
+			error: `GMI request ${requestId} timed out after ${maxAttempts} attempts`,
+		});
+	},
+};

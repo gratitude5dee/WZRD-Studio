@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "noImplicitAny": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@qcut-app/*": [
+        "./src/qcut/app/*"
+      ],
+      "@qcut/editor-core": [
+        "./src/qcut/editor-core/index.ts"
+      ],
+      "@qcut/platform-core": [
+        "./src/qcut/platform/core/index.ts"
+      ],
+      "@qcut/platform-web": [
+        "./src/qcut/platform/web/index.ts"
+      ],
+      "@qcut/platform-desktop": [
+        "./src/qcut/platform/desktop/index.ts"
+      ],
+      "react-dnd": [
+        "./src/lib/react-dnd"
+      ]
+    },
+    "skipLibCheck": true,
+    "strictNullChecks": false
+  },
+  "files": [],
+  "references": [
+    {
+      "path": "./tsconfig.app.json"
+    },
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
+}

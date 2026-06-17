@@ -1,0 +1,45 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+release
+# electron-builder outputs that can be multiple gigabytes; keep them out of git
+release-*/
+coverage
+playwright-report
+test-results
+supabase/.temp/
+build/icon.iconset
+*.local
+.env
+.env.*
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# AutoCode local artifacts
+.autocode-logs/
+# stray build artifacts sometimes emitted at repo root
+MobileSidebarDrawer-*.js
+Sidebar-*.js
+worldlabsedit.mp4
+.autocode/
+
+# local git history backups (created during repo re-initialization)
+.git.backup-*
