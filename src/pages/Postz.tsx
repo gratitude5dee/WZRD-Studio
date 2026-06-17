@@ -9,7 +9,6 @@ import { Sidebar } from "@/components/home/Sidebar";
 import { ChannelRail } from "@/components/postz/ChannelRail";
 import { PostComposer } from "@/components/postz/PostComposer";
 import { PostzCalendar } from "@/components/postz/PostzCalendar";
-import { PostzGoalDialog } from "@/components/postz/PostzGoalDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -151,8 +150,6 @@ export default function Postz() {
                 <Plus className="mr-2 h-4 w-4" />
                 New post
               </Button>
-
-              <PostzGoalDialog />
 
               <Button
                 type="button"
