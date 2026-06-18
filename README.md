@@ -1,48 +1,68 @@
-# WZRD.Studio Desktop v0
+# WZRD Studio Desktop (macOS)
 
-WZRD Studio Desktop is the packaged macOS build of WZRD, an AI creative studio for moving from concept to storyline, node-based generation, editing, and final delivery in one workflow.
+WZRD Studio Desktop is the packaged macOS build of **WZRD**, an AI creative studio for moving from concept → storyline → node-based generation → editing → final delivery in one workflow.
 
-This repository contains the React/Vite renderer, Electron shell, Supabase edge functions, and desktop deep-link/auth plumbing for the v0 desktop release.
+This repo contains:
 
-## Download
+- React/Vite renderer
+- Electron shell (desktop deep-links + desktop-friendly auth)
+- Supabase Edge Functions + migrations (including Postz)
 
-### macOS Apple Silicon
+---
 
-[Download WZRD Studio v0.0.0 DMG](https://github.com/gratitude5dee/WZRD.Studio-Desktop-v0/releases/download/v0.0.0/WZRD-Studio-0.0.0-arm64.dmg)
+## Highlights / Features
 
-- Architecture: Apple Silicon (`arm64`)
-- File size: approximately 226 MB
-- SHA-256: `26a34dc61c41bf1e0a1e17c8783488974d58f3f0b8efb22a31204c383241736f`
-- Release page: [WZRD Studio Desktop v0.0.0](https://github.com/gratitude5dee/WZRD.Studio-Desktop-v0/releases/tag/v0.0.0)
+- **Studio canvas**: node-based generation workflows (React Flow)
+- **Video editing + preview**: Remotion-powered editor pipeline
+- **Desktop deep-link support**: `wzrd://...` routes handled by Electron
+- **Desktop auth plumbing**: Thirdweb in-app wallet auth bridged into Supabase sessions
+- **Postz (social scheduler)**:
+  - OAuth channel connect flow that returns to the desktop app via deep-link
+  - Multi-channel composer + per-channel validation
+  - Calendar view with drag/move + state filters (Draft / Queue / Publishing / Published / Error)
+  - Attach media from project assets
 
-The current DMG is unsigned. If macOS blocks the first launch, open **System Settings > Privacy & Security**, find the WZRD Studio notice, and select **Open Anyway**.
+---
 
-## Highlights
+## Install (DMG)
 
-- Electron desktop app with `wzrd://` deep-link support
-- Thirdweb in-app wallet auth bridged into Supabase sessions
-- Google/Thirdweb browser auth return support for packaged desktop builds
-- React Flow studio canvas for AI generation workflows
-- Remotion-powered video editor and preview pipeline
-- Supabase backend with edge functions, storage, auth, and realtime data
-- Integrations for fal.ai, GMI Cloud, Groq, Lovable AI Gateway, ElevenLabs, Thirdweb, and Story Protocol components
+This project currently builds an **unsigned** DMG named:
 
-## Desktop Auth Flow
+```text
+wzrdstudiofinal555-apfs.dmg
+```
 
-Desktop social auth uses Thirdweb v5 in `auth.mode = "window"` so Google sign-in can complete in the system browser. The callback returns through:
+### Install steps
+
+1. Download (or build) the DMG.
+2. Double-click `wzrdstudiofinal555-apfs.dmg` to mount it.
+3. Drag **WZRD Studio.app** into **Applications**.
+4. Eject the mounted DMG.
+
+### First launch (Gatekeeper)
+
+Because the DMG is unsigned/notarized, macOS may block the first launch.
+
+Try one of these:
+
+- **Right-click** (or Control-click) **WZRD Studio.app** → **Open** → confirm.
+- Or go to **System Settings → Privacy & Security** and choose **Open Anyway** for WZRD Studio.
+
+---
+
+## Desktop deep-links
+
+Auth callback:
 
 ```text
 wzrd://auth/thirdweb
 ```
 
-Electron maps that callback into the renderer login route and preserves only the Thirdweb SDK callback parameters required for auto-connect:
+Postz channel connect callback:
 
-- `authResult`
-- `authCookie`
-- `walletId`
-- `authProvider`
-
-The app stores a sanitized `next` route locally before auth starts, consumes it after successful Supabase wallet auth, and falls back to `/home`.
+```text
+wzrd://postz/connected
+```
 
 Desktop deep-link diagnostics are written with auth values redacted:
 
@@ -50,13 +70,16 @@ Desktop deep-link diagnostics are written with auth values redacted:
 ~/Library/Logs/WZRD Studio/desktop.log
 ```
 
+---
+
 ## Requirements
 
-- macOS on Apple Silicon for the current packaged target
+- macOS (Apple Silicon / `arm64` for the current packaged target)
 - Bun
 - Node.js compatible with the project toolchain
-- Supabase project credentials
-- Thirdweb client configuration
+- Supabase project credentials (and any provider keys you use)
+
+---
 
 ## Environment
 
@@ -68,7 +91,9 @@ VITE_SUPABASE_ANON_KEY=<anon-key>
 VITE_THIRDWEB_CLIENT_ID=<thirdweb-client-id>
 ```
 
-Additional provider keys may be required depending on which generation workflows you run.
+Additional provider keys may be required depending on which generation workflows or Postz providers you enable.
+
+---
 
 ## Development
 
@@ -90,6 +115,8 @@ Start the Electron desktop app in development:
 bun run desktop:dev
 ```
 
+---
+
 ## Verification
 
 Run targeted unit tests:
@@ -110,13 +137,9 @@ Run lint:
 bun run lint
 ```
 
-Build the web renderer:
+---
 
-```bash
-bun run build
-```
-
-## Packaging
+## Packaging (build the APFS DMG)
 
 Build the macOS Apple Silicon DMG:
 
@@ -124,19 +147,21 @@ Build the macOS Apple Silicon DMG:
 bun run desktop:dist:mac
 ```
 
-The local output is written to:
+Outputs:
 
 ```text
-release/WZRD-Studio-0.0.0-arm64.dmg
+release/wzrdstudiofinal555-apfs.dmg
 release/mac-arm64/WZRD Studio.app
 ```
 
-Published builds are available from [GitHub Releases](https://github.com/gratitude5dee/WZRD.Studio-Desktop-v0/releases).
+> Note: the DMG build is forced to **APFS** via `hdiutil` to avoid issues observed with HFS+ DMGs on this machine.
 
-## Repo Notes
+---
 
-- Generated build outputs are ignored: `dist/`, `release/`, and test artifacts.
-- Supabase generated types should not be edited by hand.
-- Edge functions live in `supabase/functions/`.
-- Desktop shell code lives in `electron/`.
-- Renderer app code lives in `src/`.
+## Repo notes
+
+- Generated build outputs are ignored (for example: `dist/`, `release/`)
+- Desktop shell code lives in `electron/`
+- Renderer app code lives in `src/`
+- Supabase Edge Functions live in `supabase/functions/`
+- Supabase migrations live in `supabase/migrations/`

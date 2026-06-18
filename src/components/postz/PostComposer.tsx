@@ -1,20 +1,19 @@
-import { CalendarClock, ChevronDown, Loader2, Sparkles, Trash2, Wand2 } from "lucide-react";
+import { Loader2, Trash2, Wand2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
 import type { ProjectAsset } from "@/types/assets";
 import type { PostzChannel, PostzGroup, PostzMediaRef, PostzPerChannelValidation, PostzPostGroupCreateInput, PostzPostState } from "@/types/postz";
 import { MediaPicker } from "@/components/postz/MediaPicker";
+import { PostPreview } from "@/components/postz/PostPreview";
+import { SchedulePopover } from "@/components/postz/SchedulePopover";
 import { providerLabel } from "@/components/postz/postzMeta";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   useCreatePostzGroup,
@@ -23,17 +22,6 @@ import {
   useUpdatePostzGroup,
   useValidatePostzGroup,
 } from "@/hooks/usePostz";
-
-function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
-}
-
-function toDateInputValue(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function mergeDateAndTime(date: Date, timeValue: string): Date {
   const [hh, mm] = timeValue.split(":").map((v) => Number(v));
@@ -85,6 +73,7 @@ export function PostComposer({
   channels,
   assets,
   initialDate,
+  initialMedia,
   editingGroup,
 }: {
   open: boolean;
@@ -92,6 +81,7 @@ export function PostComposer({
   channels: PostzChannel[];
   assets: ProjectAsset[];
   initialDate: Date;
+  initialMedia?: PostzMediaRef[];
   editingGroup?: PostzGroup | null;
 }) {
   const createMutation = useCreatePostzGroup();
@@ -150,13 +140,13 @@ export function PostComposer({
     setState("DRAFT");
     setGlobalContent("");
     setGlobalTitle(null);
-    setGlobalMedia([]);
+    setGlobalMedia(initialMedia ?? []);
     setOverrides({});
     setPublishDate(initialDate);
     setTimeValue(`${String(initialDate.getHours()).padStart(2, "0")}:${String(initialDate.getMinutes()).padStart(2, "0")}`);
     setTab("global");
     setValidation([]);
-  }, [open, channels, initialDate, editingGroup]);
+  }, [open, channels, initialDate, initialMedia, editingGroup]);
 
   useEffect(() => {
     setOverrides((current) => {
@@ -169,6 +159,13 @@ export function PostComposer({
   }, [selectedChannelIds]);
 
   const publishDateWithTime = useMemo(() => mergeDateAndTime(publishDate, timeValue), [publishDate, timeValue]);
+
+  const assetsById = useMemo(() => new Map(assets.map((asset) => [asset.id, asset])), [assets]);
+
+  const getContentForChannel = (channelId: string) => {
+    const override = overrides[channelId] ?? {};
+    return String(override.content ?? globalContent).trim();
+  };
 
   const groupInput = useMemo(() => {
     return buildGroupInput({
@@ -247,6 +244,9 @@ export function PostComposer({
       <DialogContent className="max-w-4xl border-white/10 bg-[#0b0d13] text-zinc-100">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit post" : "New post"}</DialogTitle>
+          <DialogDescription className="text-zinc-500">
+            Compose a multi-channel post. Phase 2 uses seeded demo channels and a mock publish pipeline.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -287,7 +287,7 @@ export function PostComposer({
                   const issues = perChannelValidation.get(id)?.issues ?? [];
                   const hasError = issues.some((i) => i.level === "error");
                   return (
-                    <TabsTrigger key={id} value={id} className={cn(hasError && "text-red-200")}> 
+                    <TabsTrigger key={id} value={id} className={cn(hasError && "text-red-200")}>
                       {providerLabel(channel.provider)}
                     </TabsTrigger>
                   );
@@ -344,75 +344,16 @@ export function PostComposer({
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-white/10 bg-black/20 px-3 py-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <CalendarClock className="h-4 w-4 text-orange-200" />
-                      <span className="text-sm font-medium text-zinc-100">{formatDateTime(publishDateWithTime)}</span>
-                      <Badge variant="secondary" className="border-white/10 bg-white/5 text-zinc-300">
-                        {state === "QUEUE" ? "Scheduled" : "Draft"}
-                      </Badge>
-                    </div>
-                    <div className="mt-1 text-xs text-zinc-500">Click to change the date/time.</div>
-                  </div>
-
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        className="border-white/10 bg-white/5 text-zinc-100 hover:bg-white/10"
-                      >
-                        Edit schedule
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[320px] border-white/10 bg-[#0b0d13] p-3 text-zinc-100">
-                      <Calendar
-                        mode="single"
-                        selected={publishDate}
-                        onSelect={(next) => next && setPublishDate(next)}
-                        className="rounded-md border border-white/10"
-                      />
-                      <div className="mt-3 grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-xs text-zinc-500">Date</Label>
-                          <Input
-                            value={toDateInputValue(publishDate)}
-                            onChange={(event) => {
-                              const [yy, mm, dd] = event.target.value.split("-").map((v) => Number(v));
-                              if (!yy || !mm || !dd) return;
-                              setPublishDate(new Date(yy, mm - 1, dd));
-                            }}
-                            className="mt-1 border-white/10 bg-black/20 text-zinc-100"
-                            type="date"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-zinc-500">Time</Label>
-                          <Input
-                            value={timeValue}
-                            onChange={(event) => setTimeValue(event.target.value)}
-                            className="mt-1 border-white/10 bg-black/20 text-zinc-100"
-                            type="time"
-                          />
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="secondary"
-                        className="mt-3 w-full border-white/10 bg-white/5 text-zinc-100 hover:bg-white/10"
-                        onClick={handleRecommended}
-                        disabled={slotMutation.isPending}
-                      >
-                        {slotMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                        Recommended slot
-                      </Button>
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                <SchedulePopover
+                  state={state}
+                  publishDate={publishDate}
+                  publishDateWithTime={publishDateWithTime}
+                  timeValue={timeValue}
+                  onPublishDateChange={setPublishDate}
+                  onTimeValueChange={setTimeValue}
+                  onRecommendedSlot={handleRecommended}
+                  recommendedLoading={slotMutation.isPending}
+                />
 
                 <div className="rounded-lg border border-white/10 bg-black/20 p-3">
                   <div className="flex items-center justify-between gap-3">
@@ -438,11 +379,31 @@ export function PostComposer({
                     </div>
                   ) : (
                     <ul className="mt-3 space-y-2">
-                      {globalMedia.map((media) => (
-                        <li key={media.asset_id} className="rounded-md border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-zinc-300">
-                          {media.asset_id}
-                        </li>
-                      ))}
+                      {globalMedia.map((media) => {
+                        const asset = assetsById.get(media.asset_id);
+                        const label = asset?.original_file_name ?? asset?.file_name ?? media.asset_id;
+                        const sizeLabel = asset?.file_size_bytes ? `${Math.round(asset.file_size_bytes / 1024 / 1024)} MB` : null;
+
+                        return (
+                          <li
+                            key={media.asset_id}
+                            className="flex items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.03] px-3 py-2"
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate text-xs font-medium text-zinc-200">{label}</div>
+                              <div className="text-[11px] text-zinc-500">{sizeLabel ?? media.mime_type ?? ""}</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setGlobalMedia((current) => current.filter((item) => item.asset_id !== media.asset_id))}
+                              className="rounded-md border border-white/10 bg-black/20 p-1 text-zinc-300 hover:bg-black/30"
+                              aria-label="Remove media"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>
@@ -539,29 +500,7 @@ export function PostComposer({
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-lg border border-white/10 bg-black/20 p-4">
-              <div className="text-sm font-semibold text-zinc-100">Preview (Phase 2)</div>
-              <p className="mt-1 text-xs text-zinc-500">Lightweight previews. Platform-accurate previews land in Phase 3+.</p>
-              <div className="mt-4 space-y-2">
-                {selectedChannelIds.map((id) => {
-                  const channel = channels.find((ch) => ch.id === id);
-                  if (!channel) return null;
-                  const override = overrides[id] ?? {};
-                  const content = (override.content ?? globalContent).trim();
-                  return (
-                    <div key={id} className="rounded-md border border-white/10 bg-white/[0.03] p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-medium text-zinc-200">{providerLabel(channel.provider)}</span>
-                        <Badge variant="secondary" className="border-white/10 bg-white/5 text-zinc-300">
-                          {content.length} chars
-                        </Badge>
-                      </div>
-                      <div className="mt-2 line-clamp-4 text-xs text-zinc-300">{content || "(empty)"}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <PostPreview channels={channels} channelIds={selectedChannelIds} getContent={getContentForChannel} />
 
             {validation.length > 0 && hasBlockingIssues(validation) && (
               <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">

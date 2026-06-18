@@ -5,6 +5,8 @@ import {
   type PostzPerChannelValidation,
   type PostzPost,
   type PostzPostGroupCreateInput,
+  type PostzOAuthProviderSummary,
+  type PostzOAuthTarget,
 } from "@/types/postz";
 
 type InvokeBody =
@@ -60,9 +62,37 @@ async function invokePostzChannels<T>(body: { action: "list" | "seed" }): Promis
   return data as T;
 }
 
+type OAuthInvokeBody =
+  | { action: "list-providers" }
+  | { action: "start"; provider: string; redirect?: string | null }
+  | { action: "list-targets"; provider: string; state_id: string }
+  | { action: "finalize"; provider: string; state_id: string; target_id: string };
+
+async function invokePostzOauth<T>(body: OAuthInvokeBody): Promise<T> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const accessToken = sessionData.session?.access_token;
+
+  const { data, error } = await supabase.functions.invoke("postz-oauth", {
+    body,
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!data) {
+    throw new Error("Postz returned an empty response.");
+  }
+
+  return data as T;
+}
+
 export const postzQueryKeys = {
+  oauthTargets: (provider: string, stateId: string) => ["postz", "oauth", "targets", provider, stateId] as const,
   channels: ["postz", "channels"] as const,
-  postsWindow: (from: string, to: string) => ["postz", "posts", "window", from, to] as const,
+  oauthProviders: ["postz", "oauth", "providers"] as const,
+  postsWindow: (from: string, to: string, state: string | null) => ["postz", "posts", "window", from, to, state] as const,
   postGroup: (groupId: string) => ["postz", "posts", "group", groupId] as const,
 } as const;
 
@@ -77,6 +107,40 @@ export const postzService = {
     const res = await invokePostzChannels<{ channels: PostzChannel[] }>({ action: "seed" });
     return res.channels;
   },
+
+
+  // OAuth (Phase 3)
+  async listOauthProviders(): Promise<PostzOAuthProviderSummary[]> {
+    const res = await invokePostzOauth<{ providers: PostzOAuthProviderSummary[] }>({ action: "list-providers" });
+    return res.providers;
+  },
+
+  async startOauth(input: { provider: string; redirect?: string | null }): Promise<{ url: string }> {
+    return invokePostzOauth<{ url: string }>({
+      action: "start",
+      provider: input.provider,
+      redirect: input.redirect ?? null,
+    });
+  },
+
+  async listOauthTargets(input: { provider: string; state_id: string }): Promise<PostzOAuthTarget[]> {
+    const res = await invokePostzOauth<{ targets: PostzOAuthTarget[] }>({
+      action: "list-targets",
+      provider: input.provider,
+      state_id: input.state_id,
+    });
+    return res.targets;
+  },
+
+  async finalizeOauthTarget(input: { provider: string; state_id: string; target_id: string }): Promise<{ channel_id: string }> {
+    return invokePostzOauth<{ channel_id: string }>({
+      action: "finalize",
+      provider: input.provider,
+      state_id: input.state_id,
+      target_id: input.target_id,
+    });
+  },
+
 
   // Posts
   async listPostsWindow(input: { from: string; to: string; state?: string | null }): Promise<PostzPost[]> {

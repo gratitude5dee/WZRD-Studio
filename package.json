@@ -13,7 +13,7 @@
     "preview": "vite preview",
     "desktop:dev": "node scripts/desktop-dev.mjs",
     "desktop:build": "bun run build",
-    "desktop:dist:mac": "bun run desktop:build && bun x electron-builder --mac dmg --arm64",
+    "desktop:dist:mac": "bun run desktop:build && bun x electron-builder --mac dir --arm64 && node scripts/build-apfs-dmg.mjs",
     "desktop:test": "bun run desktop:build && playwright test -c playwright.electron.config.ts",
     "test:e2e": "VITE_USE_MOCK_ASSETS=true VITE_BYPASS_AUTH_FOR_TESTS=true playwright test tests/e2e tests/performance.spec.ts",
     "test:daytona-relay": "bun run --cwd packages/wzrd-agent-relay test",
@@ -24,7 +24,7 @@
   "build": {
     "appId": "com.wzrd.studio",
     "productName": "WZRD Studio",
-    "artifactName": "wzrdstudio555.${ext}",
+    "artifactName": "wzrdstudiofinal555.${ext}",
     "afterPack": "scripts/electron-builder-afterPack.mjs",
     "asar": true,
     "asarUnpack": [
@@ -69,7 +69,7 @@
       }
     },
     "dmg": {
-      "artifactName": "wzrdstudio555.${ext}"
+      "artifactName": "wzrdstudiofinal555.${ext}"
     }
   },
   "dependencies": {
@@ -191,14 +191,14 @@
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.0",
     "@testing-library/user-event": "^14.5.2",
-    "@types/node": "^22.5.5",
     "@types/html2canvas": "^1.0.0",
+    "@types/node": "^22.5.5",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
     "electron": "^42.0.0",
-    "electron-builder": "^26.8.1",
+    "electron-builder": "26.12.1",
     "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",

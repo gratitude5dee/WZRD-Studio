@@ -14,6 +14,18 @@ export type PostzProvider =
   | "mastodon"
   | (string & {});
 
+export type PostzOAuthProviderSummary = {
+  identifier: PostzProvider;
+  name: string;
+  configured: boolean;
+};
+
+export type PostzOAuthTarget = {
+  id: string;
+  name: string;
+  meta?: Record<string, unknown>;
+};
+
 export type PostzChannelStatus = "connected" | "needs_reauth" | "disabled" | "error";
 
 export type PostzPostState = "DRAFT" | "QUEUE" | "PUBLISHING" | "PUBLISHED" | "ERROR";

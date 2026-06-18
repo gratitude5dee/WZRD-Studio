@@ -50,4 +50,31 @@ describe("deep links", () => {
       "wzrd://app/settings/billing?checkout=cancel",
     );
   });
+
+  it("routes Postz OAuth completion links to /postz and preserves only safe params", () => {
+    const result = resolveDeepLinkToAppUrlWithDiagnostics(
+      "wzrd://postz/connected?provider=x&channel=abc123&status=success&secret=drop-me",
+    );
+
+    expect(result.appUrl).toBe("wzrd://app/postz?connected=1&provider=x&channel=abc123&status=success");
+    expect(result.diagnostics).toMatchObject({
+      droppedParamNames: ["secret"],
+      rawRoute: "postz/connected",
+    });
+  });
+
+  it("routes Postz OAuth needs_target links to /postz and preserves only safe params", () => {
+    const stateId = "123e4567-e89b-12d3-a456-426614174000";
+    const result = resolveDeepLinkToAppUrlWithDiagnostics(
+      `wzrd://postz/connected?provider=instagram&status=needs_target&state_id=${stateId}&secret=drop-me`,
+    );
+
+    expect(result.appUrl).toBe(
+      `wzrd://app/postz?connected=1&provider=instagram&status=needs_target&state_id=${stateId}`,
+    );
+    expect(result.diagnostics).toMatchObject({
+      droppedParamNames: ["secret"],
+      rawRoute: "postz/connected",
+    });
+  });
 });

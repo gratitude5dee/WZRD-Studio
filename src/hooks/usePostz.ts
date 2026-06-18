@@ -8,7 +8,9 @@ export const POSTZ_QUERY_KEYS = {
   all: ["postz"] as const,
   channels: () => postzQueryKeys.channels,
   postWindows: () => ["postz", "posts", "window"] as const,
-  window: (from: string, to: string) => postzQueryKeys.postsWindow(from, to),
+  oauthProviders: () => postzQueryKeys.oauthProviders,
+  oauthTargets: (provider: string, stateId: string) => postzQueryKeys.oauthTargets(provider, stateId),
+  window: (from: string, to: string, state: string | null) => postzQueryKeys.postsWindow(from, to, state),
   groups: () => ["postz", "posts", "group"] as const,
   group: (groupId: string) => postzQueryKeys.postGroup(groupId),
 };
@@ -36,9 +38,51 @@ export function useSeedPostzChannels() {
   });
 }
 
+export function usePostzOauthProviders(options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: POSTZ_QUERY_KEYS.oauthProviders(),
+    queryFn: () => postzService.listOauthProviders(),
+    staleTime: 60_000,
+    enabled: options?.enabled ?? true,
+  });
+}
+
+export function useStartPostzOauth() {
+  return useMutation({
+    mutationFn: (provider: string) => postzService.startOauth({ provider }),
+    onError: (error: Error) => {
+      toast.error("Unable to start OAuth", { description: error.message });
+    },
+  });
+}
+
+export function usePostzOauthTargets(input: { provider: string; state_id: string; enabled?: boolean }) {
+  return useQuery({
+    queryKey: POSTZ_QUERY_KEYS.oauthTargets(input.provider, input.state_id),
+    queryFn: () => postzService.listOauthTargets({ provider: input.provider, state_id: input.state_id }),
+    staleTime: 10_000,
+    enabled: input.enabled ?? true,
+  });
+}
+
+export function useFinalizePostzOauthTarget() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { provider: string; state_id: string; target_id: string }) => postzService.finalizeOauthTarget(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: POSTZ_QUERY_KEYS.channels() });
+      toast.success("Channel connected");
+    },
+    onError: (error: Error) => {
+      toast.error("Unable to finish connection", { description: error.message });
+    },
+  });
+}
+
 export function usePostzPostsWindow(input: { from: string; to: string; state?: string | null }) {
   return useQuery({
-    queryKey: POSTZ_QUERY_KEYS.window(input.from, input.to),
+    queryKey: POSTZ_QUERY_KEYS.window(input.from, input.to, input.state ?? null),
     queryFn: () => postzService.listPostsWindow({ from: input.from, to: input.to, state: input.state ?? null }),
     staleTime: 5_000,
   });

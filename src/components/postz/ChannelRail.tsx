@@ -38,7 +38,7 @@ export function ChannelRail({
               {channels.length}
             </Badge>
           </div>
-          <p className="mt-1 text-xs text-zinc-500">Connected accounts (Phase 2 uses seeded demos).</p>
+          <p className="mt-1 text-xs text-zinc-500">Connected accounts (Phase 3 adds real OAuth).</p>
         </div>
         <Button
           type="button"
@@ -46,7 +46,7 @@ export function ChannelRail({
           variant="secondary"
           className="border-white/10 bg-white/5 text-zinc-100 hover:bg-white/10"
           onClick={onAddChannel}
-          disabled
+          disabled={!onAddChannel}
           aria-label="Add channel"
         >
           <Plus className="mr-1 h-4 w-4" />

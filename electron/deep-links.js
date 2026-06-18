@@ -3,6 +3,8 @@ import { getAppUrl } from "./protocol.js";
 const THIRDWEB_AUTH_CALLBACK_PARAMS = new Set(["authResult", "authCookie", "walletId", "authProvider"]);
 const THIRDWEB_AUTH_ERROR_PARAMS = new Set(["error", "error_description"]);
 
+const POSTZ_CONNECTED_ALLOWED_PARAMS = new Set(["provider", "channel", "status", "state_id"]);
+
 export function normalizeDeepLinkPath(pathname = "") {
   return pathname.replace(/^\/+/, "").replace(/\/+$/, "");
 }
@@ -54,6 +56,19 @@ function createDiagnostics(rawUrl, appUrl, url, droppedParamNames = []) {
     rawUrl: buildUrlForLog(rawUrl),
     resolvedRoute: buildUrlForLog(appUrl),
   };
+}
+
+function sanitizeParam(candidate, { pattern, maxLen = 128 } = {}) {
+  if (!candidate || typeof candidate !== "string") {
+    return null;
+  }
+  if (candidate.length > maxLen) {
+    return null;
+  }
+  if (pattern && !pattern.test(candidate)) {
+    return null;
+  }
+  return candidate;
 }
 
 function resolveThirdwebAuthDeepLink(rawUrl, url) {
@@ -135,6 +150,57 @@ export function resolveDeepLinkToAppUrlWithDiagnostics(rawUrl) {
     };
   }
 
+
+  if (route === "postz/connected") {
+    const nextParams = new URLSearchParams();
+    const droppedParamNames = [];
+
+    nextParams.set("connected", "1");
+
+    for (const [key, value] of url.searchParams.entries()) {
+      if (!POSTZ_CONNECTED_ALLOWED_PARAMS.has(key)) {
+        droppedParamNames.push(key);
+        continue;
+      }
+
+      if (key === "provider") {
+        const sanitized = sanitizeParam(value, { pattern: /^[a-z0-9-]+$/i, maxLen: 64 });
+        if (sanitized) nextParams.set(key, sanitized);
+        else droppedParamNames.push(key);
+        continue;
+      }
+
+      if (key === "channel") {
+        const sanitized = sanitizeParam(value, { pattern: /^[a-z0-9-]+$/i, maxLen: 64 });
+        if (sanitized) nextParams.set(key, sanitized);
+        else droppedParamNames.push(key);
+        continue;
+      }
+
+      if (key === "state_id") {
+        const sanitized = sanitizeParam(value, {
+          pattern: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+          maxLen: 36,
+        });
+        if (sanitized) nextParams.set(key, sanitized.toLowerCase());
+        else droppedParamNames.push(key);
+        continue;
+      }
+
+      if (key === "status") {
+        const sanitized = sanitizeParam(value, { pattern: /^(success|error|needs_target)$/i, maxLen: 16 });
+        if (sanitized) nextParams.set(key, sanitized.toLowerCase());
+        else droppedParamNames.push(key);
+        continue;
+      }
+    }
+
+    const appUrl = getAppUrl(`/postz?${nextParams.toString()}`);
+    return {
+      appUrl,
+      diagnostics: createDiagnostics(rawUrl, appUrl, url, droppedParamNames),
+    };
+  }
   const appUrl = getAppUrl("/");
   return {
     appUrl,
