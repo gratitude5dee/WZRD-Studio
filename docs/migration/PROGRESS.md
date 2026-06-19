@@ -55,7 +55,7 @@
 - [x] Remote Vercel build succeeded for deployment `dpl_HNjZCnN8FK7cbhgGGLopUYQuSeii` at immutable URL `https://wzrd-studio-m883c684a-5dee-studios.vercel.app`.
 - [x] The initial CLI deploy was unexpectedly marked `target=production`; removed active `wzrd-studio-web*` aliases afterward so the deployment is not intentionally promoted as the production launch.
 - [ ] Git-backed/CLI preview deployments from `codex/wzrd-vercel-web` are still not usable: Vercel CLI displays them as `UNKNOWN`, while the Vercel API reports `state=BLOCKED`, `target=null`, `?` duration, and no build/runtime logs. Latest attempted preview is `dpl_5hHNz2LC8tcJ2tEvRWJr3k1DJT1h` at `https://wzrd-studio-68e4woya8-5dee-studios.vercel.app`.
-- [ ] Vercel project settings still inspect as `Framework Preset: Other`, default build command, default output directory, and Node.js 24.x. `vercel.json` is present locally, but project-level settings need to be aligned to Next.js/Bun before trusting Git-backed previews.
+- [x] Aligned Vercel project settings through `PATCH /v9/projects/prj_hbk6ccJSWObGLq3KMSNgFsudAP8T`: `framework=nextjs`, `buildCommand=bun run web:build`, `installCommand=bun install --frozen-lockfile`, and `devCommand=bun run web:dev`.
 
 ## Phase 2 Status
 
@@ -93,4 +93,4 @@
 - Run the full browser MP4 export matrix: WebCodecs/mediabunny 30s export plus forced wasm fallback reprobe/playback.
 - Investigate and reduce Next webpack warnings for dynamic export/remotion imports before production.
 - Configure Vercel env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`, and server-only API/secrets as route handlers come online.
-- Align Vercel project settings with `vercel.json`: Next.js framework, `bun install --frozen-lockfile`, `bun run web:build`, no `public` output override, and Node/runtime settings compatible with Next.js 16.
+- If previews remain `BLOCKED`, continue investigating Vercel Git protection. The blocked Git deployments report `gitForkProtection=true` and branch-tip commits from the local `gratitud3@mac.lan` author email.
