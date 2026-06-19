@@ -45,6 +45,17 @@
 - `bun run test` passes: 369 files passed, 2 skipped; 3,571 tests passed, 12 skipped.
 - `bun x vitest run src/qcut/platform/web/__tests__/adapter.test.ts` passes: 43 tests.
 
+## Vercel Project Status
+
+- [x] Created new Vercel project `wzrd-studio-web` under `5dee-studios`.
+- [x] Linked the local checkout to project `prj_hbk6ccJSWObGLq3KMSNgFsudAP8T`.
+- [x] Connected the project to GitHub repo `gratitude5dee/wzrd-studio-desktopfinal`.
+- [x] Added `.vercelignore` so CLI deploys do not upload `node_modules`, `.next`, `dist`, or desktop release artifacts.
+- [x] Confirmed Vercel env list is empty for the new project; auth/media parity still needs public Supabase env and server-only secrets.
+- [x] Remote Vercel build succeeded for deployment `dpl_HNjZCnN8FK7cbhgGGLopUYQuSeii` at immutable URL `https://wzrd-studio-m883c684a-5dee-studios.vercel.app`.
+- [x] The initial CLI deploy was unexpectedly marked `target=production`; removed active `wzrd-studio-web*` aliases afterward so the deployment is not intentionally promoted as the production launch.
+- [ ] Git-backed preview deployment from `codex/wzrd-vercel-web` is pending. Explicit CLI preview deployments are currently blocked before build execution with no build logs.
+
 ## Decisions And Assumptions
 
 - Use the existing GitHub repo for the first pass.
@@ -58,3 +69,4 @@
 - Replace localStorage-backed web storage with IndexedDB/OPFS plus Supabase Storage in the persistence phase.
 - Add Vercel Route Handlers for media proxy/probe, render offload, YouTube ingest, and agent parity after the App Router shell is in place.
 - Investigate and reduce Next webpack warnings for dynamic export/remotion imports before production.
+- Configure Vercel env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`, and server-only API/secrets as route handlers come online.
