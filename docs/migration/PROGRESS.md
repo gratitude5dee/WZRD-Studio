@@ -56,9 +56,11 @@
 - [x] The initial CLI deploy was unexpectedly marked `target=production`; removed active `wzrd-studio-web*` aliases afterward so the deployment is not intentionally promoted as the production launch.
 - [x] Git-backed preview deployment from `codex/wzrd-vercel-web` is ready after aligning project settings and committing with the account email. Deployment `dpl_3kKRuLvjwXheFrrN3bUbrU9FdY6w` is live at `https://wzrd-studio-88rl9xmw2-5dee-studios.vercel.app`.
 - [x] Latest verified Git-backed preview deployment is `dpl_DovAbTW2YnmP9mnhuJiFJid9z473` at `https://wzrd-studio-dfgrxrp0e-5dee-studios.vercel.app`.
+- [x] Latest verified Git-backed preview deployment is `dpl_GqPNcSUoxrz49amEpGH8jS5DBuzs` at `https://wzrd-studio-1onmimyhs-5dee-studios.vercel.app`.
 - [x] Aligned Vercel project settings through `PATCH /v9/projects/prj_hbk6ccJSWObGLq3KMSNgFsudAP8T`: `framework=nextjs`, `buildCommand=bun run web:build`, `installCommand=bun install --frozen-lockfile`, and `devCommand=bun run web:dev`.
 - [x] Generated protected-deployment share URL `https://wzrd-studio-88rl9xmw2-5dee-studios.vercel.app/?_vercel_share=MgyS1w5HzWTlThRdwQdUDK6mizc6oh7U`, expiring June 20, 2026 at 8:43 PM.
 - [x] Generated protected-deployment share URL `https://wzrd-studio-dfgrxrp0e-5dee-studios.vercel.app/?_vercel_share=jCZZNzokm9009cPlWJuxRueNjAgpMsl7`, expiring June 20, 2026 at 8:48 PM.
+- [x] Generated protected-deployment share URL `https://wzrd-studio-1onmimyhs-5dee-studios.vercel.app/?_vercel_share=gmJruiVl3yTh3etaVfE7WbYlOpoHv9An`, expiring June 20, 2026 at 9:17 PM.
 
 ## Phase 2 Status
 
@@ -72,16 +74,18 @@
 - [x] Split Supabase server config away from the shared Vite/Next public env helper so API route bundles do not emit `import.meta`.
 - [x] Hardened the shared public env helper so Next client bundles only reference statically enumerated Vite fallback keys, avoiding runtime `import.meta` access in the browser bundle.
 - [x] Added a dedicated Next web Playwright smoke suite for landing hydration, test-auth login redirect, editor route load/reload, scoped COOP/COEP headers, and absence of `PlatformUnsupportedError`.
+- [x] Quieted the Next test-auth editor bootstrap by skipping remote Supabase project/assets/timeline reads for non-UUID demo IDs, making desktop skills sync capability-aware, lazily initializing FAL keys, using a test billing catalog, and cleaning up animated logo timers on unmount.
 
 ## Phase 2 Verification
 
 - `bun x vitest run src/qcut/platform/vercel/__tests__/adapter.test.ts src/app/api/_lib/__tests__/media-url.test.ts` passes: 6 tests.
 - `bun x vitest run src/lib/__tests__/env.test.ts src/qcut/platform/vercel/__tests__/adapter.test.ts src/app/api/_lib/__tests__/media-url.test.ts` passes: 10 tests.
+- `bun x vitest run src/lib/__tests__/env.test.ts src/qcut/platform/vercel/__tests__/adapter.test.ts src/app/api/_lib/__tests__/media-url.test.ts src/qcut/app/lib/__tests__/project-skills-sync.test.ts` passes: 14 tests.
 - `bun run web:build` passes. Next.js lists the new API routes as dynamic server functions. Existing nonfatal warnings remain for dynamic export/remotion imports, `@mariozechner/pi-ai`, old Browserslist data, and one Tailwind arbitrary easing class.
 - `bun run lint` passes. ESLint reports existing warnings, and `bun run check:web-boundaries` passes.
 - `bun run build` passes for the Vite/Electron target with existing third-party annotation and large chunk warnings.
-- `bun run test` passes: 372 files passed, 2 skipped; 3,581 tests passed, 12 skipped.
-- `bun run test:e2e:web` passes: 3 Chromium tests. Known noisy browser console output remains from missing optional service env/config and legacy animation warnings, but the smoke gate found no `PlatformUnsupportedError`.
+- `bun run test` passes: 372 files passed, 2 skipped; 3,582 tests passed, 12 skipped.
+- `bun run test:e2e:web` passes: 3 Chromium tests. Known noisy browser console output remains from webpack dynamic-import warnings, React script-tag warnings, Motion/Lit dev-mode warnings, and old Browserslist data; the smoke gate found no `PlatformUnsupportedError` and no test-auth Supabase UUID/timeline/billing/FAL bootstrap exceptions.
 - Vercel preview `dpl_3kKRuLvjwXheFrrN3bUbrU9FdY6w` built remotely with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
 - Vercel preview `dpl_DovAbTW2YnmP9mnhuJiFJid9z473` built remotely and was verified through protected fetch.
 - Vercel protected fetch of `/` returns 200 and the Next shell HTML.
