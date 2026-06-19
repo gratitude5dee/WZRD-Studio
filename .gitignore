@@ -44,3 +44,4 @@ worldlabsedit.mp4
 
 # local git history backups (created during repo re-initialization)
 .git.backup-*
+.vercel
