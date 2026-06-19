@@ -5,12 +5,11 @@ import type {
 	MarblePostList,
 	MarbleTagList,
 } from "@qcut-app/types/post";
+import { readPublicEnv } from "@/lib/env";
 
 const url =
-	(import.meta as unknown as { env: Record<string, string> }).env
-		?.VITE_MARBLE_API_URL ?? "https://api.marblecms.com";
-const key = (import.meta as unknown as { env: Record<string, string> }).env
-	?.VITE_MARBLE_WORKSPACE_KEY;
+	readPublicEnv("MARBLE_API_URL", ["VITE_MARBLE_API_URL"]) ?? "https://api.marblecms.com";
+const key = readPublicEnv("MARBLE_WORKSPACE_KEY", ["VITE_MARBLE_WORKSPACE_KEY"]);
 
 if (!key) {
 	console.warn(
