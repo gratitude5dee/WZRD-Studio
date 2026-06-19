@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef } from "react";
 import { initPlatform, platform, PlatformCapability } from "@qcut/platform-core";
 
 import { createWzrdAdapter } from "./platform/wzrd";
+import { createVercelAdapter } from "./platform/vercel";
 
 import { EditorProvider } from "@qcut-app/components/editor-provider";
 import { EditorHeader } from "@qcut-app/components/editor-header";
@@ -50,9 +51,17 @@ import type { VoiceActionRegistration, VoiceActionResult } from "@/voice/actions
 // ---------------------------------------------------------------------------
 
 let __platformInitialized = false;
+function isNextAppRouterRuntime(): boolean {
+	return (
+		typeof window !== "undefined" &&
+		((window as any).__WZRD_NEXT_APP_ROUTER === true ||
+			typeof (window as any).__NEXT_DATA__ !== "undefined")
+	);
+}
+
 function ensurePlatformInitialized() {
 	if (__platformInitialized) return;
-	initPlatform(createWzrdAdapter());
+	initPlatform(isNextAppRouterRuntime() ? createVercelAdapter() : createWzrdAdapter());
 	__platformInitialized = true;
 }
 

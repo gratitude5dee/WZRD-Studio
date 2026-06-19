@@ -4,7 +4,7 @@
 
 - Branch: `codex/wzrd-vercel-web`
 - Source spec: `goal-vercel.md`
-- Current phase: Phase 1 - Next.js App Router shell
+- Current phase: Phase 2 - Vercel platform adapter and serverless parity scaffold
 
 ## Phase 0 Status
 
@@ -56,6 +56,25 @@
 - [x] The initial CLI deploy was unexpectedly marked `target=production`; removed active `wzrd-studio-web*` aliases afterward so the deployment is not intentionally promoted as the production launch.
 - [ ] Git-backed preview deployment from `codex/wzrd-vercel-web` is pending. Explicit CLI preview deployments are currently blocked before build execution with no build logs.
 
+## Phase 2 Status
+
+- [x] Added `src/qcut/platform/vercel/**` as a Vercel-aware web adapter.
+- [x] Updated Next client bootstrap to initialize the Vercel adapter while preserving the WZRD desktop adapter for the Vite/Electron target.
+- [x] Vercel adapter now prefers authenticated `/api/media/proxy` remote-media caching, then falls back to the browser web adapter.
+- [x] Self-hosted FFmpeg core assets under `public/ffmpeg/ffmpeg-core.js` and `public/ffmpeg/ffmpeg-core.wasm` for same-origin wasm fallback.
+- [x] Added authenticated App Router route handlers for `/api/media/proxy`, `/api/media/probe`, `/api/render`, `/api/render/status`, `/api/youtube`, and `/api/agent/*`.
+- [x] Added basic public-URL validation for media proxy/probe routes to block unsupported schemes, credentials, localhost, and literal private IP hosts.
+- [x] Kept render, YouTube, and agent routes bounded/unconfigured instead of running long work inside a single serverless request.
+- [x] Split Supabase server config away from the shared Vite/Next public env helper so API route bundles do not emit `import.meta`.
+
+## Phase 2 Verification
+
+- `bun x vitest run src/qcut/platform/vercel/__tests__/adapter.test.ts src/app/api/_lib/__tests__/media-url.test.ts` passes: 6 tests.
+- `bun run web:build` passes. Next.js lists the new API routes as dynamic server functions. Existing nonfatal warnings remain for dynamic export/remotion imports, `@mariozechner/pi-ai`, old Browserslist data, and one Tailwind arbitrary easing class.
+- `bun run lint` passes. ESLint reports existing warnings, and `bun run check:web-boundaries` passes.
+- `bun run build` passes for the Vite/Electron target with existing third-party annotation and large chunk warnings.
+- `bun run test` passes: 371 files passed, 2 skipped; 3,577 tests passed, 12 skipped.
+
 ## Decisions And Assumptions
 
 - Use the existing GitHub repo for the first pass.
@@ -65,8 +84,10 @@
 
 ## Known Follow-Ups
 
-- Add `src/qcut/platform/vercel/**` and select it for the Next.js build.
 - Replace localStorage-backed web storage with IndexedDB/OPFS plus Supabase Storage in the persistence phase.
-- Add Vercel Route Handlers for media proxy/probe, render offload, YouTube ingest, and agent parity after the App Router shell is in place.
+- Add durable `web_render_jobs` persistence before enabling render offload queue/status.
+- Wire YouTube OAuth/upload and agent runtime routes once server-only Vercel env is configured.
+- Add browser Playwright smoke coverage for login, authenticated editor route, reload persistence, and console-free editor bootstrap.
+- Run the full browser MP4 export matrix: WebCodecs/mediabunny 30s export plus forced wasm fallback reprobe/playback.
 - Investigate and reduce Next webpack warnings for dynamic export/remotion imports before production.
 - Configure Vercel env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`, and server-only API/secrets as route handlers come online.
