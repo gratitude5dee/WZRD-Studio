@@ -73,6 +73,7 @@
 - [x] Kept render, YouTube, and agent routes bounded/unconfigured instead of running long work inside a single serverless request.
 - [x] Split Supabase server config away from the shared Vite/Next public env helper so API route bundles do not emit `import.meta`.
 - [x] Hardened the shared public env helper so Next client bundles only reference statically enumerated Vite fallback keys, avoiding runtime `import.meta` access in the browser bundle.
+- [x] Added `NEXT_PUBLIC_THIRDWEB_CLIENT_ID` support, with `VITE_THIRDWEB_CLIENT_ID` migration fallback, before the browser falls back to the existing Supabase `get-thirdweb-config` function.
 - [x] Added a dedicated Next web Playwright smoke suite for landing hydration, test-auth login redirect, editor route load/reload, scoped COOP/COEP headers, and absence of `PlatformUnsupportedError`.
 - [x] Quieted the Next test-auth editor bootstrap by skipping remote Supabase project/assets/timeline reads for non-UUID demo IDs, making desktop skills sync capability-aware, lazily initializing FAL keys, using a test billing catalog, and cleaning up animated logo timers on unmount.
 
@@ -81,6 +82,7 @@
 - `bun x vitest run src/qcut/platform/vercel/__tests__/adapter.test.ts src/app/api/_lib/__tests__/media-url.test.ts` passes: 6 tests.
 - `bun x vitest run src/lib/__tests__/env.test.ts src/qcut/platform/vercel/__tests__/adapter.test.ts src/app/api/_lib/__tests__/media-url.test.ts` passes: 10 tests.
 - `bun x vitest run src/lib/__tests__/env.test.ts src/qcut/platform/vercel/__tests__/adapter.test.ts src/app/api/_lib/__tests__/media-url.test.ts src/qcut/app/lib/__tests__/project-skills-sync.test.ts` passes: 14 tests.
+- `bun x vitest run src/lib/__tests__/env.test.ts src/lib/thirdweb/__tests__/client.test.ts` passes: 6 tests.
 - `bun run web:build` passes. Next.js lists the new API routes as dynamic server functions. Existing nonfatal warnings remain for dynamic export/remotion imports, `@mariozechner/pi-ai`, old Browserslist data, and one Tailwind arbitrary easing class.
 - `bun run lint` passes. ESLint reports existing warnings, and `bun run check:web-boundaries` passes.
 - `bun run build` passes for the Vite/Electron target with existing third-party annotation and large chunk warnings.
