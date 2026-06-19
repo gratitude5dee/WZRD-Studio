@@ -6,6 +6,9 @@
   "main": "electron/main.js",
   "scripts": {
     "dev": "vite",
+    "web:dev": "next dev --webpack",
+    "web:build": "next build --webpack",
+    "web:start": "next start",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint . && bun run check:web-boundaries",
@@ -147,6 +150,7 @@
     "lucide-react": "^0.574.0",
     "mediabunny": "^1.46.0",
     "motion": "^12.40.0",
+    "next": "^16.2.9",
     "next-themes": "^0.3.0",
     "node-pty": "^1.1.0",
     "pixi.js": "^8.0.0",

@@ -11,6 +11,7 @@ import {
   Sparkles,
   Video,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { appRoutes } from '@/lib/routes';
 import type { KanvasStudio } from '@/features/kanvas/types';
@@ -23,7 +24,7 @@ import {
 } from '@/components/ui/tooltip';
 import { ShineBorder } from '@/components/ui/shine-border';
 
-const STUDIO_ICONS: Record<KanvasStudio, typeof ImageIcon> = {
+const STUDIO_ICONS: Record<KanvasStudio, LucideIcon> = {
   image: ImageIcon,
   video: Video,
   edit: Pencil,

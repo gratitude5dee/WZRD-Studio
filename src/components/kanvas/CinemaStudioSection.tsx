@@ -1,10 +1,11 @@
-import { useState, useCallback, type ElementType } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Sparkles, Search, Plus, ChevronLeft, ChevronRight,
   ImageIcon, Video, Users, Shuffle, Loader2, Clapperboard,
   Camera, Film, Music,
   Upload, Heart, Volume2, VolumeX,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import type {
   KanvasAsset, KanvasJob, KanvasAssetType, KanvasModel,
 } from '@/features/kanvas/types';
@@ -82,7 +83,7 @@ const FALLBACK_AVATARS = [
   musicPolishAssets.landing.heroGothicStorm.src,
 ];
 
-const TAB_LIST: { id: CinemaTab; label: string; Icon: ElementType }[] = [
+const TAB_LIST: { id: CinemaTab; label: string; Icon: LucideIcon }[] = [
   { id: 'image', label: 'Image', Icon: ImageIcon },
   { id: 'video', label: 'Video', Icon: Video },
   { id: 'cast', label: 'Cast', Icon: Users },

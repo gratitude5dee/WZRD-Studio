@@ -1,4 +1,5 @@
 import { Image, Sparkles, Video, Workflow, Upload, Plus, X, Zap } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
@@ -17,7 +18,7 @@ interface PresetCard {
   id: string;
   title: string;
   description: string;
-  icon: React.ElementType;
+  icon: LucideIcon;
   gradient: string;
   shineColors: string[];
   isPro?: boolean;

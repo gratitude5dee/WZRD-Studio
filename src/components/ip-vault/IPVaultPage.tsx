@@ -21,6 +21,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import wzrdLogo from '@/assets/wzrd-logo.png';
 import { cn } from '@/lib/utils';
 import { appRoutes } from '@/lib/routes';
+import { staticAssetUrl } from '@/lib/staticAsset';
 import { ROYALTY_POLICY_LAP_ADDRESS } from '@/lib/story/constants';
 import { claimVaultRevenueOnStory, registerVaultItemOnStory } from '@/lib/story/registration';
 import { ipVaultService } from '@/services/ipVaultService';
@@ -252,7 +253,7 @@ export function IPVaultPage() {
               </button>
 
               <img
-                src={wzrdLogo}
+                src={staticAssetUrl(wzrdLogo)}
                 alt="WZRD STUDIO Logo"
                 className="h-20 object-contain"
               />
