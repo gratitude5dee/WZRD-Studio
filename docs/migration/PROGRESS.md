@@ -54,7 +54,8 @@
 - [x] Confirmed Vercel env list is empty for the new project; auth/media parity still needs public Supabase env and server-only secrets.
 - [x] Remote Vercel build succeeded for deployment `dpl_HNjZCnN8FK7cbhgGGLopUYQuSeii` at immutable URL `https://wzrd-studio-m883c684a-5dee-studios.vercel.app`.
 - [x] The initial CLI deploy was unexpectedly marked `target=production`; removed active `wzrd-studio-web*` aliases afterward so the deployment is not intentionally promoted as the production launch.
-- [ ] Git-backed preview deployment from `codex/wzrd-vercel-web` is pending. Explicit CLI preview deployments are currently blocked before build execution with no build logs.
+- [ ] Git-backed/CLI preview deployments from `codex/wzrd-vercel-web` are still not usable: Vercel CLI displays them as `UNKNOWN`, while the Vercel API reports `state=BLOCKED`, `target=null`, `?` duration, and no build/runtime logs. Latest attempted preview is `dpl_5hHNz2LC8tcJ2tEvRWJr3k1DJT1h` at `https://wzrd-studio-68e4woya8-5dee-studios.vercel.app`.
+- [ ] Vercel project settings still inspect as `Framework Preset: Other`, default build command, default output directory, and Node.js 24.x. `vercel.json` is present locally, but project-level settings need to be aligned to Next.js/Bun before trusting Git-backed previews.
 
 ## Phase 2 Status
 
@@ -74,6 +75,7 @@
 - `bun run lint` passes. ESLint reports existing warnings, and `bun run check:web-boundaries` passes.
 - `bun run build` passes for the Vite/Electron target with existing third-party annotation and large chunk warnings.
 - `bun run test` passes: 371 files passed, 2 skipped; 3,577 tests passed, 12 skipped.
+- Vercel CLI preview deploy after commit `6d96cc5` uploaded and entered `Building...`, but the CLI never returned a final status. `vercel inspect` reports `target=preview`, `status=UNKNOWN`, and a zero-millisecond build for `dpl_5hHNz2LC8tcJ2tEvRWJr3k1DJT1h`; Vercel app tooling reports `state=BLOCKED`, `target=null`, and no build-log events.
 
 ## Decisions And Assumptions
 
@@ -91,3 +93,4 @@
 - Run the full browser MP4 export matrix: WebCodecs/mediabunny 30s export plus forced wasm fallback reprobe/playback.
 - Investigate and reduce Next webpack warnings for dynamic export/remotion imports before production.
 - Configure Vercel env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`, and server-only API/secrets as route handlers come online.
+- Align Vercel project settings with `vercel.json`: Next.js framework, `bun install --frozen-lockfile`, `bun run web:build`, no `public` output override, and Node/runtime settings compatible with Next.js 16.
