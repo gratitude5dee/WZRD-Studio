@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod3";
 
 import { PanelView } from "@qcut-app/types/panel";
 import { TIMELINE_CONSTANTS } from "@qcut-app/constants/timeline-constants";

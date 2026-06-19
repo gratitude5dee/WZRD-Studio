@@ -270,15 +270,11 @@ export function QCutEditor({ projectId }: { projectId: string }) {
 					let url: string | undefined = cdnUrl;
 					let localPath: string | undefined;
 
-					// Desktop: prefer caching remote media for stable playback + CLI export.
+					// Prefer platform-managed caching for stable playback + export.
 					// Images are typically small, so we avoid caching them eagerly.
-					if (
-						type !== "image" &&
-						typeof window !== "undefined" &&
-						(window as any).wzrdDesktop?.cacheRemoteMedia
-					) {
+					if (type !== "image" && platform().mediaImport?.cacheRemoteMedia) {
 						try {
-							const cached = await (window as any).wzrdDesktop.cacheRemoteMedia({
+							const cached = await platform().mediaImport.cacheRemoteMedia({
 								url: cdnUrl,
 								operationId: `qcut-asset-${asset.id}`,
 							});
