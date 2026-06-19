@@ -54,8 +54,9 @@
 - [x] Confirmed Vercel env list is empty for the new project; auth/media parity still needs public Supabase env and server-only secrets.
 - [x] Remote Vercel build succeeded for deployment `dpl_HNjZCnN8FK7cbhgGGLopUYQuSeii` at immutable URL `https://wzrd-studio-m883c684a-5dee-studios.vercel.app`.
 - [x] The initial CLI deploy was unexpectedly marked `target=production`; removed active `wzrd-studio-web*` aliases afterward so the deployment is not intentionally promoted as the production launch.
-- [ ] Git-backed/CLI preview deployments from `codex/wzrd-vercel-web` are still not usable: Vercel CLI displays them as `UNKNOWN`, while the Vercel API reports `state=BLOCKED`, `target=null`, `?` duration, and no build/runtime logs. Latest attempted preview is `dpl_5hHNz2LC8tcJ2tEvRWJr3k1DJT1h` at `https://wzrd-studio-68e4woya8-5dee-studios.vercel.app`.
+- [x] Git-backed preview deployment from `codex/wzrd-vercel-web` is ready after aligning project settings and committing with the account email. Deployment `dpl_3kKRuLvjwXheFrrN3bUbrU9FdY6w` is live at `https://wzrd-studio-88rl9xmw2-5dee-studios.vercel.app`.
 - [x] Aligned Vercel project settings through `PATCH /v9/projects/prj_hbk6ccJSWObGLq3KMSNgFsudAP8T`: `framework=nextjs`, `buildCommand=bun run web:build`, `installCommand=bun install --frozen-lockfile`, and `devCommand=bun run web:dev`.
+- [x] Generated protected-deployment share URL `https://wzrd-studio-88rl9xmw2-5dee-studios.vercel.app/?_vercel_share=MgyS1w5HzWTlThRdwQdUDK6mizc6oh7U`, expiring June 20, 2026 at 8:43 PM.
 
 ## Phase 2 Status
 
@@ -75,7 +76,10 @@
 - `bun run lint` passes. ESLint reports existing warnings, and `bun run check:web-boundaries` passes.
 - `bun run build` passes for the Vite/Electron target with existing third-party annotation and large chunk warnings.
 - `bun run test` passes: 371 files passed, 2 skipped; 3,577 tests passed, 12 skipped.
-- Vercel CLI preview deploy after commit `6d96cc5` uploaded and entered `Building...`, but the CLI never returned a final status. `vercel inspect` reports `target=preview`, `status=UNKNOWN`, and a zero-millisecond build for `dpl_5hHNz2LC8tcJ2tEvRWJr3k1DJT1h`; Vercel app tooling reports `state=BLOCKED`, `target=null`, and no build-log events.
+- Vercel preview `dpl_3kKRuLvjwXheFrrN3bUbrU9FdY6w` built remotely with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
+- Vercel protected fetch of `/` returns 200 and the Next shell HTML.
+- Vercel protected fetch of `/projects/demo/editor` returns 200 with scoped isolation headers: `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
+- Earlier preview deploys from commits authored as `gratitud3@mac.lan` remain `BLOCKED`; they have no build-log events and can be ignored in favor of `dpl_3kKRuLvjwXheFrrN3bUbrU9FdY6w`.
 
 ## Decisions And Assumptions
 
@@ -93,4 +97,4 @@
 - Run the full browser MP4 export matrix: WebCodecs/mediabunny 30s export plus forced wasm fallback reprobe/playback.
 - Investigate and reduce Next webpack warnings for dynamic export/remotion imports before production.
 - Configure Vercel env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`, and server-only API/secrets as route handlers come online.
-- If previews remain `BLOCKED`, continue investigating Vercel Git protection. The blocked Git deployments report `gitForkProtection=true` and branch-tip commits from the local `gratitud3@mac.lan` author email.
+- Keep repo-local Git identity on `GRATITUD3 <gratitude@5-dee.com>` for future branch-tip commits so Vercel Git previews are not blocked by the local machine email.
