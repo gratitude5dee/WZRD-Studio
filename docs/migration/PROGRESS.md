@@ -61,6 +61,7 @@
 - [x] Configured public Vercel env vars for Preview and Production: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`.
 - [x] Latest verified env-backed preview redeployment is `dpl_CuLXGPu1J7t5dMs8qtvE16EwMnoJ` at `https://wzrd-studio-1hjafmx5w-5dee-studios.vercel.app`.
 - [x] Latest verified FFmpeg fallback code preview deployment is `dpl_Bcp6C4owDF5YZSja3jKosuh5q8rS` at `https://wzrd-studio-qzuamlclh-5dee-studios.vercel.app`.
+- [x] Latest verified FFmpeg resource resolver preview deployment is `dpl_HJy7aq2EvZ6hgJEEEPJiKhGSaHYM` at `https://wzrd-studio-39j8azhep-5dee-studios.vercel.app`.
 - [x] Aligned Vercel project settings through `PATCH /v9/projects/prj_hbk6ccJSWObGLq3KMSNgFsudAP8T`: `framework=nextjs`, `buildCommand=bun run web:build`, `installCommand=bun install --frozen-lockfile`, and `devCommand=bun run web:dev`.
 - [x] Generated protected-deployment share URL `https://wzrd-studio-88rl9xmw2-5dee-studios.vercel.app/?_vercel_share=MgyS1w5HzWTlThRdwQdUDK6mizc6oh7U`, expiring June 20, 2026 at 8:43 PM.
 - [x] Generated protected-deployment share URL `https://wzrd-studio-dfgrxrp0e-5dee-studios.vercel.app/?_vercel_share=jCZZNzokm9009cPlWJuxRueNjAgpMsl7`, expiring June 20, 2026 at 8:48 PM.
@@ -109,12 +110,14 @@
 - Vercel preview `dpl_4gDB3nGfYD6VdGatJ7brE2enk82e` built remotely from commit `9c033c3` with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
 - Vercel preview `dpl_CuLXGPu1J7t5dMs8qtvE16EwMnoJ` redeployed from commit `37a941b` after public env configuration, skipped build cache, and built remotely with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
 - Vercel preview `dpl_Bcp6C4owDF5YZSja3jKosuh5q8rS` built remotely from commit `18e4cf5` with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`; build logs show only the known Browserslist, Tailwind arbitrary easing, and dynamic-import warnings.
+- Vercel preview `dpl_HJy7aq2EvZ6hgJEEEPJiKhGSaHYM` built remotely from commit `7d71506` with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`; build logs show only the known Browserslist, Tailwind arbitrary easing, and dynamic-import warnings.
 - Vercel protected fetch of `/` returns 200 and the Next shell HTML.
 - Vercel protected fetch of `/projects/demo/editor` returns 200 with scoped isolation headers: `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
 - `vercel curl` verified `/projects/demo/editor` on `dpl_4gDB3nGfYD6VdGatJ7brE2enk82e` returns 200 with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; `/` returns 200 without those scoped editor-only headers. Runtime logs for the deployment show only 200 responses for these checks.
 - `vercel curl` verified `/projects/demo/editor` on `dpl_CuLXGPu1J7t5dMs8qtvE16EwMnoJ` returns 200 with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; `/` returns 200 without those scoped editor-only headers. Runtime logs for the deployment show only 200 responses for these checks.
 - `vercel curl` verified `/projects/demo/editor` on `dpl_Bcp6C4owDF5YZSja3jKosuh5q8rS` returns 200 with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; `/` returns 200 without those scoped editor-only headers. Runtime logs for the deployment show only 200 responses for these checks.
 - `vercel curl` verified `/ffmpeg/ffmpeg-core.js` and `/ffmpeg/ffmpeg-core.wasm` on `dpl_Bcp6C4owDF5YZSja3jKosuh5q8rS` return 200; the WASM asset is served as `application/wasm`.
+- `vercel curl` verified `/projects/demo/editor` on `dpl_HJy7aq2EvZ6hgJEEEPJiKhGSaHYM` returns 200 with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; `/` returns 200 without those scoped editor-only headers; `/ffmpeg/ffmpeg-core.js` and `/ffmpeg/ffmpeg-core.wasm` return 200, with WASM served as `application/wasm`. Runtime logs surfaced only info-level 2xx/204 entries, with no errors.
 - Earlier preview deploys from commits authored as `gratitud3@mac.lan` remain `BLOCKED`; they have no build-log events and can be ignored in favor of `dpl_DovAbTW2YnmP9mnhuJiFJid9z473`.
 
 ## Decisions And Assumptions
