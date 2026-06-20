@@ -76,6 +76,9 @@
 - [x] Added `NEXT_PUBLIC_THIRDWEB_CLIENT_ID` support, with `VITE_THIRDWEB_CLIENT_ID` migration fallback, before the browser falls back to the existing Supabase `get-thirdweb-config` function.
 - [x] Added a dedicated Next web Playwright smoke suite for landing hydration, test-auth login redirect, editor route load/reload, scoped COOP/COEP headers, and absence of `PlatformUnsupportedError`.
 - [x] Quieted the Next test-auth editor bootstrap by skipping remote Supabase project/assets/timeline reads for non-UUID demo IDs, making desktop skills sync capability-aware, lazily initializing FAL keys, using a test billing catalog, and cleaning up animated logo timers on unmount.
+- [x] Added additive `public.web_render_jobs` migration with RLS, explicit `authenticated` Data API grants, owner/project indexes, and idempotency protection for browser render offload metadata.
+- [x] Replaced the render-offload stubs with authenticated queue/status handlers that validate project ownership, return existing jobs by idempotency hash, and fail fast when the migration has not been applied.
+- [x] Updated the Vercel adapter so legacy `ffmpeg.exportVideoCLI` calls can queue a bounded render-offload job, while clearly reporting that async result polling is not wired into the CLI export path yet.
 
 ## Phase 2 Verification
 
@@ -83,11 +86,13 @@
 - `bun x vitest run src/lib/__tests__/env.test.ts src/qcut/platform/vercel/__tests__/adapter.test.ts src/app/api/_lib/__tests__/media-url.test.ts` passes: 10 tests.
 - `bun x vitest run src/lib/__tests__/env.test.ts src/qcut/platform/vercel/__tests__/adapter.test.ts src/app/api/_lib/__tests__/media-url.test.ts src/qcut/app/lib/__tests__/project-skills-sync.test.ts` passes: 14 tests.
 - `bun x vitest run src/lib/__tests__/env.test.ts src/lib/thirdweb/__tests__/client.test.ts` passes: 6 tests.
+- `bun x vitest run src/app/api/render/_lib/__tests__/jobs.test.ts src/app/api/render/__tests__/route.test.ts src/qcut/platform/vercel/__tests__/adapter.test.ts` passes: 14 tests.
 - `bun run web:build` passes. Next.js lists the new API routes as dynamic server functions. Existing nonfatal warnings remain for dynamic export/remotion imports, `@mariozechner/pi-ai`, old Browserslist data, and one Tailwind arbitrary easing class.
 - `bun run lint` passes. ESLint reports existing warnings, and `bun run check:web-boundaries` passes.
 - `bun run build` passes for the Vite/Electron target with existing third-party annotation and large chunk warnings.
-- `bun run test` passes: 372 files passed, 2 skipped; 3,582 tests passed, 12 skipped.
+- `bun run test` passes: 375 files passed, 2 skipped; 3,595 tests passed, 12 skipped.
 - `bun run test:e2e:web` passes: 3 Chromium tests. Known noisy browser console output remains from webpack dynamic-import warnings, React script-tag warnings, Motion/Lit dev-mode warnings, and old Browserslist data; the smoke gate found no `PlatformUnsupportedError` and no test-auth Supabase UUID/timeline/billing/FAL bootstrap exceptions.
+- Supabase CLI v2.78.1 does not expose `db advisors`; `npx supabase migration list --local` and `npx supabase db lint --local --fail-on error` were attempted but could not connect because local Postgres is not running on `127.0.0.1:54322`.
 - Vercel preview `dpl_3kKRuLvjwXheFrrN3bUbrU9FdY6w` built remotely with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
 - Vercel preview `dpl_DovAbTW2YnmP9mnhuJiFJid9z473` built remotely and was verified through protected fetch.
 - Vercel protected fetch of `/` returns 200 and the Next shell HTML.
@@ -99,12 +104,12 @@
 - Use the existing GitHub repo for the first pass.
 - Create a new Vercel project named `wzrd-studio-web` when the Next.js shell has a deployable preview.
 - Keep Vite/Electron desktop scripts working while adding the Next.js web target.
-- No Supabase schema changes have been made yet.
+- Supabase schema work remains additive only; `public.web_render_jobs` has been added as a migration file and still needs remote application before queue/status works against the hosted project.
 
 ## Known Follow-Ups
 
 - Replace localStorage-backed web storage with IndexedDB/OPFS plus Supabase Storage in the persistence phase.
-- Add durable `web_render_jobs` persistence before enabling render offload queue/status.
+- Apply the `web_render_jobs` migration to the hosted Supabase project and wire the async worker/result polling path before enabling server render offload in the UI.
 - Wire YouTube OAuth/upload and agent runtime routes once server-only Vercel env is configured.
 - Expand browser Playwright coverage beyond the current Next smoke into project CRUD, real authenticated sessions, and stricter console budgets once optional service env/config is available.
 - Run the full browser MP4 export matrix: WebCodecs/mediabunny 30s export plus forced wasm fallback reprobe/playback.
