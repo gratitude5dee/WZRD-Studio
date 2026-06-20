@@ -57,6 +57,7 @@
 - [x] Git-backed preview deployment from `codex/wzrd-vercel-web` is ready after aligning project settings and committing with the account email. Deployment `dpl_3kKRuLvjwXheFrrN3bUbrU9FdY6w` is live at `https://wzrd-studio-88rl9xmw2-5dee-studios.vercel.app`.
 - [x] Latest verified Git-backed preview deployment is `dpl_DovAbTW2YnmP9mnhuJiFJid9z473` at `https://wzrd-studio-dfgrxrp0e-5dee-studios.vercel.app`.
 - [x] Latest verified Git-backed preview deployment is `dpl_GqPNcSUoxrz49amEpGH8jS5DBuzs` at `https://wzrd-studio-1onmimyhs-5dee-studios.vercel.app`.
+- [x] Latest verified render-offload code preview deployment is `dpl_4gDB3nGfYD6VdGatJ7brE2enk82e` at `https://wzrd-studio-1224hu6cn-5dee-studios.vercel.app`.
 - [x] Aligned Vercel project settings through `PATCH /v9/projects/prj_hbk6ccJSWObGLq3KMSNgFsudAP8T`: `framework=nextjs`, `buildCommand=bun run web:build`, `installCommand=bun install --frozen-lockfile`, and `devCommand=bun run web:dev`.
 - [x] Generated protected-deployment share URL `https://wzrd-studio-88rl9xmw2-5dee-studios.vercel.app/?_vercel_share=MgyS1w5HzWTlThRdwQdUDK6mizc6oh7U`, expiring June 20, 2026 at 8:43 PM.
 - [x] Generated protected-deployment share URL `https://wzrd-studio-dfgrxrp0e-5dee-studios.vercel.app/?_vercel_share=jCZZNzokm9009cPlWJuxRueNjAgpMsl7`, expiring June 20, 2026 at 8:48 PM.
@@ -77,6 +78,7 @@
 - [x] Added a dedicated Next web Playwright smoke suite for landing hydration, test-auth login redirect, editor route load/reload, scoped COOP/COEP headers, and absence of `PlatformUnsupportedError`.
 - [x] Quieted the Next test-auth editor bootstrap by skipping remote Supabase project/assets/timeline reads for non-UUID demo IDs, making desktop skills sync capability-aware, lazily initializing FAL keys, using a test billing catalog, and cleaning up animated logo timers on unmount.
 - [x] Added additive `public.web_render_jobs` migration with RLS, explicit `authenticated` Data API grants, owner/project indexes, and idempotency protection for browser render offload metadata.
+- [x] Applied hosted Supabase migrations `web_render_jobs` and `harden_web_render_jobs_grants` to project `ixkkrousepsiorwlaycp`, including privilege hardening after Supabase default grants exposed the new table too broadly.
 - [x] Replaced the render-offload stubs with authenticated queue/status handlers that validate project ownership, return existing jobs by idempotency hash, and fail fast when the migration has not been applied.
 - [x] Updated the Vercel adapter so legacy `ffmpeg.exportVideoCLI` calls can queue a bounded render-offload job, while clearly reporting that async result polling is not wired into the CLI export path yet.
 
@@ -93,10 +95,13 @@
 - `bun run test` passes: 375 files passed, 2 skipped; 3,595 tests passed, 12 skipped.
 - `bun run test:e2e:web` passes: 3 Chromium tests. Known noisy browser console output remains from webpack dynamic-import warnings, React script-tag warnings, Motion/Lit dev-mode warnings, and old Browserslist data; the smoke gate found no `PlatformUnsupportedError` and no test-auth Supabase UUID/timeline/billing/FAL bootstrap exceptions.
 - Supabase CLI v2.78.1 does not expose `db advisors`; `npx supabase migration list --local` and `npx supabase db lint --local --fail-on error` were attempted but could not connect because local Postgres is not running on `127.0.0.1:54322`.
+- Supabase connector verification passes for `public.web_render_jobs`: table exists, RLS is enabled, select/insert/update policies are present for authenticated owners, indexes exist for primary key, idempotency, owner/project recency, and status recency, and table privileges are restricted to no `anon` access, `authenticated=select/insert/update`, and `service_role=select/insert/update/delete`.
 - Vercel preview `dpl_3kKRuLvjwXheFrrN3bUbrU9FdY6w` built remotely with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
 - Vercel preview `dpl_DovAbTW2YnmP9mnhuJiFJid9z473` built remotely and was verified through protected fetch.
+- Vercel preview `dpl_4gDB3nGfYD6VdGatJ7brE2enk82e` built remotely from commit `9c033c3` with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
 - Vercel protected fetch of `/` returns 200 and the Next shell HTML.
 - Vercel protected fetch of `/projects/demo/editor` returns 200 with scoped isolation headers: `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
+- `vercel curl` verified `/projects/demo/editor` on `dpl_4gDB3nGfYD6VdGatJ7brE2enk82e` returns 200 with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; `/` returns 200 without those scoped editor-only headers. Runtime logs for the deployment show only 200 responses for these checks.
 - Earlier preview deploys from commits authored as `gratitud3@mac.lan` remain `BLOCKED`; they have no build-log events and can be ignored in favor of `dpl_DovAbTW2YnmP9mnhuJiFJid9z473`.
 
 ## Decisions And Assumptions
@@ -104,12 +109,12 @@
 - Use the existing GitHub repo for the first pass.
 - Create a new Vercel project named `wzrd-studio-web` when the Next.js shell has a deployable preview.
 - Keep Vite/Electron desktop scripts working while adding the Next.js web target.
-- Supabase schema work remains additive only; `public.web_render_jobs` has been added as a migration file and still needs remote application before queue/status works against the hosted project.
+- Supabase schema work remains additive only; `public.web_render_jobs` and the follow-up grant hardening migration are now committed locally and applied to the hosted project.
 
 ## Known Follow-Ups
 
 - Replace localStorage-backed web storage with IndexedDB/OPFS plus Supabase Storage in the persistence phase.
-- Apply the `web_render_jobs` migration to the hosted Supabase project and wire the async worker/result polling path before enabling server render offload in the UI.
+- Wire the async worker/result polling path before enabling server render offload in the UI.
 - Wire YouTube OAuth/upload and agent runtime routes once server-only Vercel env is configured.
 - Expand browser Playwright coverage beyond the current Next smoke into project CRUD, real authenticated sessions, and stricter console budgets once optional service env/config is available.
 - Run the full browser MP4 export matrix: WebCodecs/mediabunny 30s export plus forced wasm fallback reprobe/playback.
