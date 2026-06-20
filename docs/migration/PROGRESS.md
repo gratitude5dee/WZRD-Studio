@@ -73,6 +73,7 @@
 - [x] Vercel adapter now prefers authenticated `/api/media/proxy` remote-media caching, then falls back to the browser web adapter.
 - [x] Self-hosted FFmpeg core assets under `public/ffmpeg/ffmpeg-core.js` and `public/ffmpeg/ffmpeg-core.wasm` for same-origin wasm fallback.
 - [x] Added `src/lib/ffmpeg-web/**` to validate the self-hosted FFmpeg WASM asset allowlist, same-origin URLs, browser worker/fetch support, and editor-route cross-origin isolation before enabling fallback export.
+- [x] Updated the legacy FFmpeg resource resolver to share the same WASM asset allowlist and same-origin URL helper, removing direct `import.meta.env.BASE_URL` usage while preserving Electron `app://ffmpeg` fallback.
 - [x] Kept WebCodecs/mediabunny as the preferred browser export path, with FFmpeg WASM selected only when WebCodecs is unavailable or the `qcut_force_webcodecs_off` localStorage matrix flag is set.
 - [x] Added authenticated App Router route handlers for `/api/media/proxy`, `/api/media/probe`, `/api/render`, `/api/render/status`, `/api/youtube`, and `/api/agent/*`.
 - [x] Added basic public-URL validation for media proxy/probe routes to block unsupported schemes, credentials, localhost, and literal private IP hosts.
@@ -95,11 +96,12 @@
 - `bun x vitest run src/lib/__tests__/env.test.ts src/lib/thirdweb/__tests__/client.test.ts` passes: 6 tests.
 - `bun x vitest run src/app/api/render/_lib/__tests__/jobs.test.ts src/app/api/render/__tests__/route.test.ts src/qcut/platform/vercel/__tests__/adapter.test.ts` passes: 14 tests.
 - `bun x vitest run src/lib/ffmpeg-web/__tests__/index.test.ts src/qcut/app/lib/export/__tests__/export-engine-factory.test.ts src/qcut/app/lib/export/__tests__/webcodecs-support.test.ts` passes: 39 tests.
+- `bun x vitest run src/lib/ffmpeg-web/__tests__/index.test.ts src/qcut/app/lib/ffmpeg/__tests__/resources.test.ts src/qcut/app/lib/export/__tests__/export-engine-factory.test.ts src/qcut/app/lib/export/__tests__/webcodecs-support.test.ts` passes: 43 tests.
 - `bun run web:build` passes. Next.js lists the new API routes as dynamic server functions. Existing nonfatal warnings remain for dynamic export/remotion imports, `@mariozechner/pi-ai`, old Browserslist data, and one Tailwind arbitrary easing class.
 - `bun run lint` passes. ESLint reports existing warnings, and `bun run check:web-boundaries` passes.
 - `bun run build` passes for the Vite/Electron target with existing third-party annotation and large chunk warnings.
 - `bun run test` passes: 376 files passed, 2 skipped; 3,603 tests passed, 12 skipped.
-- `bun run test:e2e:web` passes: 3 Chromium tests. Known noisy browser console output remains from webpack dynamic-import warnings, React script-tag warnings, Motion/Lit dev-mode warnings, and old Browserslist data; the smoke gate found no `PlatformUnsupportedError` and no test-auth Supabase UUID/timeline/billing/FAL bootstrap exceptions.
+- `bun run test:e2e:web` passes: 3 Chromium tests. The sandboxed attempt could not bind `127.0.0.1:3300` (`EPERM`), then the escalated rerun passed. Known noisy browser console output remains from webpack dynamic-import warnings, React script-tag warnings, Motion/Lit dev-mode warnings, and old Browserslist data; the smoke gate found no `PlatformUnsupportedError` and no test-auth Supabase UUID/timeline/billing/FAL bootstrap exceptions.
 - Supabase CLI v2.78.1 does not expose `db advisors`; `npx supabase migration list --local` and `npx supabase db lint --local --fail-on error` were attempted but could not connect because local Postgres is not running on `127.0.0.1:54322`.
 - Supabase connector verification passes for `public.web_render_jobs`: table exists, RLS is enabled, select/insert/update policies are present for authenticated owners, indexes exist for primary key, idempotency, owner/project recency, and status recency, and table privileges are restricted to no `anon` access, `authenticated=select/insert/update`, and `service_role=select/insert/update/delete`.
 - Vercel preview `dpl_3kKRuLvjwXheFrrN3bUbrU9FdY6w` built remotely with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
