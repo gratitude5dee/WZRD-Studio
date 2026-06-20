@@ -58,6 +58,8 @@
 - [x] Latest verified Git-backed preview deployment is `dpl_DovAbTW2YnmP9mnhuJiFJid9z473` at `https://wzrd-studio-dfgrxrp0e-5dee-studios.vercel.app`.
 - [x] Latest verified Git-backed preview deployment is `dpl_GqPNcSUoxrz49amEpGH8jS5DBuzs` at `https://wzrd-studio-1onmimyhs-5dee-studios.vercel.app`.
 - [x] Latest verified render-offload code preview deployment is `dpl_4gDB3nGfYD6VdGatJ7brE2enk82e` at `https://wzrd-studio-1224hu6cn-5dee-studios.vercel.app`.
+- [x] Configured public Vercel env vars for Preview and Production: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`.
+- [x] Latest verified env-backed preview redeployment is `dpl_CuLXGPu1J7t5dMs8qtvE16EwMnoJ` at `https://wzrd-studio-1hjafmx5w-5dee-studios.vercel.app`.
 - [x] Aligned Vercel project settings through `PATCH /v9/projects/prj_hbk6ccJSWObGLq3KMSNgFsudAP8T`: `framework=nextjs`, `buildCommand=bun run web:build`, `installCommand=bun install --frozen-lockfile`, and `devCommand=bun run web:dev`.
 - [x] Generated protected-deployment share URL `https://wzrd-studio-88rl9xmw2-5dee-studios.vercel.app/?_vercel_share=MgyS1w5HzWTlThRdwQdUDK6mizc6oh7U`, expiring June 20, 2026 at 8:43 PM.
 - [x] Generated protected-deployment share URL `https://wzrd-studio-dfgrxrp0e-5dee-studios.vercel.app/?_vercel_share=jCZZNzokm9009cPlWJuxRueNjAgpMsl7`, expiring June 20, 2026 at 8:48 PM.
@@ -99,9 +101,11 @@
 - Vercel preview `dpl_3kKRuLvjwXheFrrN3bUbrU9FdY6w` built remotely with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
 - Vercel preview `dpl_DovAbTW2YnmP9mnhuJiFJid9z473` built remotely and was verified through protected fetch.
 - Vercel preview `dpl_4gDB3nGfYD6VdGatJ7brE2enk82e` built remotely from commit `9c033c3` with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
+- Vercel preview `dpl_CuLXGPu1J7t5dMs8qtvE16EwMnoJ` redeployed from commit `37a941b` after public env configuration, skipped build cache, and built remotely with Bun 1.3.12, Next.js 16.2.9, `bun install --frozen-lockfile`, and `bun run web:build`.
 - Vercel protected fetch of `/` returns 200 and the Next shell HTML.
 - Vercel protected fetch of `/projects/demo/editor` returns 200 with scoped isolation headers: `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
 - `vercel curl` verified `/projects/demo/editor` on `dpl_4gDB3nGfYD6VdGatJ7brE2enk82e` returns 200 with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; `/` returns 200 without those scoped editor-only headers. Runtime logs for the deployment show only 200 responses for these checks.
+- `vercel curl` verified `/projects/demo/editor` on `dpl_CuLXGPu1J7t5dMs8qtvE16EwMnoJ` returns 200 with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`; `/` returns 200 without those scoped editor-only headers. Runtime logs for the deployment show only 200 responses for these checks.
 - Earlier preview deploys from commits authored as `gratitud3@mac.lan` remain `BLOCKED`; they have no build-log events and can be ignored in favor of `dpl_DovAbTW2YnmP9mnhuJiFJid9z473`.
 
 ## Decisions And Assumptions
@@ -119,5 +123,5 @@
 - Expand browser Playwright coverage beyond the current Next smoke into project CRUD, real authenticated sessions, and stricter console budgets once optional service env/config is available.
 - Run the full browser MP4 export matrix: WebCodecs/mediabunny 30s export plus forced wasm fallback reprobe/playback.
 - Investigate and reduce Next webpack warnings for dynamic export/remotion imports before production.
-- Configure Vercel env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_THIRDWEB_CLIENT_ID`, and server-only API/secrets as route handlers come online.
+- Configure server-only Vercel API/secrets as route handlers come online.
 - Keep repo-local Git identity on `GRATITUD3 <gratitude@5-dee.com>` for future branch-tip commits so Vercel Git previews are not blocked by the local machine email.
