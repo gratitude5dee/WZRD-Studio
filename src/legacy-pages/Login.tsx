@@ -1,20 +1,17 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AlertCircle, CheckCircle2, Loader2, Mail, Sparkles, Wallet } from 'lucide-react';
+import { AlertCircle, Sparkles } from 'lucide-react';
 import { ConnectEmbed } from 'thirdweb/react';
 import type { ThirdwebClient } from 'thirdweb';
 import { useAuth } from '@/providers/AuthProvider';
 import { AnimatedLogo } from '@/components/ui/animated-logo';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { supabase } from '@/integrations/supabase/client';
 import { getThirdwebClient } from '@/lib/thirdweb/client';
 import { createThirdwebWallets } from '@/lib/thirdweb/wallets';
 import { wzrdTheme } from '@/lib/thirdweb/theme';
-import { appRoutes, resolvePostLoginPath, sanitizeNextPath } from '@/lib/routes';
-import { cn } from '@/lib/utils';
+import { appRoutes, resolvePostLoginPath } from '@/lib/routes';
 import {
   clearDesktopThirdwebAuthNext,
   consumeDesktopThirdwebAuthNext,
@@ -35,18 +32,6 @@ const ambientParticles = [
   { left: '86%', top: '63%', delay: 2.9, duration: 5.9, tone: 'secondary' },
 ];
 
-function buildSupabaseRedirectUrl(next: string | null): string {
-  const origin = typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin;
-  const url = new URL(appRoutes.login, origin);
-  const safeNext = sanitizeNextPath(next);
-
-  if (safeNext) {
-    url.searchParams.set('next', safeNext);
-  }
-
-  return url.toString();
-}
-
 function getCallbackError(hash: string, search: string): string | null {
   for (const rawParams of [hash, search]) {
     if (!rawParams) continue;
@@ -62,6 +47,23 @@ function getCallbackError(hash: string, search: string): string | null {
   return null;
 }
 
+function formatThirdwebAuthError(message: string | null): string | null {
+  if (!message) {
+    return null;
+  }
+
+  const normalizedMessage = message.toLowerCase();
+  if (
+    normalizedMessage.includes('unsupported provider') ||
+    normalizedMessage.includes('provider is not enabled') ||
+    normalizedMessage.includes('validation_failed')
+  ) {
+    return 'This thirdweb sign-in method is not enabled yet. Enable it in the thirdweb dashboard or choose another thirdweb option.';
+  }
+
+  return message;
+}
+
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -69,16 +71,12 @@ const Login = () => {
   const [thirdwebClient, setThirdwebClient] = useState<ThirdwebClient | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
   const [callbackError, setCallbackError] = useState<string | null>(null);
-  const [email, setEmail] = useState('');
-  const [emailSentTo, setEmailSentTo] = useState<string | null>(null);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [emailLoading, setEmailLoading] = useState(false);
-  const [walletOpen, setWalletOpen] = useState(false);
   const nextFromQuery = useMemo(() => new URLSearchParams(location.search).get('next'), [location.search]);
   const callbackIssue = useMemo(() => getThirdwebAuthCallbackIssue(location.search), [location.search]);
-  const supabaseCallbackError = useMemo(() => getCallbackError(location.hash, location.search), [location.hash, location.search]);
-  const safeNext = useMemo(() => sanitizeNextPath(nextFromQuery), [nextFromQuery]);
+  const thirdwebCallbackError = useMemo(
+    () => getCallbackError(location.hash, location.search),
+    [location.hash, location.search],
+  );
   const loginWallets = useMemo(
     () =>
       createThirdwebWallets({
@@ -109,17 +107,10 @@ const Login = () => {
 
     clearDesktopThirdwebAuthNext();
     setCallbackError(callbackIssue.message);
-    setWalletOpen(true);
 
     const nextSearch = stripThirdwebAuthCallbackParams(location.search);
     navigate(`${location.pathname}${nextSearch}${location.hash}`, { replace: true });
   }, [callbackIssue, location.hash, location.pathname, location.search, navigate]);
-
-  useEffect(() => {
-    if (walletAuthError || isWalletAuthenticating || configError) {
-      setWalletOpen(true);
-    }
-  }, [configError, isWalletAuthenticating, walletAuthError]);
 
   // Only redirect once a real Supabase session exists.
   // Connecting a wallet alone is not enough: wallet-auth must complete first.
@@ -129,72 +120,14 @@ const Login = () => {
     }
   }, [user, navigate, nextFromQuery]);
 
-  const handleGoogleSignIn = async () => {
-    setAuthError(null);
-    setEmailSentTo(null);
-    setGoogleLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: buildSupabaseRedirectUrl(safeNext),
-        },
-      });
-
-      if (error) {
-        setAuthError(error.message);
-      }
-    } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'Google sign-in failed');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
-  const handleEmailSignIn = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const trimmedEmail = email.trim();
-    setAuthError(null);
-    setEmailSentTo(null);
-
-    if (!trimmedEmail) {
-      setAuthError('Enter an email address to continue.');
-      return;
-    }
-
-    setEmailLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: trimmedEmail,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: buildSupabaseRedirectUrl(safeNext),
-        },
-      });
-
-      if (error) {
-        setAuthError(error.message);
-        return;
-      }
-
-      setEmailSentTo(trimmedEmail);
-    } catch (err) {
-      setAuthError(err instanceof Error ? err.message : 'Email sign-in failed');
-    } finally {
-      setEmailLoading(false);
-    }
-  };
-
   const handleWalletRetry = async () => {
-    setWalletOpen(true);
     await authenticateWallet();
   };
 
-  const authCallbackError = callbackError ?? callbackIssue?.message ?? null;
-  const pageAuthError = authError ?? supabaseCallbackError;
+  const authCallbackError = formatThirdwebAuthError(
+    callbackError ?? callbackIssue?.message ?? thirdwebCallbackError,
+  );
+  const formattedWalletAuthError = formatThirdwebAuthError(walletAuthError);
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#030405] px-4 py-10 text-white">
@@ -292,122 +225,57 @@ const Login = () => {
               </p>
             </div>
 
-            {pageAuthError ? (
+            {authCallbackError ? (
               <div className="mt-6 flex gap-3 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-3 text-sm text-red-200">
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{pageAuthError}</span>
+                <span>{authCallbackError}</span>
               </div>
             ) : null}
 
-            {emailSentTo ? (
-              <div className="mt-6 flex gap-3 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-3 text-sm text-emerald-100">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>Magic link sent to {emailSentTo}.</span>
-              </div>
-            ) : null}
-
-            <div className="mt-7 space-y-3">
-              <Button
-                type="button"
-                onClick={handleGoogleSignIn}
-                disabled={googleLoading}
-                className="h-12 w-full rounded-lg border border-white/[0.09] bg-white text-sm font-semibold text-black hover:bg-white/90"
-              >
-                {googleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <span className="text-base font-bold">G</span>}
-                Continue with Google
-              </Button>
-
-              <form onSubmit={handleEmailSignIn} className="space-y-2">
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    placeholder="you@studio.com"
-                    aria-label="Email address"
-                    className="h-12 rounded-lg border-white/[0.1] bg-black/30 text-white placeholder:text-white/30"
+            <div className="mt-7 rounded-xl border border-white/[0.08] bg-black/30 p-3">
+              {configError ? (
+                <div className="px-2 py-4 text-center">
+                  <p className="text-sm text-red-200">thirdweb sign-in is unavailable.</p>
+                  <p className="mt-2 text-xs text-white/45">{configError}</p>
+                </div>
+              ) : !thirdwebClient ? (
+                <div className="flex justify-center py-8">
+                  <LoadingSpinner size="lg" />
+                </div>
+              ) : (
+                <>
+                  <ConnectEmbed
+                    client={thirdwebClient}
+                    wallets={loginWallets}
+                    theme={wzrdTheme}
+                    modalSize="compact"
+                    showThirdwebBranding={false}
+                    className="!w-full !bg-transparent !border-0"
+                    header={{ title: 'Sign in with thirdweb' }}
                   />
-                  <Button
-                    type="submit"
-                    disabled={emailLoading}
-                    className="h-12 rounded-lg bg-orange-500 px-5 text-sm font-semibold text-white hover:bg-orange-400 sm:w-[150px]"
-                  >
-                    {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
-                    Email link
-                  </Button>
-                </div>
-              </form>
-
-              <button
-                type="button"
-                onClick={() => setWalletOpen((open) => !open)}
-                className={cn(
-                  'flex h-12 w-full items-center justify-between rounded-lg border px-4 text-left text-sm transition-colors',
-                  walletOpen
-                    ? 'border-orange-400/30 bg-orange-500/10 text-orange-100'
-                    : 'border-white/[0.09] bg-white/[0.04] text-white/75 hover:bg-white/[0.07]',
-                )}
-              >
-                <span className="inline-flex items-center gap-2 font-medium">
-                  <Wallet className="h-4 w-4" />
-                  Wallet sign-in
-                </span>
-                <span className="text-xs text-white/45">{walletOpen ? 'Open' : 'Connect'}</span>
-              </button>
-
-              {walletOpen ? (
-                <div className="rounded-xl border border-white/[0.08] bg-black/30 p-3">
-                  {authCallbackError ? (
-                    <div className="px-2 py-4 text-center">
-                      <p className="text-sm text-red-200">{authCallbackError}</p>
-                      <p className="mt-2 text-xs text-white/45">Start wallet sign-in again from this screen.</p>
+                  {isWalletAuthenticating ? (
+                    <div className="mt-4 flex items-center justify-center gap-2 text-xs text-white/45">
+                      <LoadingSpinner size="sm" />
+                      <span>Verifying wallet signature...</span>
                     </div>
-                  ) : configError ? (
-                    <div className="px-2 py-4 text-center">
-                      <p className="text-sm text-red-200">Wallet sign-in is unavailable.</p>
-                      <p className="mt-2 text-xs text-white/45">{configError}</p>
+                  ) : null}
+                  {formattedWalletAuthError ? (
+                    <div className="mt-4 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-3 text-center">
+                      <p className="text-xs text-red-200">{formattedWalletAuthError}</p>
+                      <div className="mt-3 flex justify-center">
+                        <Button
+                          type="button"
+                          onClick={handleWalletRetry}
+                          disabled={isWalletAuthenticating}
+                          className="h-9 rounded-md bg-white/10 px-3 text-xs text-white hover:bg-white/15"
+                        >
+                          Retry sign-in
+                        </Button>
+                      </div>
                     </div>
-                  ) : !thirdwebClient ? (
-                    <div className="flex justify-center py-8">
-                      <LoadingSpinner size="lg" />
-                    </div>
-                  ) : (
-                    <>
-                      <ConnectEmbed
-                        client={thirdwebClient}
-                        wallets={loginWallets}
-                        theme={wzrdTheme}
-                        modalSize="compact"
-                        showThirdwebBranding={false}
-                        className="!w-full !bg-transparent !border-0"
-                      />
-                      {isWalletAuthenticating ? (
-                        <div className="mt-4 flex items-center justify-center gap-2 text-xs text-white/45">
-                          <LoadingSpinner size="sm" />
-                          <span>Verifying wallet signature...</span>
-                        </div>
-                      ) : null}
-                      {walletAuthError ? (
-                        <div className="mt-4 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-3 text-center">
-                          <p className="text-xs text-red-200">{walletAuthError}</p>
-                          <div className="mt-3 flex justify-center">
-                            <Button
-                              type="button"
-                              onClick={handleWalletRetry}
-                              disabled={isWalletAuthenticating}
-                              className="h-9 rounded-md bg-white/10 px-3 text-xs text-white hover:bg-white/15"
-                            >
-                              Retry wallet
-                            </Button>
-                          </div>
-                        </div>
-                      ) : null}
-                    </>
-                  )}
-                </div>
-              ) : null}
+                  ) : null}
+                </>
+              )}
             </div>
 
             <p className="mt-6 text-center text-xs leading-5 text-white/35">

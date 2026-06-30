@@ -1,29 +1,19 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Login from './Login';
 
 const mocks = vi.hoisted(() => ({
   useAuth: vi.fn(),
   authenticateWallet: vi.fn(),
-  signInWithOAuth: vi.fn(),
-  signInWithOtp: vi.fn(),
   getThirdwebClient: vi.fn(),
+  createThirdwebWallets: vi.fn(),
 }));
 
 vi.mock('@/providers/AuthProvider', () => ({
   useAuth: () => mocks.useAuth(),
-}));
-
-vi.mock('@/integrations/supabase/client', () => ({
-  supabase: {
-    auth: {
-      signInWithOAuth: mocks.signInWithOAuth,
-      signInWithOtp: mocks.signInWithOtp,
-    },
-  },
 }));
 
 vi.mock('@/lib/thirdweb/client', () => ({
@@ -31,7 +21,7 @@ vi.mock('@/lib/thirdweb/client', () => ({
 }));
 
 vi.mock('@/lib/thirdweb/wallets', () => ({
-  createThirdwebWallets: vi.fn(() => []),
+  createThirdwebWallets: mocks.createThirdwebWallets,
 }));
 
 vi.mock('@/lib/thirdweb/theme', () => ({
@@ -39,7 +29,9 @@ vi.mock('@/lib/thirdweb/theme', () => ({
 }));
 
 vi.mock('thirdweb/react', () => ({
-  ConnectEmbed: () => <div data-testid="connect-embed">Wallet connect options</div>,
+  ConnectEmbed: ({ header }: { header?: { title?: string } }) => (
+    <div data-testid="connect-embed">{header?.title ?? 'thirdweb sign-in'}</div>
+  ),
 }));
 
 vi.mock('@/components/ui/animated-logo', () => ({
@@ -80,67 +72,51 @@ function baseAuth() {
 describe('Login', () => {
   beforeEach(() => {
     mocks.getThirdwebClient.mockResolvedValue({});
-    mocks.signInWithOAuth.mockResolvedValue({ data: {}, error: null });
-    mocks.signInWithOtp.mockResolvedValue({ data: { user: null, session: null }, error: null });
+    mocks.createThirdwebWallets.mockReturnValue([]);
     mockAuth();
   });
 
-  it('keeps Google, email, and wallet options visible when wallet auth fails', async () => {
-    mockAuth({
-      walletAuthError: 'Edge Function returned a non-2xx status code',
-    });
-
+  it('uses thirdweb as the primary sign-in surface', async () => {
     renderLogin();
 
-    expect(await screen.findByRole('button', { name: /continue with google/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /email link/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /wallet sign-in/i })).toBeInTheDocument();
-    expect(await screen.findByText('Edge Function returned a non-2xx status code')).toBeInTheDocument();
     expect(await screen.findByTestId('connect-embed')).toBeInTheDocument();
+    expect(screen.getByText('Sign in with thirdweb')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /continue with google/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /email link/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/email address/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /wallet sign-in/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/magic link sent/i)).not.toBeInTheDocument();
   });
 
-  it('starts Google OAuth with a safe login redirect', async () => {
-    renderLogin('/login?next=%2Fprojects%2Fproject-1%2Fstudio');
-
-    await userEvent.click(await screen.findByRole('button', { name: /continue with google/i }));
-
-    await waitFor(() => expect(mocks.signInWithOAuth).toHaveBeenCalledTimes(1));
-    const [payload] = mocks.signInWithOAuth.mock.calls[0];
-    const redirectUrl = new URL(payload.options.redirectTo);
-
-    expect(payload.provider).toBe('google');
-    expect(redirectUrl.pathname).toBe('/login');
-    expect(redirectUrl.searchParams.get('next')).toBe('/projects/project-1/studio');
-  });
-
-  it('sends an email magic link through Supabase', async () => {
-    renderLogin('/login?next=%2Fhome');
-
-    await userEvent.type(screen.getByLabelText(/email address/i), 'maker@wzrd.test');
-    await userEvent.click(screen.getByRole('button', { name: /email link/i }));
-
-    await waitFor(() => expect(mocks.signInWithOtp).toHaveBeenCalledTimes(1));
-    expect(mocks.signInWithOtp).toHaveBeenCalledWith({
-      email: 'maker@wzrd.test',
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: expect.stringContaining('/login?next=%2Fhome'),
-      },
-    });
-    expect(await screen.findByText('Magic link sent to maker@wzrd.test.')).toBeInTheDocument();
-  });
-
-  it('allows wallet auth retry without hiding other sign-in methods', async () => {
+  it('keeps thirdweb options visible when the Supabase session bridge fails', async () => {
     mockAuth({
       walletAuthError: 'Wallet sign-in could not be completed.',
     });
 
     renderLogin();
 
-    await userEvent.click(await screen.findByRole('button', { name: /retry wallet/i }));
+    expect(await screen.findByTestId('connect-embed')).toBeInTheDocument();
+    expect(await screen.findByText('Wallet sign-in could not be completed.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /retry sign-in/i })).toBeInTheDocument();
+  });
+
+  it('allows session bridge retry without hiding thirdweb sign-in', async () => {
+    mockAuth({
+      walletAuthError: 'Wallet sign-in could not be completed.',
+    });
+
+    renderLogin();
+
+    await userEvent.click(await screen.findByRole('button', { name: /retry sign-in/i }));
 
     expect(mocks.authenticateWallet).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /email link/i })).toBeInTheDocument();
+    expect(await screen.findByTestId('connect-embed')).toBeInTheDocument();
+  });
+
+  it('shows a thirdweb-specific provider setup error', async () => {
+    renderLogin('/login?error=validation_failed&error_description=Unsupported%20provider%3A%20provider%20is%20not%20enabled');
+
+    expect(await screen.findByText(/this thirdweb sign-in method is not enabled yet/i)).toBeInTheDocument();
+    expect(await screen.findByTestId('connect-embed')).toBeInTheDocument();
   });
 });
