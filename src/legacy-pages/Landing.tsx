@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import HeroSection from '@/components/landing/HeroSection';
 import { LazySection } from '@/components/landing/LazySection';
@@ -21,11 +21,22 @@ import MassiveFooter from '@/components/landing/MassiveFooter';
 import { ThreeStepSection } from '@/components/landing/ThreeStepSection';
 import { IPhoneMockup } from '@/components/landing/IPhoneMockup';
 
+const SectionDivider = () => (
+  <div className="mx-auto max-w-6xl px-4 py-2" aria-hidden="true">
+    <div className="h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+  </div>
+);
+
 const Landing = () => {
-  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [introRequested] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('intro') === '1';
+  });
   const [introComplete, setIntroComplete] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    if (new URLSearchParams(window.location.search).get('intro') !== '1') return true;
     return sessionStorage.getItem('mog-intro-seen') === 'true';
   });
   const [introReady, setIntroReady] = useState(false);
@@ -44,7 +55,7 @@ const Landing = () => {
 
   // Gate CinematicIntro behind idle + reduced-motion check
   useEffect(() => {
-    if (introComplete) return;
+    if (!introRequested || introComplete) return;
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (prefersReduced) {
       setIntroComplete(true);
@@ -57,7 +68,7 @@ const Landing = () => {
       const t = setTimeout(() => setIntroReady(true), 100);
       return () => clearTimeout(t);
     }
-  }, [introComplete]);
+  }, [introComplete, introRequested]);
 
   // RAF-throttled passive scroll listener
   const rafRef = useRef(0);
@@ -104,12 +115,6 @@ const Landing = () => {
     }
   };
 
-  const handleLogout = async () => {
-    const { supabase } = await import('@/integrations/supabase/client');
-    await supabase.auth.signOut();
-    navigate('/');
-  };
-
   return (
     <div className="min-h-screen w-full relative bg-black">
       <AnimatePresence>
@@ -122,7 +127,7 @@ const Landing = () => {
 
       {/* Desktop Header */}
       <header
-        className={`sticky top-4 z-[9999] mx-auto hidden w-full self-start rounded-full bg-black/70 md:flex backdrop-blur-xl border border-white/[0.08] shadow-2xl shadow-black/50 transition-all duration-500 ${isScrolled ? 'max-w-4xl px-3' : 'max-w-6xl px-6'} py-2.5`}
+        className={`sticky top-3 z-[9999] mx-auto hidden w-full self-start rounded-full border border-white/[0.08] bg-black/75 shadow-2xl shadow-black/45 backdrop-blur-xl transition-all duration-500 md:flex ${isScrolled ? 'max-w-4xl px-3' : 'max-w-6xl px-5'} py-2.5`}
         style={{ willChange: 'transform', transform: 'translateZ(0)', backfaceVisibility: 'hidden' }}
       >
         <div className="flex items-center justify-between w-full gap-4">
@@ -139,9 +144,9 @@ const Landing = () => {
           </nav>
 
           <div className="flex items-center gap-3 flex-shrink-0">
-            <Link to="/demo" className="rounded-lg font-medium relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center bg-gradient-to-b from-[#FF6B4A] to-[#e55a3a] text-white shadow-[0_0_20px_rgba(255,107,74,0.2)] hover:shadow-[0_0_30px_rgba(255,107,74,0.4)] px-4 py-1.5 text-xs sm:text-sm whitespace-nowrap">Demo</Link>
+            <Link to="/demo" className="rounded-md font-medium relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center border border-white/10 bg-white/[0.04] text-white/80 hover:bg-white/[0.08] px-4 py-1.5 text-xs sm:text-sm whitespace-nowrap">Demo</Link>
             <Link to="/login" className="font-medium transition-colors hover:text-white text-white/50 text-xs sm:text-sm cursor-pointer whitespace-nowrap">Log In</Link>
-            <Link to="/login?mode=signup" className="rounded-lg font-bold relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center bg-gradient-to-b from-[#FF6B4A] to-[#e55a3a] text-white shadow-[0_0_20px_rgba(255,107,74,0.2)] hover:shadow-[0_0_30px_rgba(255,107,74,0.4)] px-4 py-1.5 text-xs sm:text-sm whitespace-nowrap">Sign Up</Link>
+            <Link to="/login?mode=signup" className="rounded-md font-bold relative cursor-pointer hover:-translate-y-0.5 transition duration-200 inline-block text-center bg-gradient-to-b from-[#FF6B4A] to-[#e55a3a] text-white shadow-[0_0_20px_rgba(255,107,74,0.2)] hover:shadow-[0_0_30px_rgba(255,107,74,0.35)] px-4 py-1.5 text-xs sm:text-sm whitespace-nowrap">Sign Up</Link>
           </div>
         </div>
       </header>
@@ -183,9 +188,7 @@ const Landing = () => {
       <div className="relative overflow-hidden">
         <div className="relative z-10">
           <HeroSection />
-          <div className="mx-auto max-w-6xl px-4">
-            <div className="h-px bg-gradient-to-r from-transparent via-orange-500/20 to-transparent" />
-          </div>
+          <SectionDivider />
         </div>
       </div>
 
@@ -212,59 +215,55 @@ const Landing = () => {
       <div
         className="relative"
         style={{
-          background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(139,92,246,0.12) 0%, transparent 50%), radial-gradient(ellipse 60% 40% at 80% 20%, rgba(59,130,246,0.08) 0%, transparent 50%), #000',
-          backgroundAttachment: 'fixed',
+          background: 'radial-gradient(ellipse 70% 35% at 50% 0%, rgba(255,107,74,0.08) 0%, transparent 60%), linear-gradient(180deg, #000 0%, #050505 42%, #070403 100%)',
         }}
       >
-        <div className="absolute inset-0 opacity-[0.15] pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
-        <div className="absolute top-40 left-1/2 -translate-x-1/2 w-[500px] h-[500px] rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(139,92,246,0.05) 40%, transparent 70%)', filter: 'blur(60px)' }} />
+        <div className="absolute inset-0 opacity-[0.08] pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.16) 1px, transparent 1px)', backgroundSize: '28px 28px' }} />
 
         <div className="relative z-10">
-          <div className="mx-auto max-w-6xl px-4"><div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" /></div>
-          <div className="mx-auto max-w-6xl px-4"><div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" /></div>
+          <SectionDivider />
 
           <LazySection minHeight="400px">
             <div id="features"><FeatureGrid /></div>
           </LazySection>
 
-          <div className="mx-auto max-w-6xl px-4"><div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" /></div>
+          <SectionDivider />
 
           <LazySection minHeight="300px">
             <ThreeStepSection />
           </LazySection>
 
-          <div className="mx-auto max-w-6xl px-4"><div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" /></div>
+          <SectionDivider />
 
           <LazySection minHeight="300px">
             <UseCasesSection />
           </LazySection>
 
-          <div className="mx-auto max-w-6xl px-4"><div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" /></div>
+          <SectionDivider />
 
           <LazySection minHeight="400px">
             <IPhoneMockup />
           </LazySection>
 
-          <div className="mx-auto max-w-6xl px-4"><div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" /></div>
+          <SectionDivider />
 
           <LazySection minHeight="300px">
             <div id="testimonials"><TestimonialsSection /></div>
           </LazySection>
 
-          <div className="mx-auto max-w-6xl px-4"><div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" /></div>
+          <SectionDivider />
 
           <LazySection minHeight="400px">
             <div id="pricing"><PricingSectionRedesigned /></div>
           </LazySection>
 
-          <div className="mx-auto max-w-6xl px-4"><div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" /></div>
-          <div className="mx-auto max-w-6xl px-4"><div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" /></div>
+          <SectionDivider />
 
           <LazySection minHeight="200px">
             <div id="faq"><FAQAccordion items={faqItems} /></div>
           </LazySection>
 
-          <div className="mx-auto max-w-6xl px-4"><div className="h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent" /></div>
+          <SectionDivider />
 
           <LazySection minHeight="300px">
             <MassiveFooter />
