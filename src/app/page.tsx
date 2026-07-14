@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 
 import CreatorOSLanding from "@/components/creator-os/CreatorOSLanding";
 
@@ -34,10 +34,6 @@ export const metadata: Metadata = {
     images: ["/creator-os/og-creator-os.svg"],
     title: "WZRD.tech — Creator OS",
   },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#050506",
 };
 
 export default function Page() {

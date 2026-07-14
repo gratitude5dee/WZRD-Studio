@@ -38,7 +38,7 @@ test("hydrates the Creator OS landing shell", async ({ page }) => {
   await expect(page.getByRole("navigation", { name: "Creator OS chapters" })).toBeVisible();
   await expect(page.getByRole("link", { name: /begin at the source/i })).toBeVisible();
   await expect(page.locator("#coming-soon")).toBeVisible();
-  await expect(page.locator("html")).toEvaluate((element) => element.scrollWidth <= window.innerWidth);
+  expect(await page.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
 
   assertNoPlatformUnsupported();
 });
