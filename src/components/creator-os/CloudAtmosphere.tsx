@@ -156,7 +156,7 @@ export default function CloudAtmosphere({
       camera={{ position: [0, 0, 1], near: 0.1, far: 10 }}
       dpr={[1, 1.25]}
       frameloop="demand"
-      gl={{ alpha: false, antialias: false, powerPreference: "high-performance" }}
+      gl={{ alpha: true, antialias: false, powerPreference: "high-performance" }}
       orthographic
       role="presentation"
       style={{ height: "100%", width: "100%" }}

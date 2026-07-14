@@ -20,6 +20,7 @@ export function PretextBubble({
 }: PretextBubbleProps) {
   const bubbleRef = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<string[]>([children]);
+  const accessibleText = label ?? `${status ? `${status}. ` : ""}${children}`;
 
   useEffect(() => {
     const element = bubbleRef.current;
@@ -53,22 +54,22 @@ export function PretextBubble({
     };
 
     measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(element);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(element);
     void document.fonts?.ready.then(measure).catch(() => undefined);
 
     return () => {
       cancelled = true;
       cancelAnimationFrame(animationFrame);
-      observer.disconnect();
+      observer?.disconnect();
     };
   }, [children]);
 
   return (
     <div
-      aria-label={label ?? `${status ? `${status}. ` : ""}${children}`}
       className={`${styles.messageBubble} ${styles[`messageBubble${kind[0].toUpperCase()}${kind.slice(1)}`]}`}
       ref={bubbleRef}
+      role="listitem"
     >
       <span aria-hidden="true" className={styles.pretextLines}>
         {lines.map((line, index) => (
@@ -77,7 +78,7 @@ export function PretextBubble({
           </span>
         ))}
       </span>
-      <span className={styles.screenReaderOnly}>{children}</span>
+      <span className={styles.screenReaderOnly}>{accessibleText}</span>
       {status ? <span aria-hidden="true" className={styles.messageStatus}>{status}</span> : null}
     </div>
   );

@@ -5,14 +5,14 @@ function installConsoleGuards(page: Page) {
 
   page.on("console", (message) => {
     const text = message.text();
-    if (/PlatformUnsupportedError/i.test(text)) {
+    if (/PlatformUnsupportedError|THREE\.Clock/i.test(text)) {
       failures.push(`console ${message.type()}: ${text}`);
     }
   });
 
   page.on("pageerror", (error) => {
     const text = error.stack || error.message;
-    if (/PlatformUnsupportedError/i.test(text)) {
+    if (/PlatformUnsupportedError|THREE\.Clock/i.test(text)) {
       failures.push(`pageerror: ${text}`);
     }
   });
@@ -28,16 +28,28 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-test("hydrates the public landing shell", async ({ page }) => {
+test("hydrates the Creator OS landing shell", async ({ page }) => {
   const assertNoPlatformUnsupported = installConsoleGuards(page);
 
   const response = await page.goto("/", { waitUntil: "domcontentloaded" });
   expect(response?.status()).toBeLessThan(400);
 
-  await expect(page.getByRole("link", { name: /log in/i })).toBeVisible();
-  await expect(page.getByRole("link", { name: /sign up/i })).toBeVisible();
+  await expect(page.locator("h1")).toHaveText("WZRD.tech");
+  await expect(page.getByRole("navigation", { name: "Creator OS chapters" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /begin at the source/i })).toBeVisible();
+  await expect(page.locator("#coming-soon")).toBeVisible();
+  await expect(page.locator("html")).toEvaluate((element) => element.scrollWidth <= window.innerWidth);
 
   assertNoPlatformUnsupported();
+});
+
+test("honors reduced motion without mounting the WebGL scene", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("button", { name: /motion reduced/i })).toBeDisabled();
+  await expect(page.locator("canvas")).toHaveCount(0);
+  await expect(page.locator(".pin-spacer")).toHaveCount(0);
 });
 
 test("resolves login into an authenticated editor route under test auth", async ({ page }) => {

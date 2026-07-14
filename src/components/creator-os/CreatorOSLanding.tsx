@@ -4,7 +4,8 @@ import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Component, useCallback, useEffect, useRef, useState } from "react";
+import type { ErrorInfo, ReactNode } from "react";
 
 import { PretextBubble } from "./PretextBubble";
 import styles from "./CreatorOSLanding.module.css";
@@ -14,6 +15,31 @@ gsap.registerPlugin(useGSAP, ScrollTrigger);
 const CloudAtmosphere = dynamic(() => import("./CloudAtmosphere"), {
   ssr: false,
 });
+
+type CloudFallbackBoundaryProps = {
+  children: ReactNode;
+  onFailure: () => void;
+};
+
+type CloudFallbackBoundaryState = {
+  failed: boolean;
+};
+
+class CloudFallbackBoundary extends Component<CloudFallbackBoundaryProps, CloudFallbackBoundaryState> {
+  state: CloudFallbackBoundaryState = { failed: false };
+
+  static getDerivedStateFromError(): CloudFallbackBoundaryState {
+    return { failed: true };
+  }
+
+  componentDidCatch(_error: Error, _info: ErrorInfo) {
+    this.props.onFailure();
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
 
 const chapterLinks = [
   ["Air", "#air"],
@@ -88,6 +114,10 @@ export default function CreatorOSLanding() {
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("webgl2") || canvas.getContext("webgl");
     setWebglReady(Boolean(context));
+
+    // The probe is only used to decide whether to mount the optional canvas.
+    // Release its context immediately so it never competes with the live scene.
+    context?.getExtension("WEBGL_lose_context")?.loseContext();
 
     return () => {
       motionMedia.removeEventListener("change", updatePreference);
@@ -273,11 +303,13 @@ export default function CreatorOSLanding() {
           <div aria-hidden="true" className={styles.cloudFallback} />
           {webglEnabled ? (
             <div aria-hidden="true" className={styles.cloudCanvas}>
-              <CloudAtmosphere
-                onWebglFailure={handleCloudFailure}
-                onInvalidateReady={handleCloudReady}
-                progressRef={cloudProgressRef}
-              />
+              <CloudFallbackBoundary onFailure={handleCloudFailure}>
+                <CloudAtmosphere
+                  onWebglFailure={handleCloudFailure}
+                  onInvalidateReady={handleCloudReady}
+                  progressRef={cloudProgressRef}
+                />
+              </CloudFallbackBoundary>
             </div>
           ) : null}
           <div aria-hidden="true" className={styles.heroGrain} />
@@ -288,6 +320,7 @@ export default function CreatorOSLanding() {
           </div>
 
           <div className={styles.heroContent}>
+            <h1 className={styles.screenReaderOnly} id="hero-title">WZRD.tech</h1>
             <p className={styles.heroKicker}>A creator operating system</p>
             <div className={styles.heroWordmarkStage} data-wordmark>
               <picture>
@@ -303,10 +336,10 @@ export default function CreatorOSLanding() {
               </picture>
               <span aria-hidden="true" className={styles.wordmarkCloudVeil} data-wordmark-veil />
             </div>
-            <h1 aria-label="WZRD.tech: Creator OS" className={styles.creatorTitle} data-creator-os id="hero-title">
+            <p className={styles.creatorTitle} data-creator-os>
               <span>Creator</span>
               <strong>OS</strong>
-            </h1>
+            </p>
             <p className={styles.heroStatement} data-hero-statement>
               A living system for the people who turn passing signals into culture.
             </p>
@@ -358,7 +391,8 @@ export default function CreatorOSLanding() {
                 </div>
                 <span className={styles.threadStatus}>available</span>
               </div>
-              <div className={styles.threadMessages}>
+              <p className={styles.proofDisclosure}>Prototype transcript · fictional, consent-safe</p>
+              <div className={styles.threadMessages} role="list">
                 <PretextBubble kind="human" status="Sent">
                   Four shots. Night city. No rush.
                 </PretextBubble>
@@ -479,6 +513,9 @@ export default function CreatorOSLanding() {
               <p>
                 An Agent Media Runtime keeps intent attached as ideas cross tools,
                 agents, formats, and collaborators. Less handoff theater. More signal.
+              </p>
+              <p className={styles.proofDisclosure}>
+                Concept map · illustrative states pending engineering approval
               </p>
             </header>
             <ol aria-label="Illustrative Agent Media Runtime path" className={styles.runtimeMap} data-reveal>

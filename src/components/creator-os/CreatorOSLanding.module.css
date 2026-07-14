@@ -305,10 +305,11 @@
   background:
     radial-gradient(ellipse at 29% 54%, rgba(207, 232, 255, 0.98) 0 9%, transparent 30%),
     radial-gradient(ellipse at 64% 39%, rgba(113, 166, 229, 0.94) 0 17%, transparent 43%),
-    radial-gradient(ellipse at 53% 79%, rgba(8, 26, 58, 0.92) 0 18%, transparent 48%),
-    linear-gradient(90deg, rgba(11, 40, 89, 0.72), rgba(168, 209, 255, 0.74), rgba(6, 22, 48, 0.82));
-  filter: blur(20px);
+    radial-gradient(ellipse at 53% 79%, rgba(8, 26, 58, 0.92) 0 18%, transparent 48%);
+  filter: blur(24px);
   inset: -12% -4%;
+  -webkit-mask-image: radial-gradient(ellipse 68% 95% at 50% 50%, #000 0 52%, transparent 84%);
+  mask-image: radial-gradient(ellipse 68% 95% at 50% 50%, #000 0 52%, transparent 84%);
   opacity: 0;
   pointer-events: none;
   position: absolute;
@@ -466,6 +467,23 @@
   max-width: 30rem;
 }
 
+.proofDisclosure {
+  color: color-mix(in srgb, var(--mist) 70%, transparent);
+  font-family: var(--font-azaret), "Azeret Mono", monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  margin: 0.9rem 0 0;
+  text-transform: uppercase;
+}
+
+.chapterIntro > p.proofDisclosure {
+  color: color-mix(in srgb, var(--bone) 58%, transparent);
+  font-size: 0.68rem;
+  line-height: 1.35;
+  margin: 1rem 0 0;
+}
+
 .textLink {
   align-items: center;
   border-bottom: 1px solid color-mix(in srgb, currentColor 55%, transparent);
@@ -569,6 +587,11 @@
   flex-direction: column;
   gap: 0.55rem;
   padding: 1rem 0.1rem;
+}
+
+.messageThread .proofDisclosure {
+  color: color-mix(in srgb, var(--mist) 58%, transparent);
+  margin: 0.95rem 0.1rem -0.25rem;
 }
 
 .messageBubble {
@@ -1070,9 +1093,12 @@
 }
 
 .closing a {
+  align-items: center;
   border-bottom: 1px solid #11100f;
+  display: inline-flex;
   font-size: clamp(1.4rem, 2vw, 2.1rem);
   letter-spacing: -0.04em;
+  min-height: 44px;
   padding-bottom: 0.2rem;
 }
 
@@ -1151,7 +1177,17 @@
   }
 
   .heroSystemMap li {
-    font-size: 0.75rem;
+    font-size: 1rem;
+  }
+
+  .messageBubble,
+  .messageStatus,
+  .threadHeader small,
+  .threadStatus,
+  .threadComposer,
+  .proofDisclosure,
+  .chapterIntro > p.proofDisclosure {
+    font-size: 1rem;
   }
 
   .heroAirHandoff span {
