@@ -1264,7 +1264,6 @@
   bottom: 24%;
   right: 14%;
 }
-}
 
 .zap::after {
   background: repeating-linear-gradient(90deg, transparent 0 3.3rem, rgba(140, 200, 255, 0.045) 3.35rem 3.42rem);
