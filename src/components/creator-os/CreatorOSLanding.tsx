@@ -175,9 +175,9 @@ export default function CreatorOSLanding() {
         ) return;
 
         gsap.set(wordmark, {
-          autoAlpha: 0.42,
+          autoAlpha: 0,
           clipPath: "inset(0 26% 0 26%)",
-          filter: "blur(7px)",
+          filter: "blur(12px)",
           scale: 0.92,
           yPercent: 6,
         });
