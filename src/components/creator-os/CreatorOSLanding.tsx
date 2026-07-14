@@ -7,7 +7,9 @@ import dynamic from "next/dynamic";
 import { Component, useCallback, useEffect, useRef, useState } from "react";
 import type { ErrorInfo, ReactNode } from "react";
 
+import { CreatorProfileCard } from "./CreatorProfileCard";
 import { PretextBubble } from "./PretextBubble";
+import { PrismaticBurst } from "./PrismaticBurst";
 import styles from "./CreatorOSLanding.module.css";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
@@ -78,6 +80,43 @@ const runtimeStages = [
     title: "Release packet",
   },
 ] as const;
+
+const constellationRoles = [
+  {
+    accent: "air",
+    channel: "AIR",
+    description: "Holds a fragment long enough to become a direction.",
+    emblem: "01",
+    role: "Signal Keeper",
+    state: "Listening",
+  },
+  {
+    accent: "studio",
+    channel: "STUDIO",
+    description: "Finds rhythm between rush and restraint.",
+    emblem: "02",
+    role: "Cut Director",
+    state: "Composing",
+  },
+  {
+    accent: "earth",
+    channel: "EARTH",
+    description: "Gives the release a room to live in.",
+    emblem: "03",
+    role: "Worldbuilder",
+    state: "Gathering",
+  },
+  {
+    accent: "zap",
+    channel: "ZAP",
+    description: "Keeps every decision attached to the work.",
+    emblem: "04",
+    role: "Runtime Steward",
+    state: "Routing",
+  },
+] as const;
+
+const footerBurstColors = ["#6dc8d7", "#f1ebdd", "#f0a145", "#f06a47"] as const;
 
 export default function CreatorOSLanding() {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -301,6 +340,13 @@ export default function CreatorOSLanding() {
           id="top"
         >
           <div aria-hidden="true" className={styles.cloudFallback} />
+          <div
+            aria-hidden="true"
+            className={styles.heroLightRays}
+            data-motion={motionAllowed ? "active" : "static"}
+            data-motion-layer="light-rays"
+            data-react-bits-effect="light-rays"
+          />
           {webglEnabled ? (
             <div aria-hidden="true" className={styles.cloudCanvas}>
               <CloudFallbackBoundary onFailure={handleCloudFailure}>
@@ -366,6 +412,13 @@ export default function CreatorOSLanding() {
         </section>
 
         <section aria-labelledby="air-title" className={`${styles.chapter} ${styles.air}`} id="air">
+          <div
+            aria-hidden="true"
+            className={styles.airDitherField}
+            data-motion={motionAllowed ? "active" : "static"}
+            data-motion-layer="dither"
+            data-react-bits-effect="dither"
+          />
           <div className={styles.chapterMeta} data-reveal>
             <span>01 / Air</span>
             <span>Intent, received</span>
@@ -415,6 +468,18 @@ export default function CreatorOSLanding() {
         </section>
 
         <section aria-labelledby="studio-title" className={`${styles.chapter} ${styles.studio}`} id="studio">
+          <div
+            aria-hidden="true"
+            className={styles.studioMotionField}
+            data-motion={motionAllowed ? "active" : "static"}
+            data-motion-layer="studio-grid"
+            data-react-bits-effect="liquid-chrome grid-motion grid-distortion"
+          >
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
           <div className={styles.chapterMeta} data-reveal>
             <span>02 / Studio</span>
             <span>A pocket-sized set</span>
@@ -465,43 +530,64 @@ export default function CreatorOSLanding() {
             <span>Digital → physical</span>
           </div>
           <div className={styles.earthLayout}>
-            <header className={styles.chapterIntro} data-reveal>
-              <p className={styles.eyebrow}>Generative culture has a place to land</p>
-              <h2 id="earth-title">Earth gives a work a world beyond the feed.</h2>
-              <p>
-                A cultural layer for releases that travel from a shared file to a
-                room, a screen, a crowd, and the next person who wants to make something.
-              </p>
-            </header>
-            <div
-              aria-label="Earth concept path from a digital signal to a physical gathering"
-              className={styles.earthArtifact}
-              data-reveal
-              role="img"
-            >
-              <span className={styles.earthOrbitOne} />
-              <span className={styles.earthOrbitTwo} />
-              <span className={styles.earthCore}>EARTH</span>
-              <div className={styles.earthNodes}>
-                <span>Signal</span>
-                <span>Artifact</span>
-                <span>Room</span>
-                <span>Ritual</span>
-              </div>
+            <div className={styles.earthNarrative}>
+              <header className={styles.chapterIntro} data-reveal>
+                <p className={styles.eyebrow}>Generative culture has a place to land</p>
+                <h2 id="earth-title">Earth gives a work a world beyond the feed.</h2>
+                <p>
+                  A cultural layer for releases that travel from a shared file to a
+                  room, a screen, a crowd, and the next person who wants to make something.
+                </p>
+              </header>
+              <aside className={styles.earthNote} data-reveal>
+                <span>Field concept / 03</span>
+                <p>
+                  Digital work is not the opposite of physical culture. It is the invitation.
+                </p>
+                <a className={styles.textLink} href="#coming-soon">
+                  Follow the horizon <span aria-hidden="true">↓</span>
+                </a>
+              </aside>
             </div>
-            <aside className={styles.earthNote} data-reveal>
-              <span>Field concept / 03</span>
-              <p>
-                Digital work is not the opposite of physical culture. It is the invitation.
-              </p>
-              <a className={styles.textLink} href="#coming-soon">
-                Follow the horizon <span aria-hidden="true">↓</span>
-              </a>
-            </aside>
+            <section aria-labelledby="constellation-title" className={styles.constellation} data-reveal>
+              <div
+                aria-hidden="true"
+                className={styles.earthOrbitBackdrop}
+                data-motion={motionAllowed ? "active" : "static"}
+                data-motion-layer="culture-orbit"
+                data-react-bits-effect="prism infinite-menu"
+              >
+                <span />
+                <span />
+                <span />
+                <i />
+              </div>
+              <div className={styles.constellationHeading}>
+                <p className={styles.eyebrow}>The making constellation</p>
+                <h3 id="constellation-title">No release moves alone.</h3>
+                <p className={styles.proofDisclosure}>Conceptual roles — not member profiles.</p>
+              </div>
+              <div className={styles.constellationGrid}>
+                {constellationRoles.map(role => (
+                  <CreatorProfileCard key={role.role} motionEnabled={motionAllowed} {...role} />
+                ))}
+              </div>
+            </section>
           </div>
         </section>
 
         <section aria-labelledby="zap-title" className={`${styles.chapter} ${styles.zap}`} id="zap">
+          <div
+            aria-hidden="true"
+            className={styles.zapTerminalField}
+            data-motion={motionAllowed ? "active" : "static"}
+            data-motion-layer="runtime-terminal"
+            data-react-bits-effect="faulty-terminal dither prism card-swap"
+          >
+            <span />
+            <span />
+            <span />
+          </div>
           <div className={styles.chapterMeta} data-reveal>
             <span>04 / Zap</span>
             <span>Agent Media Runtime</span>
@@ -549,12 +635,26 @@ export default function CreatorOSLanding() {
           </div>
           <div className={styles.horizonPair} data-reveal>
             <article className={styles.waterPanel}>
+              <div
+                aria-hidden="true"
+                className={styles.waterChrome}
+                data-motion={motionAllowed ? "active" : "static"}
+                data-motion-layer="liquid-chrome"
+                data-react-bits-effect="liquid-chrome"
+              />
               <span className={styles.horizonNumber}>W</span>
               <p className={styles.panelKicker}>Water / coming soon</p>
               <h3>Creator Bank</h3>
               <p>Tools for the resources and relationships that let creative work keep moving.</p>
             </article>
             <article className={styles.firePanel}>
+              <div
+                aria-hidden="true"
+                className={styles.firePixelField}
+                data-motion={motionAllowed ? "active" : "static"}
+                data-motion-layer="pixel-card"
+                data-react-bits-effect="pixel-card"
+              />
               <span className={styles.horizonNumber}>F</span>
               <p className={styles.panelKicker}>Fire / coming soon</p>
               <h3>Entertainment prediction markets</h3>
@@ -563,9 +663,22 @@ export default function CreatorOSLanding() {
           </div>
         </section>
 
-        <section aria-label="Enter WZRD Studio" className={styles.closing}>
-          <p>WZRD.tech / Creator OS</p>
-          <a href="/home">Make the next signal <span aria-hidden="true">↗</span></a>
+        <section
+          aria-label="Enter WZRD Studio"
+          className={styles.closing}
+          data-prismatic-motion={motionAllowed && isDesktop ? "active" : "static"}
+        >
+          <PrismaticBurst
+            colors={footerBurstColors}
+            intensity={0.72}
+            motionEnabled={motionAllowed && isDesktop}
+            rayCount={18}
+            speed={0.09}
+          />
+          <div className={styles.closingContent}>
+            <p>WZRD.tech / Creator OS</p>
+            <a href="/home">Make the next signal <span aria-hidden="true">↗</span></a>
+          </div>
         </section>
       </main>
 

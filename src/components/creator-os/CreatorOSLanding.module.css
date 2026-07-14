@@ -222,6 +222,27 @@
   z-index: 1;
 }
 
+.heroLightRays {
+  background:
+    conic-gradient(from 224deg at 70% 36%, transparent 0 8deg, rgba(162, 219, 255, 0.26) 10deg 13deg, transparent 16deg 27deg, rgba(219, 239, 255, 0.24) 30deg 34deg, transparent 37deg 56deg, rgba(126, 181, 245, 0.18) 60deg 65deg, transparent 70deg 100deg),
+    radial-gradient(ellipse at 70% 36%, rgba(229, 244, 255, 0.2), transparent 42%);
+  filter: blur(8px);
+  inset: -12%;
+  mix-blend-mode: screen;
+  opacity: 0.68;
+  pointer-events: none;
+  position: absolute;
+  transform: rotate(-8deg) scale(1.06);
+  z-index: 2;
+}
+
+.heroLightRays::after {
+  background: linear-gradient(90deg, rgba(7, 17, 36, 0.55), transparent 42%, rgba(7, 17, 36, 0.32));
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
 .heroGrain {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.93' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
   mix-blend-mode: soft-light;
@@ -520,6 +541,33 @@
   position: relative;
 }
 
+.airDitherField {
+  background:
+    linear-gradient(135deg, transparent 49.5%, rgba(166, 211, 255, 0.2) 50%, transparent 50.5%) 0 0 / 0.75rem 0.75rem,
+    radial-gradient(circle at 72% 24%, rgba(155, 209, 255, 0.24), transparent 26%),
+    radial-gradient(circle at 28% 78%, rgba(60, 119, 213, 0.18), transparent 35%);
+  inset: 0;
+  opacity: 0.55;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute !important;
+  z-index: 0;
+}
+
+.airDitherField::after {
+  background-image: radial-gradient(rgba(220, 240, 255, 0.46) 0.55px, transparent 0.65px);
+  background-size: 0.32rem 0.32rem;
+  content: "";
+  inset: 0;
+  mix-blend-mode: soft-light;
+  opacity: 0.72;
+  position: absolute;
+}
+
+.air > :not(.airDitherField) {
+  z-index: 1;
+}
+
 .airLayout {
   align-items: center;
   display: grid;
@@ -668,6 +716,69 @@
 .studio {
   background: #f1ebdd;
   color: #171311;
+  overflow: hidden;
+}
+
+.studioMotionField {
+  background:
+    linear-gradient(rgba(179, 60, 37, 0.12) 1px, transparent 1px) 0 0 / 3.8rem 3.8rem,
+    linear-gradient(90deg, rgba(179, 60, 37, 0.12) 1px, transparent 1px) 0 0 / 3.8rem 3.8rem,
+    radial-gradient(circle at 76% 44%, rgba(224, 155, 93, 0.32), transparent 30%);
+  inset: 0;
+  opacity: 0.68;
+  pointer-events: none;
+  position: absolute !important;
+  z-index: 0;
+}
+
+.studioMotionField::before {
+  background: radial-gradient(circle at 50% 50%, rgba(253, 246, 230, 0.3), transparent 67%);
+  content: "";
+  inset: 0;
+  position: absolute;
+}
+
+.studioMotionField span {
+  border: 1px solid rgba(179, 60, 37, 0.42);
+  display: block;
+  position: absolute;
+}
+
+.studioMotionField span:nth-child(1) {
+  height: 12rem;
+  right: 13%;
+  top: 12%;
+  transform: rotate(17deg);
+  width: 12rem;
+}
+
+.studioMotionField span:nth-child(2) {
+  height: 8rem;
+  left: 18%;
+  top: 48%;
+  transform: rotate(-11deg);
+  width: 8rem;
+}
+
+.studioMotionField span:nth-child(3) {
+  border-radius: 50%;
+  height: 17rem;
+  right: 28%;
+  top: 38%;
+  width: 17rem;
+}
+
+.studioMotionField span:nth-child(4) {
+  height: 4rem;
+  right: 7%;
+  top: 58%;
+  transform: rotate(43deg);
+  width: 4rem;
+}
+
+.studio > :not(.studioMotionField) {
+  position: relative;
+  z-index: 1;
 }
 
 .studio .chapterMeta,
@@ -770,85 +881,24 @@
 }
 
 .earthLayout {
-  align-items: center;
+  align-items: start;
   display: grid;
-  gap: clamp(2rem, 6vw, 7rem);
-  grid-template-columns: minmax(15rem, 0.9fr) minmax(16rem, 0.8fr) minmax(13rem, 0.55fr);
+  gap: clamp(3rem, 7vw, 8rem);
+  grid-template-columns: minmax(15rem, 0.7fr) minmax(28rem, 1.3fr);
   margin: 0 auto;
   max-width: 71rem;
 }
 
-.earthArtifact {
-  aspect-ratio: 1;
+.earthNarrative {
+  align-self: center;
+  display: grid;
+  gap: clamp(2.5rem, 6vw, 5rem);
   min-width: 0;
-  position: relative;
-}
-
-.earthCore,
-.earthOrbitOne,
-.earthOrbitTwo {
-  border: 1px solid rgba(224, 220, 192, 0.5);
-  border-radius: 50%;
-  position: absolute;
-}
-
-.earthCore {
-  align-items: center;
-  background: radial-gradient(circle at 36% 27%, #d9d3ad, #778166 40%, #1a3a2b 75%);
-  box-shadow: 0 0 4rem rgba(187, 194, 138, 0.25);
-  color: #151b16;
-  display: flex;
-  font-family: var(--font-azaret), "Azeret Mono", monospace;
-  font-size: 0.8rem;
-  inset: 25%;
-  justify-content: center;
-  letter-spacing: 0.1em;
-  text-shadow: 0 1px rgba(255, 255, 255, 0.3);
-}
-
-.earthOrbitOne {
-  inset: 5%;
-}
-
-.earthOrbitTwo {
-  border-color: rgba(224, 220, 192, 0.18);
-  inset: 15%;
-}
-
-.earthNodes span {
-  background: #0d221a;
-  border: 1px solid rgba(224, 220, 192, 0.38);
-  color: rgba(241, 235, 221, 0.86);
-  font-family: var(--font-azaret), "Azeret Mono", monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  padding: 0.42rem 0.48rem;
-  position: absolute;
-  text-transform: uppercase;
-}
-
-.earthNodes span:nth-child(1) {
-  left: -2%;
-  top: 20%;
-}
-
-.earthNodes span:nth-child(2) {
-  right: -4%;
-  top: 28%;
-}
-
-.earthNodes span:nth-child(3) {
-  bottom: 17%;
-  left: 7%;
-}
-
-.earthNodes span:nth-child(4) {
-  bottom: 7%;
-  right: 2%;
 }
 
 .earthNote {
   border-left: 1px solid rgba(224, 220, 192, 0.38);
+  max-width: 28rem;
   padding: 0.2rem 0 0.2rem 1.3rem;
 }
 
@@ -870,8 +920,350 @@
   color: #c5ba9e;
 }
 
+.constellation {
+  background:
+    linear-gradient(145deg, rgba(8, 30, 23, 0.94), rgba(17, 44, 30, 0.74)),
+    radial-gradient(circle at 22% 12%, rgba(205, 197, 155, 0.14), transparent 35%);
+  border: 1px solid rgba(224, 220, 192, 0.25);
+  isolation: isolate;
+  min-width: 0;
+  overflow: hidden;
+  padding: clamp(1.2rem, 3vw, 2.25rem);
+  position: relative;
+}
+
+.constellation::after {
+  background: linear-gradient(130deg, rgba(238, 229, 203, 0.08), transparent 42%, rgba(139, 175, 135, 0.06));
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.constellationHeading {
+  max-width: 26rem;
+  position: relative;
+  z-index: 2;
+}
+
+.constellationHeading .eyebrow {
+  color: #c5ba9e;
+  margin-bottom: 0.8rem;
+}
+
+.constellationHeading h3 {
+  font-size: clamp(2rem, 3.45vw, 3.65rem);
+  font-weight: 400;
+  letter-spacing: -0.065em;
+  line-height: 0.9;
+  margin: 0;
+}
+
+.constellationHeading .proofDisclosure {
+  color: rgba(235, 230, 211, 0.62);
+  margin-top: 0.9rem;
+}
+
+.earthOrbitBackdrop {
+  inset: 6%;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.earthOrbitBackdrop span,
+.earthOrbitBackdrop i {
+  border: 1px solid rgba(224, 220, 192, 0.24);
+  border-radius: 50%;
+  position: absolute;
+}
+
+.earthOrbitBackdrop span:nth-child(1) {
+  inset: 5%;
+}
+
+.earthOrbitBackdrop span:nth-child(2) {
+  border-color: rgba(224, 220, 192, 0.16);
+  inset: 19%;
+}
+
+.earthOrbitBackdrop span:nth-child(3) {
+  border-color: rgba(224, 220, 192, 0.1);
+  inset: 33%;
+}
+
+.earthOrbitBackdrop i {
+  background: radial-gradient(circle at 36% 27%, #d9d3ad, #778166 43%, #1a3a2b 76%);
+  border: 0;
+  box-shadow: 0 0 4rem rgba(187, 194, 138, 0.24);
+  inset: 41%;
+}
+
+.constellationGrid {
+  display: grid;
+  gap: clamp(0.65rem, 1.45vw, 1.1rem);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: clamp(1.8rem, 4vw, 3.5rem);
+  position: relative;
+  z-index: 2;
+}
+
+.creatorProfileCard {
+  --pointer-x: 50%;
+  --pointer-y: 50%;
+  --rotate-x: 0deg;
+  --rotate-y: 0deg;
+  --profile-accent: #c5ba9e;
+  --profile-deep: #17382b;
+  --profile-glow: rgba(197, 186, 158, 0.48);
+  background:
+    linear-gradient(154deg, color-mix(in srgb, var(--profile-deep) 72%, #0a1611) 0%, rgba(8, 20, 16, 0.88) 100%);
+  border: 1px solid color-mix(in srgb, var(--profile-accent) 48%, transparent);
+  display: block;
+  min-height: clamp(11.5rem, 17vw, 15rem);
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  transform: perspective(900px) rotateX(0deg) rotateY(0deg) translateZ(0);
+  transform-style: preserve-3d;
+  transition: border-color 240ms ease, transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.creatorProfileCardAir {
+  --profile-accent: #8cc8ff;
+  --profile-deep: #0b3153;
+  --profile-glow: rgba(140, 200, 255, 0.52);
+}
+
+.creatorProfileCardStudio {
+  --profile-accent: #f0a145;
+  --profile-deep: #4b2617;
+  --profile-glow: rgba(240, 161, 69, 0.46);
+}
+
+.creatorProfileCardEarth {
+  --profile-accent: #c5ba9e;
+  --profile-deep: #294b37;
+  --profile-glow: rgba(197, 186, 158, 0.48);
+}
+
+.creatorProfileCardZap {
+  --profile-accent: #f06a47;
+  --profile-deep: #35191d;
+  --profile-glow: rgba(240, 106, 71, 0.52);
+}
+
+.creatorProfileCard[data-motion="active"] {
+  will-change: transform;
+}
+
+.creatorProfileCard[data-motion="active"][data-hovered="true"] {
+  border-color: color-mix(in srgb, var(--profile-accent) 82%, white 18%);
+  transition: border-color 140ms ease, transform 80ms linear;
+  transform: perspective(900px) rotateX(var(--rotate-x)) rotateY(var(--rotate-y)) translateZ(0);
+}
+
+.creatorProfileAtmosphere,
+.creatorProfileGlow,
+.creatorProfileSheen,
+.creatorProfileScan {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.creatorProfileAtmosphere {
+  overflow: hidden;
+}
+
+.creatorProfileGlow {
+  background: radial-gradient(circle at var(--pointer-x) var(--pointer-y), var(--profile-glow), transparent 47%);
+  filter: blur(14px);
+  opacity: 0.28;
+  transform: scale(1.14);
+  transition: opacity 180ms ease;
+}
+
+.creatorProfileSheen {
+  background:
+    linear-gradient(112deg, transparent 16%, rgba(255, 255, 255, 0.04) 37%, rgba(255, 255, 255, 0.42) 49%, rgba(255, 255, 255, 0.06) 61%, transparent 77%),
+    radial-gradient(circle at var(--pointer-x) var(--pointer-y), rgba(255, 255, 255, 0.18), transparent 34%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transform: translateX(calc((var(--pointer-x) - 50%) * -0.12)) scale(1.08);
+  transition: opacity 160ms ease;
+}
+
+.creatorProfileEmblem {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--profile-accent) 44%, transparent);
+  border-radius: 50%;
+  color: var(--profile-accent);
+  display: flex;
+  font-family: var(--font-azaret), "Azeret Mono", monospace;
+  font-size: clamp(2.3rem, 4vw, 4.25rem);
+  height: 54%;
+  justify-content: center;
+  letter-spacing: -0.1em;
+  left: 50%;
+  opacity: 0.6;
+  position: absolute;
+  top: 44%;
+  transform: translate(-50%, -50%) rotate(-18deg);
+  width: 54%;
+}
+
+.creatorProfileEmblem::after,
+.creatorProfileEmblem::before {
+  border: 1px solid color-mix(in srgb, var(--profile-accent) 40%, transparent);
+  border-radius: 50%;
+  content: "";
+  position: absolute;
+}
+
+.creatorProfileEmblem::before {
+  inset: 12%;
+}
+
+.creatorProfileEmblem::after {
+  inset: 28%;
+}
+
+.creatorProfileScan {
+  background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(255, 255, 255, 0.05) 5px 6px);
+  mix-blend-mode: soft-light;
+  opacity: 0.36;
+}
+
+.creatorProfileCard[data-hovered="true"] .creatorProfileGlow,
+.creatorProfileCard[data-hovered="true"] .creatorProfileSheen {
+  opacity: 1;
+}
+
+.creatorProfileCard[data-hovered="true"] .creatorProfileEmblem {
+  box-shadow: 0 0 2rem color-mix(in srgb, var(--profile-accent) 34%, transparent);
+}
+
+.creatorProfileContent {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  min-height: inherit;
+  padding: clamp(0.85rem, 1.8vw, 1.2rem);
+  position: relative;
+  transform: translateZ(1px);
+  z-index: 1;
+}
+
+.creatorProfileIndex,
+.creatorProfileMeta {
+  font-family: var(--font-azaret), "Azeret Mono", monospace;
+  font-size: clamp(0.55rem, 0.72vw, 0.68rem);
+  letter-spacing: 0.085em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.creatorProfileIndex {
+  color: color-mix(in srgb, var(--profile-accent) 82%, white 18%);
+}
+
+.creatorProfileCopy {
+  align-self: end;
+  max-width: 15rem;
+}
+
+.creatorProfileCopy h3 {
+  font-size: clamp(1.4rem, 2.35vw, 2.25rem);
+  font-weight: 400;
+  letter-spacing: -0.065em;
+  line-height: 0.9;
+  margin: 0;
+}
+
+.creatorProfileCopy p {
+  color: rgba(241, 235, 221, 0.78);
+  font-size: clamp(0.78rem, 1.05vw, 0.94rem);
+  line-height: 1.3;
+  margin: 0.72rem 0 0;
+}
+
+.creatorProfileMeta {
+  align-items: center;
+  color: color-mix(in srgb, var(--profile-accent) 84%, white 16%);
+  display: flex;
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+
 .zap {
   background: #070809;
+  overflow: hidden;
+}
+
+.zapTerminalField {
+  background:
+    radial-gradient(ellipse at 72% 48%, rgba(240, 106, 71, 0.13), transparent 30%),
+    repeating-linear-gradient(90deg, transparent 0 3.3rem, rgba(140, 200, 255, 0.06) 3.35rem 3.42rem),
+    #070809;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute !important;
+  z-index: 0 !important;
+}
+
+.zapTerminalField::before {
+  background: repeating-linear-gradient(0deg, rgba(220, 230, 242, 0.06) 0 1px, transparent 1px 4px);
+  content: "";
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: 0.32;
+  position: absolute;
+}
+
+.zapTerminalField::after {
+  background: radial-gradient(circle at 62% 50%, transparent 0 11%, rgba(240, 106, 71, 0.1) 11.5% 12%, transparent 12.5% 24%, rgba(140, 200, 255, 0.07) 24.5% 25%, transparent 25.5%);
+  content: "";
+  inset: 7%;
+  opacity: 0.7;
+  position: absolute;
+}
+
+.zapTerminalField span {
+  position: absolute;
+}
+
+.zapTerminalField span:nth-child(1) {
+  background: linear-gradient(145deg, rgba(240, 106, 71, 0.68), rgba(140, 200, 255, 0.22) 46%, transparent 70%);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  filter: drop-shadow(0 0 2rem rgba(240, 106, 71, 0.3));
+  height: min(58vw, 36rem);
+  opacity: 0.26;
+  right: 6%;
+  top: 50%;
+  transform: translateY(-50%) rotate(14deg);
+  width: min(58vw, 36rem);
+}
+
+.zapTerminalField span:nth-child(2),
+.zapTerminalField span:nth-child(3) {
+  background: linear-gradient(90deg, transparent, rgba(240, 106, 71, 0.85), transparent);
+  height: 1px;
+  opacity: 0.72;
+  width: 28%;
+}
+
+.zapTerminalField span:nth-child(2) {
+  left: 12%;
+  top: 31%;
+}
+
+.zapTerminalField span:nth-child(3) {
+  bottom: 24%;
+  right: 14%;
+}
 }
 
 .zap::after {
@@ -1031,6 +1423,57 @@
   border: 1px solid rgba(240, 161, 69, 0.42);
 }
 
+.waterChrome,
+.firePixelField {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.waterChrome {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(109, 200, 215, 0.42), transparent 26%),
+    radial-gradient(circle at 76% 68%, rgba(145, 222, 235, 0.24), transparent 32%),
+    linear-gradient(130deg, transparent 8%, rgba(109, 200, 215, 0.16) 42%, transparent 72%);
+  background-size: 140% 140%, 150% 150%, 180% 180%;
+  filter: saturate(1.1);
+  opacity: 0.82;
+}
+
+.waterChrome::after {
+  background: repeating-radial-gradient(ellipse at 60% 50%, rgba(173, 238, 245, 0.17) 0 1px, transparent 2px 12px);
+  content: "";
+  inset: -15%;
+  opacity: 0.5;
+  position: absolute;
+  transform: rotate(-17deg);
+}
+
+.firePixelField {
+  background:
+    radial-gradient(circle at 66% 30%, rgba(240, 161, 69, 0.32), transparent 28%),
+    linear-gradient(90deg, rgba(240, 161, 69, 0.16) 1px, transparent 1px) 0 0 / 0.8rem 0.8rem,
+    linear-gradient(rgba(240, 106, 71, 0.14) 1px, transparent 1px) 0 0 / 0.8rem 0.8rem;
+  opacity: 0.72;
+}
+
+.firePixelField::after {
+  background: repeating-linear-gradient(135deg, rgba(240, 161, 69, 0.16) 0 1px, transparent 1px 9px);
+  content: "";
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: 0.6;
+  position: absolute;
+}
+
+.waterPanel > :not(.waterChrome),
+.firePanel > :not(.firePixelField) {
+  position: relative;
+  z-index: 1;
+}
+
 .horizonNumber {
   font-family: var(--font-azaret), "Azeret Mono", monospace;
   font-size: clamp(9rem, 15vw, 15rem);
@@ -1077,14 +1520,62 @@
 
 .closing {
   align-items: center;
-  background: var(--bone);
-  color: #11100f;
+  background: #05070a;
+  color: var(--bone);
   display: flex;
-  justify-content: space-between;
+  isolation: isolate;
+  min-height: clamp(19rem, 32vw, 30rem);
+  overflow: hidden;
   padding: clamp(2.5rem, 5vw, 5rem) max(1.7rem, calc((100vw - 75rem) / 2));
+  position: relative;
 }
 
-.closing p {
+.closing::after {
+  background: linear-gradient(90deg, rgba(5, 7, 10, 0.96) 0%, rgba(5, 7, 10, 0.64) 40%, rgba(5, 7, 10, 0.18) 100%);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.prismaticBurst {
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  position: absolute;
+  z-index: 0;
+}
+
+.prismaticBurstFallback {
+  background:
+    radial-gradient(circle at 70% 42%, rgba(241, 235, 221, 0.5), transparent 8%),
+    conic-gradient(from 207deg at 70% 42%, transparent 0 9deg, rgba(109, 200, 215, 0.45) 11deg 17deg, transparent 20deg 31deg, rgba(241, 235, 221, 0.4) 33deg 37deg, transparent 41deg 55deg, rgba(240, 161, 69, 0.38) 58deg 64deg, transparent 68deg 83deg, rgba(240, 106, 71, 0.36) 86deg 92deg, transparent 96deg 360deg),
+    radial-gradient(ellipse at 79% 50%, rgba(240, 106, 71, 0.26), transparent 44%);
+  inset: 0;
+  opacity: 0.85;
+  position: absolute;
+}
+
+.prismaticBurstCanvas {
+  inset: 0;
+  mix-blend-mode: screen;
+  opacity: 0.95;
+  position: absolute;
+}
+
+.closingContent {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 75rem;
+  position: relative;
+  width: 100%;
+  z-index: 2;
+}
+
+.closingContent p {
   font-family: var(--font-azaret), "Azeret Mono", monospace;
   font-size: 0.58rem;
   letter-spacing: 0.1em;
@@ -1092,9 +1583,9 @@
   text-transform: uppercase;
 }
 
-.closing a {
+.closingContent a {
   align-items: center;
-  border-bottom: 1px solid #11100f;
+  border-bottom: 1px solid var(--bone);
   display: inline-flex;
   font-size: clamp(1.4rem, 2vw, 2.1rem);
   letter-spacing: -0.04em;
@@ -1111,6 +1602,130 @@
   letter-spacing: 0.06em;
   padding: 1.2rem 1.7rem;
   text-transform: uppercase;
+}
+
+@keyframes creatorOSRayDrift {
+  0%,
+  100% {
+    transform: rotate(-8deg) scale(1.06);
+  }
+
+  50% {
+    transform: rotate(-1deg) scale(1.13);
+  }
+}
+
+@keyframes creatorOSDitherShift {
+  0%,
+  100% {
+    background-position: 0 0, 0 0, 0 0;
+  }
+
+  50% {
+    background-position: 0.75rem 0.75rem, 4% -3%, -2% 4%;
+  }
+}
+
+@keyframes creatorOSGridDrift {
+  0%,
+  100% {
+    background-position: 0 0, 0 0, 0 0;
+    transform: scale(1);
+  }
+
+  50% {
+    background-position: 1.9rem 1.9rem, 1.9rem 1.9rem, 4% -2%;
+    transform: scale(1.03);
+  }
+}
+
+@keyframes creatorOSOrbitDrift {
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+
+  50% {
+    transform: rotate(7deg) scale(1.03);
+  }
+}
+
+@keyframes creatorOSTerminalShift {
+  0%,
+  100% {
+    background-position: 0 0, 0 0, 0 0;
+    filter: none;
+  }
+
+  48% {
+    background-position: 0 0, 2.1rem 0, 0 0;
+    filter: contrast(1.04);
+  }
+
+  50% {
+    background-position: 0 0, -1.1rem 0, 0 0;
+    filter: contrast(1.13) hue-rotate(7deg);
+  }
+}
+
+@keyframes creatorOSChromeFlow {
+  0%,
+  100% {
+    background-position: 0 0, 0 0, 0 0;
+  }
+
+  50% {
+    background-position: 14% -8%, -8% 12%, 10% 0;
+  }
+}
+
+@keyframes creatorOSPixelShift {
+  0%,
+  100% {
+    background-position: 0 0, 0 0, 0 0;
+  }
+
+  50% {
+    background-position: 8% -5%, 0.4rem 0, 0 0.4rem;
+  }
+}
+
+@media (min-width: 860px) and (prefers-reduced-motion: no-preference) {
+  .creatorOS:not(.motionOff) .heroLightRays[data-motion="active"] {
+    animation: creatorOSRayDrift 18s ease-in-out infinite;
+  }
+
+  .creatorOS:not(.motionOff) .airDitherField[data-motion="active"] {
+    animation: creatorOSDitherShift 14s steps(8, end) infinite;
+  }
+
+  .creatorOS:not(.motionOff) .studioMotionField[data-motion="active"] {
+    animation: creatorOSGridDrift 17s ease-in-out infinite;
+  }
+
+  .creatorOS:not(.motionOff) .studioMotionField[data-motion="active"] span:nth-child(1) {
+    animation: creatorOSOrbitDrift 13s ease-in-out infinite;
+  }
+
+  .creatorOS:not(.motionOff) .studioMotionField[data-motion="active"] span:nth-child(2) {
+    animation: creatorOSOrbitDrift 16s ease-in-out -4s infinite reverse;
+  }
+
+  .creatorOS:not(.motionOff) .earthOrbitBackdrop[data-motion="active"] {
+    animation: creatorOSOrbitDrift 19s ease-in-out infinite;
+  }
+
+  .creatorOS:not(.motionOff) .zapTerminalField[data-motion="active"] {
+    animation: creatorOSTerminalShift 9s steps(12, end) infinite;
+  }
+
+  .creatorOS:not(.motionOff) .waterChrome[data-motion="active"] {
+    animation: creatorOSChromeFlow 16s ease-in-out infinite;
+  }
+
+  .creatorOS:not(.motionOff) .firePixelField[data-motion="active"] {
+    animation: creatorOSPixelShift 12s steps(9, end) infinite;
+  }
 }
 
 @media (max-width: 859px) {
@@ -1237,10 +1852,13 @@
     gap: 3.2rem;
   }
 
-  .earthArtifact {
-    margin: 0 auto;
-    max-width: 25rem;
-    width: min(80vw, 25rem);
+  .earthNarrative {
+    max-width: 36rem;
+  }
+
+  .constellation {
+    max-width: 42rem;
+    width: 100%;
   }
 
   .earthNote {
@@ -1293,7 +1911,33 @@
     gap: 0.4rem;
   }
 
-  .closing {
+  .constellation {
+    padding: 0.85rem;
+  }
+
+  .constellationGrid {
+    gap: 0.55rem;
+    margin-top: 1.35rem;
+  }
+
+  .creatorProfileCard {
+    min-height: 10.25rem;
+  }
+
+  .creatorProfileContent {
+    padding: 0.75rem;
+  }
+
+  .creatorProfileCopy h3 {
+    font-size: 1.35rem;
+  }
+
+  .creatorProfileCopy p {
+    font-size: 0.74rem;
+    margin-top: 0.54rem;
+  }
+
+  .closingContent {
     align-items: flex-start;
     flex-direction: column;
     gap: 1.5rem;
@@ -1314,11 +1958,41 @@
     transition-duration: 0.01ms !important;
   }
 
+  .creatorOS [data-motion-layer],
+  .creatorOS .creatorProfileCard,
+  .creatorOS .creatorProfileCard * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .creatorOS .creatorProfileCard {
+    transform: none !important;
+  }
+
   .cloudCanvas {
     display: none;
   }
 }
 
 .motionOff .cloudCanvas {
+  display: none;
+}
+
+.motionOff [data-motion-layer],
+.motionOff .creatorProfileCard,
+.motionOff .creatorProfileCard * {
+  animation: none !important;
+  transition: none !important;
+}
+
+.motionOff .creatorProfileCard {
+  transform: none !important;
+}
+
+.motionOff .creatorProfileSheen {
+  opacity: 0 !important;
+}
+
+.motionOff .prismaticBurstCanvas {
   display: none;
 }
