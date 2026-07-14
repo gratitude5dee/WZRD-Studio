@@ -5,8 +5,16 @@ import "../index.css";
 import "../styles/themes/light-premium.css";
 
 export const metadata: Metadata = {
-  title: "WZRD Studio",
-  description: "Create, edit, and export AI-assisted video projects.",
+  metadataBase: new URL("https://wzrd.tech"),
+  title: "WZRD.tech — Creator OS",
+  description: "A creator operating system for turning passing signals into culture.",
+  openGraph: {
+    description: "A creator operating system for turning passing signals into culture.",
+    siteName: "WZRD.tech",
+    title: "WZRD.tech — Creator OS",
+    type: "website",
+    url: "/",
+  },
 };
 
 export const viewport: Viewport = {
