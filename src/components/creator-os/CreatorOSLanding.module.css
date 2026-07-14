@@ -486,7 +486,9 @@
   line-height: 1.48;
   max-width: 88%;
   padding: 0.66rem 0.78rem;
-  width: fit-content;
+  /* Pretext measures against this stable width; fit-content would feed a
+     one-character line break back into its next measurement. */
+  width: min(88%, 29rem);
 }
 
 .messageBubbleHuman {
