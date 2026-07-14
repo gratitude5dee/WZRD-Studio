@@ -9,12 +9,14 @@ type PretextBubbleProps = {
   children: string;
   kind?: "agent" | "human" | "signal";
   label?: string;
+  status?: "Approved" | "Delivered" | "Sent" | "Working";
 };
 
 export function PretextBubble({
   children,
   kind = "agent",
   label,
+  status,
 }: PretextBubbleProps) {
   const bubbleRef = useRef<HTMLDivElement>(null);
   const [lines, setLines] = useState<string[]>([children]);
@@ -64,7 +66,7 @@ export function PretextBubble({
 
   return (
     <div
-      aria-label={label ?? children}
+      aria-label={label ?? `${status ? `${status}. ` : ""}${children}`}
       className={`${styles.messageBubble} ${styles[`messageBubble${kind[0].toUpperCase()}${kind.slice(1)}`]}`}
       ref={bubbleRef}
     >
@@ -76,6 +78,7 @@ export function PretextBubble({
         ))}
       </span>
       <span className={styles.screenReaderOnly}>{children}</span>
+      {status ? <span aria-hidden="true" className={styles.messageStatus}>{status}</span> : null}
     </div>
   );
 }

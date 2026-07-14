@@ -23,10 +23,34 @@ const chapterLinks = [
 ] as const;
 
 const runtimeStages = [
-  ["01", "Intent", "A voice note, text, or reference becomes a structured brief."],
-  ["02", "Agents", "Specialists plan, make, inspect, and hand the thread forward."],
-  ["03", "Media", "The runtime preserves decisions while it moves across image, sound, and edit."],
-  ["04", "Release", "Work leaves with context: the cut, its provenance, and its next invitation."],
+  {
+    artifacts: ["voice-note.m4a", "reference-01.jpg"],
+    copy: "A voice note, text, or reference becomes a portable intent packet.",
+    index: "01",
+    state: "input",
+    title: "Intent packet",
+  },
+  {
+    artifacts: ["story-beat.md", "shot-list.json", "sound-palette.wav"],
+    copy: "Writing, shots, and sound can move in parallel while the brief stays attached.",
+    index: "02",
+    state: "parallel jobs",
+    title: "Agents split the work",
+  },
+  {
+    artifacts: ["cut-sheet.pdf", "edit-timeline.json"],
+    copy: "The runtime keeps the decisions beside the media, not buried in a handoff.",
+    index: "03",
+    state: "artifacts",
+    title: "Shared working state",
+  },
+  {
+    artifacts: ["release-packet.zip"],
+    copy: "A finished signal leaves with provenance, context, and its next invitation.",
+    index: "04",
+    state: "resolved output",
+    title: "Release packet",
+  },
 ] as const;
 
 export default function CreatorOSLanding() {
@@ -35,26 +59,40 @@ export default function CreatorOSLanding() {
   const invalidateCloudRef = useRef<(() => void) | null>(null);
   const [motionEnabled, setMotionEnabled] = useState(true);
   const [systemReducedMotion, setSystemReducedMotion] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [webglFaulted, setWebglFaulted] = useState(false);
   const [webglReady, setWebglReady] = useState(false);
 
   const motionAllowed = motionEnabled && !systemReducedMotion;
+  const webglEnabled = webglReady && isDesktop && motionAllowed && !webglFaulted;
 
   const handleCloudReady = useCallback((invalidate: (() => void) | null) => {
     invalidateCloudRef.current = invalidate;
     invalidate?.();
   }, []);
 
+  const handleCloudFailure = useCallback(() => {
+    setWebglFaulted(true);
+  }, []);
+
   useEffect(() => {
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updatePreference = () => setSystemReducedMotion(media.matches);
+    const motionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const desktopMedia = window.matchMedia("(min-width: 860px)");
+    const updatePreference = () => setSystemReducedMotion(motionMedia.matches);
+    const updateViewport = () => setIsDesktop(desktopMedia.matches);
     updatePreference();
-    media.addEventListener("change", updatePreference);
+    updateViewport();
+    motionMedia.addEventListener("change", updatePreference);
+    desktopMedia.addEventListener("change", updateViewport);
 
     const canvas = document.createElement("canvas");
     const context = canvas.getContext("webgl2") || canvas.getContext("webgl");
     setWebglReady(Boolean(context));
 
-    return () => media.removeEventListener("change", updatePreference);
+    return () => {
+      motionMedia.removeEventListener("change", updatePreference);
+      desktopMedia.removeEventListener("change", updateViewport);
+    };
   }, []);
 
   useGSAP(
@@ -64,15 +102,28 @@ export default function CreatorOSLanding() {
 
       const hero = root.querySelector<HTMLElement>("[data-hero]");
       const wordmark = root.querySelector<HTMLElement>("[data-wordmark]");
+      const wordmarkVeil = root.querySelector<HTMLElement>("[data-wordmark-veil]");
       const creatorOS = root.querySelector<HTMLElement>("[data-creator-os]");
       const heroStatement = root.querySelector<HTMLElement>("[data-hero-statement]");
       const heroHud = root.querySelector<HTMLElement>("[data-hero-hud]");
+      const systemMap = root.querySelector<HTMLElement>("[data-system-map]");
+      const airMapItem = root.querySelector<HTMLElement>("[data-system-map-air]");
+      const heroAirHandoff = root.querySelector<HTMLElement>("[data-hero-air-handoff]");
       const reveals = Array.from(root.querySelectorAll<HTMLElement>("[data-reveal]"));
 
       if (!motionAllowed) {
         cloudProgressRef.current = 0;
         invalidateCloudRef.current?.();
-        gsap.set([wordmark, creatorOS, heroStatement, heroHud].filter(Boolean), {
+        gsap.set([
+          wordmark,
+          wordmarkVeil,
+          creatorOS,
+          heroStatement,
+          heroHud,
+          systemMap,
+          airMapItem,
+          heroAirHandoff,
+        ].filter(Boolean), {
           clearProps: "all",
         });
         gsap.set(reveals, { clearProps: "all" });
@@ -82,17 +133,37 @@ export default function CreatorOSLanding() {
       const media = gsap.matchMedia();
 
       media.add("(min-width: 860px)", () => {
-        if (!hero || !wordmark || !creatorOS || !heroStatement || !heroHud) return;
+        if (
+          !hero ||
+          !wordmark ||
+          !wordmarkVeil ||
+          !creatorOS ||
+          !heroStatement ||
+          !heroHud ||
+          !systemMap ||
+          !heroAirHandoff
+        ) return;
 
+        gsap.set(wordmark, {
+          autoAlpha: 0.42,
+          clipPath: "inset(0 26% 0 26%)",
+          filter: "blur(7px)",
+          scale: 0.92,
+          yPercent: 6,
+        });
+        gsap.set(wordmarkVeil, { autoAlpha: 0.96 });
         gsap.set(creatorOS, { autoAlpha: 0, yPercent: 20 });
         gsap.set(heroStatement, { autoAlpha: 0, y: 28 });
         gsap.set(heroHud, { autoAlpha: 0, y: 12 });
+        gsap.set(systemMap, { autoAlpha: 0, y: 20 });
+        gsap.set(heroAirHandoff, { autoAlpha: 0, y: 14 });
 
         const transition = gsap.timeline({
           defaults: { ease: "none" },
           scrollTrigger: {
             anticipatePin: 1,
-            end: "+=1150",
+            end: () => `+=${Math.round(window.innerHeight * 3.5)}`,
+            invalidateOnRefresh: true,
             onUpdate: self => {
               cloudProgressRef.current = self.progress;
               invalidateCloudRef.current?.();
@@ -105,10 +176,22 @@ export default function CreatorOSLanding() {
         });
 
         transition
-          .to(wordmark, { autoAlpha: 0, scale: 0.73, yPercent: -8 }, 0.18)
-          .to(creatorOS, { autoAlpha: 1, duration: 0.18, yPercent: 0 }, 0.32)
-          .to(heroStatement, { autoAlpha: 1, duration: 0.16, y: 0 }, 0.48)
-          .to(heroHud, { autoAlpha: 1, duration: 0.12, y: 0 }, 0.55);
+          .to(wordmark, {
+            autoAlpha: 1,
+            clipPath: "inset(0 0% 0 0%)",
+            duration: 0.12,
+            filter: "blur(0px)",
+            scale: 1,
+            yPercent: 0,
+          }, 0.12)
+          .to(wordmarkVeil, { autoAlpha: 0, duration: 0.12 }, 0.12)
+          .to(creatorOS, { autoAlpha: 1, duration: 0.16, yPercent: 0 }, 0.34)
+          .to(heroStatement, { autoAlpha: 1, duration: 0.14, y: 0 }, 0.4)
+          .to(wordmark, { autoAlpha: 0.38, duration: 0.18, scale: 0.78, yPercent: -24 }, 0.56)
+          .to(systemMap, { autoAlpha: 1, duration: 0.17, y: 0 }, 0.56)
+          .to(heroHud, { autoAlpha: 1, duration: 0.12, y: 0 }, 0.58)
+          .to(airMapItem, { color: "#8cc8ff", duration: 0.1, scale: 1.05 }, 0.78)
+          .to(heroAirHandoff, { autoAlpha: 1, duration: 0.15, y: 0 }, 0.78);
       });
 
       media.add("(max-width: 859px)", () => {
@@ -139,7 +222,7 @@ export default function CreatorOSLanding() {
 
       return () => media.revert();
     },
-    { dependencies: [motionAllowed], scope: rootRef },
+    { dependencies: [motionAllowed], revertOnUpdate: true, scope: rootRef },
   );
 
   return (
@@ -165,12 +248,14 @@ export default function CreatorOSLanding() {
         </nav>
         <div className={styles.headerActions}>
           <button
-            aria-pressed={motionEnabled}
+            aria-label={systemReducedMotion ? "Motion reduced by your device setting" : undefined}
+            aria-pressed={motionAllowed}
             className={styles.motionButton}
+            disabled={systemReducedMotion}
             onClick={() => setMotionEnabled(current => !current)}
             type="button"
           >
-            Motion {motionEnabled ? "on" : "off"}
+            Motion {systemReducedMotion ? "reduced" : motionEnabled ? "on" : "off"}
           </button>
           <a className={styles.headerCta} href="/home">
             Enter Studio <span aria-hidden="true">↗</span>
@@ -186,9 +271,10 @@ export default function CreatorOSLanding() {
           id="top"
         >
           <div aria-hidden="true" className={styles.cloudFallback} />
-          {webglReady && motionAllowed ? (
+          {webglEnabled ? (
             <div aria-hidden="true" className={styles.cloudCanvas}>
               <CloudAtmosphere
+                onWebglFailure={handleCloudFailure}
                 onInvalidateReady={handleCloudReady}
                 progressRef={cloudProgressRef}
               />
@@ -203,24 +289,37 @@ export default function CreatorOSLanding() {
 
           <div className={styles.heroContent}>
             <p className={styles.heroKicker}>A creator operating system</p>
-            <img
-              alt="WZRD.tech"
-              className={styles.heroWordmark}
-              data-wordmark
-              height="425"
-              src="/creator-os/wzrd-wordmark.png"
-              width="1717"
-            />
-            <h1 className={styles.screenReaderOnly} id="hero-title">
-              WZRD.tech: Creator OS
-            </h1>
-            <div className={styles.creatorTitle} data-creator-os>
+            <div className={styles.heroWordmarkStage} data-wordmark>
+              <picture>
+                <img
+                  alt=""
+                  className={styles.heroWordmark}
+                  decoding="async"
+                  fetchPriority="high"
+                  height="396"
+                  src="/creator-os/wzrd-wordmark-1600.png"
+                  width="1600"
+                />
+              </picture>
+              <span aria-hidden="true" className={styles.wordmarkCloudVeil} data-wordmark-veil />
+            </div>
+            <h1 aria-label="WZRD.tech: Creator OS" className={styles.creatorTitle} data-creator-os id="hero-title">
               <span>Creator</span>
               <strong>OS</strong>
-            </div>
+            </h1>
             <p className={styles.heroStatement} data-hero-statement>
               A living system for the people who turn passing signals into culture.
             </p>
+            <ul aria-label="Creator OS system map" className={styles.heroSystemMap} data-system-map>
+              <li data-system-map-air>Air</li>
+              <li>Studio</li>
+              <li>Earth</li>
+              <li>Zap</li>
+            </ul>
+            <div className={styles.heroAirHandoff} data-hero-air-handoff>
+              <span>Next / Air</span>
+              <p>“Four shots. Night city. No rush.”</p>
+            </div>
             <a className={styles.heroCta} href="#air">
               Begin at the source <span aria-hidden="true">↓</span>
             </a>
@@ -260,12 +359,16 @@ export default function CreatorOSLanding() {
                 <span className={styles.threadStatus}>available</span>
               </div>
               <div className={styles.threadMessages}>
-                <PretextBubble kind="human">Four shots. Night city. No rush.</PretextBubble>
-                <PretextBubble>
+                <PretextBubble kind="human" status="Sent">
+                  Four shots. Night city. No rush.
+                </PretextBubble>
+                <PretextBubble status="Working">
                   I hear a quiet opener, a bright interruption, then room for the last beat.
                 </PretextBubble>
-                <PretextBubble kind="human">Keep the last beat quiet.</PretextBubble>
-                <PretextBubble kind="signal">
+                <PretextBubble kind="human" status="Approved">
+                  Keep the last beat quiet.
+                </PretextBubble>
+                <PretextBubble kind="signal" status="Delivered">
                   Locked. I’ll carry the silence into the cut sheet.
                 </PretextBubble>
               </div>
@@ -294,15 +397,15 @@ export default function CreatorOSLanding() {
             <figure className={styles.deviceFigure} data-reveal>
               <div aria-hidden="true" className={styles.deviceHalo} />
               <img
-                alt="WZRD Studio shown across a phone and desktop workspace"
+                alt="Studio interface study shown across a phone and desktop workspace"
                 height="373"
                 loading="lazy"
                 src="/creator-os/devices.png"
                 width="669"
               />
               <figcaption>
-                <span>Studio / live work surface</span>
-                <span>Input → direction → output</span>
+                <span>Studio / interface study</span>
+                <span>Prototype asset · input → direction → output</span>
               </figcaption>
             </figure>
             <ol className={styles.studioSteps} data-reveal>
@@ -336,7 +439,12 @@ export default function CreatorOSLanding() {
                 room, a screen, a crowd, and the next person who wants to make something.
               </p>
             </header>
-            <div aria-label="A path from a digital signal to a physical gathering" className={styles.earthArtifact} data-reveal>
+            <div
+              aria-label="Earth concept path from a digital signal to a physical gathering"
+              className={styles.earthArtifact}
+              data-reveal
+              role="img"
+            >
               <span className={styles.earthOrbitOne} />
               <span className={styles.earthOrbitTwo} />
               <span className={styles.earthCore}>EARTH</span>
@@ -348,11 +456,11 @@ export default function CreatorOSLanding() {
               </div>
             </div>
             <aside className={styles.earthNote} data-reveal>
-              <span>Field note / 03</span>
+              <span>Field concept / 03</span>
               <p>
                 Digital work is not the opposite of physical culture. It is the invitation.
               </p>
-              <a className={styles.textLink} href="#horizon">
+              <a className={styles.textLink} href="#coming-soon">
                 Follow the horizon <span aria-hidden="true">↓</span>
               </a>
             </aside>
@@ -373,13 +481,17 @@ export default function CreatorOSLanding() {
                 agents, formats, and collaborators. Less handoff theater. More signal.
               </p>
             </header>
-            <ol aria-label="The Agent Media Runtime" className={styles.runtimeMap} data-reveal>
-              {runtimeStages.map(([index, title, copy]) => (
-                <li key={index}>
-                  <span>{index}</span>
+            <ol aria-label="Illustrative Agent Media Runtime path" className={styles.runtimeMap} data-reveal>
+              {runtimeStages.map(stage => (
+                <li key={stage.index}>
+                  <span>{stage.index}</span>
                   <div>
-                    <h3>{title}</h3>
-                    <p>{copy}</p>
+                    <p className={styles.runtimeState}>{stage.state}</p>
+                    <h3>{stage.title}</h3>
+                    <p>{stage.copy}</p>
+                    <ul className={styles.runtimeArtifacts}>
+                      {stage.artifacts.map(artifact => <li key={artifact}>{artifact}</li>)}
+                    </ul>
                   </div>
                   <i aria-hidden="true" />
                 </li>
@@ -388,7 +500,7 @@ export default function CreatorOSLanding() {
           </div>
         </section>
 
-        <section aria-labelledby="horizon-title" className={`${styles.chapter} ${styles.horizon}`} id="horizon">
+        <section aria-labelledby="horizon-title" className={`${styles.chapter} ${styles.horizon}`} id="coming-soon">
           <div className={styles.chapterMeta} data-reveal>
             <span>05 / Horizon</span>
             <span>Coming soon</span>

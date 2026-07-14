@@ -6,6 +6,7 @@ import type { MutableRefObject } from "react";
 import * as THREE from "three";
 
 type CloudAtmosphereProps = {
+  onWebglFailure: () => void;
   progressRef: MutableRefObject<number>;
   onInvalidateReady: (invalidate: (() => void) | null) => void;
 };
@@ -90,7 +91,8 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-function CloudPlane({ progressRef, onInvalidateReady }: CloudAtmosphereProps) {
+function CloudPlane({ onWebglFailure, progressRef, onInvalidateReady }: CloudAtmosphereProps) {
+  const gl = useThree(state => state.gl);
   const invalidate = useThree(state => state.invalidate);
   const material = useMemo(
     () =>
@@ -116,6 +118,18 @@ function CloudPlane({ progressRef, onInvalidateReady }: CloudAtmosphereProps) {
     };
   }, [invalidate, material, onInvalidateReady]);
 
+  useEffect(() => {
+    const canvas = gl.domElement;
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      onWebglFailure();
+    };
+
+    canvas.addEventListener("webglcontextlost", handleContextLost, { passive: false });
+
+    return () => canvas.removeEventListener("webglcontextlost", handleContextLost);
+  }, [gl, onWebglFailure]);
+
   useFrame(() => {
     const next = progressRef.current;
     if (material.uniforms.uProgress.value !== next) {
@@ -132,6 +146,7 @@ function CloudPlane({ progressRef, onInvalidateReady }: CloudAtmosphereProps) {
 }
 
 export default function CloudAtmosphere({
+  onWebglFailure,
   progressRef,
   onInvalidateReady,
 }: CloudAtmosphereProps) {
@@ -147,6 +162,7 @@ export default function CloudAtmosphere({
       style={{ height: "100%", width: "100%" }}
     >
       <CloudPlane
+        onWebglFailure={onWebglFailure}
         onInvalidateReady={onInvalidateReady}
         progressRef={progressRef}
       />
