@@ -1,26 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const creatorRoles = [
-  ["Signal Keeper", "AIR", "Listening"],
-  ["Cut Director", "STUDIO", "Composing"],
-  ["Worldbuilder", "EARTH", "Gathering"],
-  ["Runtime Steward", "ZAP", "Routing"],
-] as const;
+const canonicalSectionIds = ["top", "studio", "zap", "earth", "air", "coming-soon", "enter"] as const;
 
-const suppliedEffects = [
-  "light-rays",
-  "dither",
-  "liquid-chrome",
-  "grid-motion",
-  "grid-distortion",
-  "prism",
-  "infinite-menu",
-  "profile-card",
-  "bounce-cards",
-  "faulty-terminal",
-  "card-swap",
-  "pixel-card",
-  "prismatic-burst",
+const bubbleMenuItems = [
+  ["air", "#air"],
+  ["studio", "#studio"],
+  ["earth", "#earth"],
+  ["zap", "https://zap.wzrd.tech"],
+  ["fire+water", "#coming-soon"],
+  ["enter studio", "https://studio.wzrd.tech/login"],
 ] as const;
 
 function installConsoleGuards(page: Page) {
@@ -28,14 +16,14 @@ function installConsoleGuards(page: Page) {
 
   page.on("console", (message) => {
     const text = message.text();
-    if (/PlatformUnsupportedError|THREE\.Clock/i.test(text)) {
+    if (/PlatformUnsupportedError|THREE\.Clock|Bundle unpack error/i.test(text)) {
       failures.push(`console ${message.type()}: ${text}`);
     }
   });
 
   page.on("pageerror", (error) => {
     const text = error.stack || error.message;
-    if (/PlatformUnsupportedError|THREE\.Clock/i.test(text)) {
+    if (/PlatformUnsupportedError|THREE\.Clock|Bundle unpack error/i.test(text)) {
       failures.push(`pageerror: ${text}`);
     }
   });
@@ -45,81 +33,73 @@ function installConsoleGuards(page: Page) {
   };
 }
 
+function canonicalFrame(page: Page) {
+  return page.frameLocator('iframe[title="WZRD Creator OS"]');
+}
+
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     window.sessionStorage.setItem("mog-intro-seen", "true");
   });
 });
 
-test("hydrates the Creator OS landing shell", async ({ page }) => {
+test("renders the supplied canonical WZRD Creator OS bundle in its source order", async ({ page }) => {
   const assertNoPlatformUnsupported = installConsoleGuards(page);
 
   const response = await page.goto("/", { waitUntil: "domcontentloaded" });
   expect(response?.status()).toBeLessThan(400);
 
-  await expect(page.locator("h1")).toHaveText("WZRD.tech");
-  await expect(page.getByRole("navigation", { name: "Creator OS chapters" })).toBeVisible();
-  await expect(page.getByRole("link", { name: /begin at the source/i })).toBeVisible();
-  await expect(page.locator("#coming-soon")).toBeVisible();
+  const iframe = page.locator('iframe[title="WZRD Creator OS"]');
+  await expect(iframe).toBeVisible();
+
+  const frame = canonicalFrame(page);
+  await expect(frame.getByRole("heading", { level: 1, name: "WZRD.tech" })).toBeVisible();
+  await expect(frame.getByRole("link", { name: "WZRD.tech home" })).toBeVisible();
+  await expect(frame.getByRole("button", { name: "Toggle navigation" })).toBeVisible();
+
+  const sectionIds = await frame.locator("section[id]").evaluateAll((sections) =>
+    sections.map((section) => section.id),
+  );
+  expect(sectionIds).toEqual(canonicalSectionIds);
+
+  for (const id of canonicalSectionIds) {
+    await expect(frame.locator(`section#${id}`)).toHaveCount(1);
+  }
+
+  await expect(frame.getByRole("listbox", { name: "Creator role sphere — drag to rotate" })).toBeVisible();
+  await expect(frame.getByRole("heading", { name: "Zap is the recipe runtime behind every release." })).toBeVisible();
+  await expect(frame.getByRole("heading", { name: "Fire and Water." })).toBeVisible();
+  await expect(frame.getByRole("link", { name: "Make the next signal" })).toBeVisible();
   expect(await page.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
 
   assertNoPlatformUnsupported();
 });
 
-test("honors reduced motion without mounting the WebGL scene", async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: "reduce" });
+test("keeps the supplied bubble navigation while routing Zap and Studio externally", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  await expect(page.getByRole("button", { name: /motion reduced/i })).toBeDisabled();
-  await expect(page.locator("canvas")).toHaveCount(0);
-  await expect(page.locator(".pin-spacer")).toHaveCount(0);
-  await expect(page.locator("[data-creator-profile-card][data-motion=\"static\"]")).toHaveCount(4);
-  await expect(page.locator("[data-prismatic-burst][data-motion=\"static\"]")).toHaveCount(1);
-});
+  const frame = canonicalFrame(page);
+  const menuButton = frame.getByRole("button", { name: "Toggle navigation" });
+  await menuButton.click();
 
-test("renders the complete accessible Creator constellation and motion language", async ({ page }) => {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
+  for (const [label, href] of bubbleMenuItems) {
+    const link = frame.getByRole("link", { name: label, exact: true });
+    await expect(link).toHaveAttribute("href", href);
 
-  const earth = page.locator("#earth");
-  await expect(earth.getByText("Conceptual roles — not member profiles.", { exact: true })).toBeVisible();
-  await expect(earth.locator("[data-creator-profile-card]")).toHaveCount(4);
-
-  for (const [role, chapter, state] of creatorRoles) {
-    const card = earth.getByRole("article", { name: role });
-    await expect(card.getByRole("heading", { name: role })).toBeVisible();
-    await expect(card.getByText(chapter, { exact: true })).toBeVisible();
-    await expect(card.getByText(state, { exact: true })).toBeVisible();
-    await expect(card.locator("p")).toHaveCount(3);
-  }
-
-  for (const effect of suppliedEffects) {
-    await expect(page.locator(`[data-react-bits-effect~="${effect}"]`).first()).toBeAttached();
+    if (href.startsWith("https://")) {
+      await expect(link).toHaveAttribute("target", "_top");
+    }
   }
 });
 
-test("turning motion off leaves visual layers and Creator cards static", async ({ page }) => {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-
-  const motionToggle = page.getByRole("button", { name: /motion on/i });
-  await expect(motionToggle).toHaveAttribute("aria-pressed", "true");
-  await motionToggle.click();
-
-  await expect(page.getByRole("button", { name: /motion off/i })).toHaveAttribute("aria-pressed", "false");
-  await expect(page.locator("[data-creator-profile-card][data-motion=\"static\"]")).toHaveCount(4);
-  await expect(page.locator("[data-motion-layer][data-motion=\"static\"]")).toHaveCount(7);
-  await expect(page.locator("[data-prismatic-burst][data-motion=\"static\"]")).toHaveCount(1);
-  await expect(page.locator("[data-prismatic-burst] canvas")).toHaveCount(0);
-});
-
-test("keeps the constellation and static fallback inside a mobile viewport", async ({ page }) => {
+test("retains the canonical responsive runtime without root overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  const earth = page.locator("#earth");
-  await expect(earth.locator("[data-creator-profile-card]")).toHaveCount(4);
-  await expect(earth.locator("[data-creator-profile-card][data-motion=\"static\"]")).toHaveCount(4);
-  await expect(page.locator("[data-prismatic-burst][data-motion=\"static\"]")).toHaveCount(1);
+  const frame = canonicalFrame(page);
+  await expect(frame.getByRole("heading", { level: 1, name: "WZRD.tech" })).toBeVisible();
+  await expect(frame.getByRole("listbox", { name: "Creator role sphere — drag to rotate" })).toHaveCount(1);
+  expect(await frame.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
   expect(await page.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
 });
 

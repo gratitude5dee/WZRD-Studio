@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import CreatorOSLanding from "@/components/creator-os/CreatorOSLanding";
+import CanonicalCreatorOSLanding from "@/components/creator-os/CanonicalCreatorOSLanding";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://wzrd.tech"),
@@ -37,5 +37,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <CreatorOSLanding />;
+  return <CanonicalCreatorOSLanding />;
 }
