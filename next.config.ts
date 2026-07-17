@@ -58,6 +58,19 @@ const nextConfig: NextConfig = {
 
     return [
       {
+        source: "/sw.js",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-cache, max-age=0, must-revalidate",
+          },
+          {
+            key: "Service-Worker-Allowed",
+            value: "/",
+          },
+        ],
+      },
+      {
         source: "/projects/:projectId/editor",
         headers: isolationHeaders,
       },

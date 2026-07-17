@@ -21,6 +21,7 @@
     "desktop:test": "bun run desktop:build && playwright test -c playwright.electron.config.ts",
     "test:e2e": "VITE_USE_MOCK_ASSETS=true VITE_BYPASS_AUTH_FOR_TESTS=true playwright test tests/e2e tests/performance.spec.ts",
     "test:e2e:web": "playwright test -c playwright.web.config.ts",
+    "test:e2e:pwa": "bun run web:build && playwright test -c playwright.pwa.config.ts",
     "test:daytona-relay": "bun run --cwd packages/wzrd-agent-relay test",
     "check:daytona-relay": "bun run --cwd packages/wzrd-agent-relay typecheck",
     "remotion:preview": "remotion preview",

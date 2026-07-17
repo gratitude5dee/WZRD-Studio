@@ -31,7 +31,15 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
+      testIgnore: /pwa-(mobile|production)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "mobile-chromium",
+      testMatch: /pwa-mobile\.spec\.ts/,
+      // iPhone device descriptors default to WebKit; keep their viewport and
+      // touch emulation while exercising the installed Chromium binary.
+      use: { ...devices["iPhone 13"], browserName: "chromium" },
     },
   ],
 });
