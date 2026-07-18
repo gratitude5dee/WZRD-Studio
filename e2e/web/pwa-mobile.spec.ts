@@ -134,6 +134,11 @@ test("makes Motion reachable on touch and renders mobile effects calmly", async 
   const sky = frame.locator("wz-sky");
   expect(await sky.count()).toBe(1);
   await expect.poll(async () => sky.getAttribute("mode")).toBe("calm");
+  await expect(frame.locator("#top [data-creator-os]")).toBeVisible();
+  await expect(frame.locator("#top wz-trail")).toBeHidden();
+  expect(
+    await frame.locator("#top [data-hero-dash-scrim]").evaluate((element) => getComputedStyle(element).opacity),
+  ).toBe("0");
 
   await motion.click();
   await expect.poll(async () => sky.getAttribute("mode")).toBe("off");
