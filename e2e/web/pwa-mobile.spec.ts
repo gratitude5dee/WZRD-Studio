@@ -217,6 +217,50 @@ test("reveals Fire and Water details through keyboard focus and activation", asy
   await expect(disclosure).toHaveAttribute("aria-expanded", "true");
 });
 
+test("loads the external Fire and Water loop only near its section", async ({ page }) => {
+  const videoRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/creator-os/assets/fire-water-loop.mp4")) {
+      videoRequests.push(request.url());
+    }
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  const frame = canonicalFrame(page);
+  await expect(frame.getByRole("heading", { level: 1, name: "WZRD.tech" })).toBeVisible();
+
+  const video = frame.locator("[data-fire-water-video]");
+  await expect(video).toHaveCount(1);
+  await expect(video).toHaveAttribute("data-src", "/creator-os/assets/fire-water-loop.mp4");
+  await expect(video).not.toHaveAttribute("src", /fire-water-loop\.mp4/);
+  expect(videoRequests).toHaveLength(0);
+
+  await video.scrollIntoViewIfNeeded();
+  await expect(video).toHaveAttribute("src", "/creator-os/assets/fire-water-loop.mp4");
+  await expect.poll(() => videoRequests.length).toBeGreaterThan(0);
+
+  const playback = await video.evaluate((element) => {
+    const media = element as HTMLVideoElement;
+    return {
+      autoplay: media.autoplay,
+      loop: media.loop,
+      muted: media.muted,
+      playsInline: media.playsInline,
+      poster: media.getAttribute("poster"),
+      preload: media.preload,
+    };
+  });
+  expect(playback).toEqual({
+    autoplay: true,
+    loop: true,
+    muted: true,
+    playsInline: true,
+    poster: "/creator-os/assets/fire-water-loop-poster.jpg",
+    preload: "none",
+  });
+});
+
 test.describe("reduced motion", () => {
   test.use({ reducedMotion: "reduce" });
 
