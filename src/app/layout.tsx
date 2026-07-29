@@ -21,13 +21,8 @@ export const metadata: Metadata = {
         url: "/brand/wzrd-icon-180.png",
       },
     ],
-    icon: [
-      { sizes: "16x16", type: "image/png", url: "/brand/wzrd-icon-16.png" },
-      { sizes: "32x32", type: "image/png", url: "/brand/wzrd-icon-32.png" },
-      { sizes: "48x48", type: "image/png", url: "/brand/wzrd-icon-48.png" },
-      { sizes: "any", type: "image/x-icon", url: "/favicon.ico" },
-    ],
-    shortcut: "/favicon.ico",
+    icon: [{ type: "image/png", url: "/wzrdtechlogo.png" }],
+    shortcut: [{ type: "image/png", url: "/wzrdtechlogo.png" }],
   },
   manifest: "/manifest.webmanifest",
 };
