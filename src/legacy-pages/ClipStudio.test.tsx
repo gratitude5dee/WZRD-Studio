@@ -3,10 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const analyzeVideoWithGmiGemini = vi.hoisted(() => vi.fn());
 
-vi.mock('@/features/clip-studio/gmiClipAnalysisService', () => ({
-  analyzeVideoWithAiProvider: analyzeVideoWithGmiGemini,
-  analyzeVideoWithGmiGemini,
-}));
+vi.mock('@/features/clip-studio/gmiClipAnalysisService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/features/clip-studio/gmiClipAnalysisService')>();
+  return {
+    ...actual,
+    analyzeVideoWithAiProvider: analyzeVideoWithGmiGemini,
+    analyzeVideoWithGmiGemini,
+  };
+});
 
 import ClipStudio from './ClipStudio';
 
