@@ -222,7 +222,7 @@ export default function Postz() {
 
       <motion.main
         className="min-h-screen pb-24 md:pb-8"
-        animate={{ marginLeft: isMobile ? 0 : isCollapsed ? 0 : 256 }}
+        animate={{ marginLeft: isMobile ? 0 : isCollapsed ? 64 : 256 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         initial={false}
       >

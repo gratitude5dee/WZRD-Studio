@@ -1469,7 +1469,7 @@ export default function KanvasPage() {
       <KanvasSidebar activeStudio={studio} onStudioChange={setStudio} />
 
       {/* Main content area — full width */}
-      <div className="relative w-full h-full overflow-auto">
+      <div className="relative min-w-0 w-full h-full overflow-auto">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.08),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.05),transparent_24%)] pointer-events-none" />
         <div className="relative">
           {/* Slim status header */}

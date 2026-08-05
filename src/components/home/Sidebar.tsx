@@ -1,16 +1,16 @@
-import { Users, Globe, Star, ChevronLeft, LogOut, Layers, Sparkles, FolderKanban, Images, ShieldCheck, Scissors, DatabaseZap, CalendarDays, type LucideIcon } from 'lucide-react';
+import { Users, Globe, Star, ChevronLeft, LogOut, Layers, Sparkles, FolderKanban, Images, ShieldCheck, Scissors, DatabaseZap, CalendarDays, Clapperboard, Music2, type LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import CreditsDisplay from '../CreditsDisplay';
 import { Badge } from '@/components/ui/badge';
-import { memo, useState, useEffect, useCallback } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ShineBorder } from '@/components/ui/shine-border';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { appRoutes } from '@/lib/routes';
+import { appRoutes, WTR_EXTERNAL_URL } from '@/lib/routes';
 import {
   Tooltip,
   TooltipContent,
@@ -26,9 +26,11 @@ interface SidebarProps {
 type SidebarNavItem = {
   id: string;
   label: string;
+  description?: string;
   icon: LucideIcon;
   isRoute?: boolean;
   path?: string;
+  externalUrl?: string;
   showBadge?: boolean;
 };
 
@@ -36,15 +38,21 @@ type FloatingNavItem =
   | (SidebarNavItem & { group: 'main' | 'secondary' | 'extra' })
   | { id: string; label: ''; icon: null; group: 'divider' };
 
+export { WTR_EXTERNAL_URL };
+
 const MAIN_NAV_ITEMS: SidebarNavItem[] = [
   { id: 'all', label: 'All Projects', icon: FolderKanban },
   { id: 'kanvas', label: 'Kanvas', icon: Layers, isRoute: true, path: appRoutes.kanvas, showBadge: true },
-  { id: 'clipper', label: 'Clipper', icon: Scissors, isRoute: true, path: appRoutes.clipper, showBadge: true },
-  { id: 'sourcify', label: 'Sourcify', icon: DatabaseZap, isRoute: true, path: appRoutes.sourcify, showBadge: true },
   { id: 'postz', label: 'Postz', icon: CalendarDays, isRoute: true, path: appRoutes.postz },
   { id: 'aura', label: 'Aura', icon: Sparkles },
   { id: 'asset-store', label: 'Asset Store', icon: Images },
-  { id: 'ip-vault', label: 'IP Vault', icon: ShieldCheck, isRoute: true, path: appRoutes.ipVault },
+  { id: 'ip-vault', label: 'WTR', description: 'Confidential Data Management', icon: ShieldCheck, externalUrl: WTR_EXTERNAL_URL },
+];
+
+const CLIP_STUDIO_NAV_ITEMS: SidebarNavItem[] = [
+  { id: 'clipper', label: 'Clipper', icon: Scissors, isRoute: true, path: appRoutes.clipper, showBadge: true },
+  { id: 'sourcify', label: 'Sourcify', icon: DatabaseZap, isRoute: true, path: appRoutes.sourcify, showBadge: true },
+  { id: 'lyrics', label: 'Lyrics', icon: Music2, isRoute: true, path: appRoutes.kanvasLyrics },
 ];
 
 const SECONDARY_NAV_ITEMS: SidebarNavItem[] = [
@@ -52,11 +60,13 @@ const SECONDARY_NAV_ITEMS: SidebarNavItem[] = [
   { id: 'community', label: 'Community', icon: Globe },
 ];
 
-const FLOATING_NAV_ITEMS: FloatingNavItem[] = [
+const RAIL_NAV_ITEMS: FloatingNavItem[] = [
   ...MAIN_NAV_ITEMS.map((item) => ({ ...item, group: 'main' as const })),
   { id: '_divider1', label: '', icon: null, group: 'divider' },
-  ...SECONDARY_NAV_ITEMS.map((item) => ({ ...item, group: 'secondary' as const })),
+  ...CLIP_STUDIO_NAV_ITEMS.map((item) => ({ ...item, group: 'main' as const })),
   { id: '_divider2', label: '', icon: null, group: 'divider' },
+  ...SECONDARY_NAV_ITEMS.map((item) => ({ ...item, group: 'secondary' as const })),
+  { id: '_divider3', label: '', icon: null, group: 'divider' },
   { id: '_favorites', label: 'Favorites', icon: Star, group: 'extra' },
 ];
 
@@ -64,6 +74,10 @@ const SIDEBAR_VARIANTS = {
   expanded: { width: 256 },
   collapsed: { width: 64 },
 };
+
+export function openExternalNavItem(url: string) {
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
 
 const SectionLabel = ({ icon: Icon, label, accent = false }: { icon: LucideIcon; label: string; accent?: boolean }) => (
   <div className="flex items-center gap-2 px-3 mb-3">
@@ -92,6 +106,7 @@ const PrimaryNavItem = memo(function PrimaryNavItem({
       whileHover={{ x: isCollapsed ? 0 : 2 }}
       whileTap={{ scale: 0.98 }}
       aria-label={item.label}
+      title={item.description}
       onClick={() => onClick(item)}
       className={cn(
         "relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
@@ -133,7 +148,7 @@ const PrimaryNavItem = memo(function PrimaryNavItem({
     return (
       <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side="right" className="font-medium">
+        <TooltipContent side="right" className="z-[60] font-medium">
           <span className="flex items-center gap-2">
             {item.label}
             {item.showBadge && (
@@ -193,7 +208,7 @@ const SecondaryNavItem = memo(function SecondaryNavItem({
     return (
       <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side="right" className="font-medium">{item.label}</TooltipContent>
+        <TooltipContent side="right" className="z-[60] font-medium">{item.label}</TooltipContent>
       </Tooltip>
     );
   }
@@ -203,26 +218,9 @@ const SecondaryNavItem = memo(function SecondaryNavItem({
 
 export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: SidebarProps) {
   const [favoritesOpen, setFavoritesOpen] = useState(true);
+  const [clipStudioOpen, setClipStudioOpen] = useState(true);
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const navigate = useNavigate();
-  const [isFloatingVisible, setIsFloatingVisible] = useState(false);
-
-  // Hover-reveal for collapsed (floating) mode
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (isCollapsed) {
-      setIsFloatingVisible(e.clientX <= 80);
-    }
-  }, [isCollapsed]);
-
-  useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [handleMouseMove]);
-
-  // Reset floating visibility when expanding
-  useEffect(() => {
-    if (!isCollapsed) setIsFloatingVisible(false);
-  }, [isCollapsed]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -235,7 +233,9 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
   };
 
   const handlePrimaryNavClick = useCallback((item: SidebarNavItem) => {
-    if (item.isRoute) {
+    if (item.externalUrl) {
+      openExternalNavItem(item.externalUrl);
+    } else if (item.isRoute) {
       navigate(item.path ?? appRoutes.kanvas);
     } else {
       onViewChange(item.id);
@@ -246,45 +246,32 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
     onViewChange(item.id);
   }, [onViewChange]);
 
-  const handleFloatingNavClick = useCallback((item: Exclude<FloatingNavItem, { group: 'divider' }>) => {
-    if (item.isRoute) {
+  const handleRailNavClick = useCallback((item: Exclude<FloatingNavItem, { group: 'divider' }>) => {
+    if (item.externalUrl) {
+      openExternalNavItem(item.externalUrl);
+    } else if (item.isRoute) {
       navigate(item.path ?? appRoutes.kanvas);
     } else if (item.id === '_favorites') {
       setFavoritesOpen((current) => !current);
-    } else if (item.id === 'asset-store') {
-      onViewChange('asset-store');
     } else {
       onViewChange(item.id);
     }
   }, [navigate, onViewChange]);
 
-  // ── Floating pill (collapsed mode) ──
+  // ── Collapsed mode: persistent slim icon rail ──
   if (isCollapsed) {
     return (
       <TooltipProvider delayDuration={200}>
-        {/* Invisible hover trigger zone */}
-        <div className="fixed left-0 top-[68px] bottom-0 w-[80px] z-[49]" />
-
         <aside
           className={cn(
-            'fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 flex flex-col items-center py-3 rounded-2xl',
-            'bg-[#0A0A0A]/90 backdrop-blur-xl',
-            'shadow-[0_0_15px_rgba(249,115,22,0.15),0_0_30px_rgba(249,115,22,0.05),0_8px_32px_rgba(0,0,0,0.5)]',
-            'transition-all duration-300 ease-out',
-            isFloatingVisible ? 'w-14 opacity-100 translate-x-0' : 'w-3 opacity-0 -translate-x-2 pointer-events-none overflow-hidden',
+            'fixed left-0 top-0 z-50 flex h-screen w-16 flex-col items-center overflow-y-auto py-3',
+            'bg-surface-1 border-r border-border-default',
+            'dark:glass-sidebar dark:border-white/[0.04]',
           )}
-          onMouseEnter={() => setIsFloatingVisible(true)}
-          onMouseLeave={() => setIsFloatingVisible(false)}
         >
-          {/* Animated orange glow border */}
-          <ShineBorder
-            shineColor={["#f97316", "#d4a574"]}
-            borderWidth={1}
-            duration={8}
-          />
-
           {/* Faint orange top-highlight */}
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-orange-500/5 to-transparent pointer-events-none" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-orange-500/5 to-transparent" />
+
           {/* Expand button */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -292,7 +279,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
                 type="button"
                 onClick={() => setIsCollapsed(false)}
                 aria-label="Expand sidebar"
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
+                className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
               >
                 <ChevronLeft className="h-[18px] w-[18px] rotate-180" />
               </button>
@@ -301,13 +288,13 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
           </Tooltip>
 
           {/* Divider */}
-          <div className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />
+          <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
 
           {/* Nav items */}
-          <nav className="flex flex-1 flex-col items-center gap-1">
-            {FLOATING_NAV_ITEMS.map((item) => {
+          <nav className="relative flex flex-1 flex-col items-center gap-1">
+            {RAIL_NAV_ITEMS.map((item) => {
               if (item.group === 'divider') {
-                return <div key={item.id} className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />;
+                return <div key={item.id} className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />;
               }
               const Icon = item.icon!;
               const isActive = activeView === item.id;
@@ -316,19 +303,22 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      onClick={() => handleFloatingNavClick(item)}
+                      onClick={() => handleRailNavClick(item)}
                       aria-label={item.label}
                       className={cn(
-                        'relative flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200',
+                        'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
                         isActive
-                          ? 'bg-white/10 text-[#f97316]'
+                          ? 'bg-[rgba(249,115,22,0.12)] text-[#f97316]'
                           : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300',
                       )}
                     >
                       {isActive && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full bg-[#f97316] shadow-[0_0_6px_rgba(249,115,22,0.4)]" />
+                        <span className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-[#f97316] shadow-[0_0_6px_rgba(249,115,22,0.4)]" />
                       )}
                       <Icon className="h-[18px] w-[18px]" />
+                      {'showBadge' in item && item.showBadge && (
+                        <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[#f97316]" />
+                      )}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="right" sideOffset={8} className="z-[60]">
@@ -347,7 +337,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
           </nav>
 
           {/* Divider */}
-          <div className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />
+          <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
 
           {/* Logout */}
           <Tooltip>
@@ -356,7 +346,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
                 type="button"
                 onClick={handleLogout}
                 aria-label="Logout"
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
+                className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
               >
                 <LogOut className="h-[18px] w-[18px]" />
               </button>
@@ -365,7 +355,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
           </Tooltip>
 
           {/* Brand dot */}
-          <div className="mt-1 flex h-6 w-6 items-center justify-center">
+          <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center">
             <div className="h-2 w-2 rounded-full bg-[#f97316]/60 shadow-[0_0_6px_rgba(249,115,22,0.3)]" />
           </div>
         </aside>
@@ -373,7 +363,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
     );
   }
 
-  // ── Expanded mode (unchanged) ──
+  // ── Expanded mode ──
   return (
     <TooltipProvider>
       <motion.aside
@@ -432,11 +422,52 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
                 />
               ))}
             </div>
+
+            {/* Clip Studio expandable group */}
+            <div className="mt-1">
+              <button
+                onClick={() => setClipStudioOpen(!clipStudioOpen)}
+                aria-label="Clip Studio"
+                aria-expanded={clipStudioOpen}
+                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors dark:text-muted-foreground dark:hover:text-foreground"
+              >
+                <div className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center dark:bg-white/[0.04] flex-shrink-0">
+                  <Clapperboard className="w-4 h-4" />
+                </div>
+                <span className="flex-1 text-left font-medium whitespace-nowrap">Clip Studio</span>
+                <ChevronLeft className={cn(
+                  "w-4 h-4 transition-transform duration-200",
+                  clipStudioOpen ? "-rotate-90" : "rotate-0"
+                )} />
+              </button>
+
+              <AnimatePresence>
+                {clipStudioOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="mt-1 ml-6 pl-3 border-l border-border-default space-y-1 dark:border-white/[0.06] overflow-hidden"
+                  >
+                    {CLIP_STUDIO_NAV_ITEMS.map((item) => (
+                      <PrimaryNavItem
+                        key={item.id}
+                        item={item}
+                        isActive={activeView === item.id}
+                        isCollapsed={isCollapsed}
+                        onClick={handlePrimaryNavClick}
+                      />
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
-          {/* Secondary Navigation */}
+          {/* Studio Navigation */}
           <div>
-            <SectionLabel icon={Users} label="Collaborate" />
+            <SectionLabel icon={Users} label="Studio" />
             <div className="space-y-1">
               {SECONDARY_NAV_ITEMS.map((item) => (
                 <SecondaryNavItem
