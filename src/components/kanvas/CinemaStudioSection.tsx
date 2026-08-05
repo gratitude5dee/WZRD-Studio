@@ -13,6 +13,7 @@ import type {
 import type { KanvasCinemaSettings } from '@/features/kanvas/types';
 import type { CharacterBlueprint, CharacterMention } from '@/types/character-creation';
 import { createBlueprint } from '@/services/characterBlueprintService';
+import { useCharacterCreationStore } from '@/lib/stores/character-creation-store';
 import { MentionDropdown } from '@/components/character-creation/MentionDropdown';
 import { useUserTier, sortModelsForTier } from "@/hooks/useUserTier";
 import { musicPolishAssets } from '@/lib/musicPolishAssets';
@@ -180,8 +181,11 @@ export default function CinemaStudioSection({
     name: bp.name,
     slug: bp.slug,
   }));
+  const createdSlugs = new Set(createdAvatars.map((a) => a.slug));
   const baseAvatars = characterMentions.length > 0
-    ? characterMentions.map(m => ({ src: m.imageUrl ?? '', name: m.name, slug: m.slug }))
+    ? characterMentions
+        .filter((m) => !createdSlugs.has(m.slug))
+        .map(m => ({ src: m.imageUrl ?? '', name: m.name, slug: m.slug }))
     : FALLBACK_AVATARS.map((src, i) => ({ src, name: `Character ${i + 1}`, slug: '' }));
   const avatars = [...createdAvatars, ...baseAvatars];
 
@@ -230,6 +234,7 @@ export default function CinemaStudioSection({
           : [],
       });
       setCreatedBlueprints((prev) => [blueprint, ...prev]);
+      useCharacterCreationStore.getState().addBlueprint(blueprint);
       toast.success(`"${blueprint.name}" saved! Use @${blueprint.slug} to reference.`);
       setBuilderKind(null);
     } catch (err) {
@@ -241,14 +246,19 @@ export default function CinemaStudioSection({
 
   const handleAvatarSelect = useCallback((slug: string) => {
     if (!slug) return;
+    const deselecting = selectedSlugs.includes(slug);
     setSelectedSlugs((prev) =>
-      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
+      deselecting ? prev.filter((s) => s !== slug) : [...prev, slug],
     );
-    const mentionToken = `@${slug}`;
-    if (!prompt.includes(mentionToken)) {
+    const escaped = slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const tokenPattern = new RegExp(`(^|\\s)@${escaped}(?=\\s|$)`, 'g');
+    if (deselecting) {
+      onPromptChange(prompt.replace(tokenPattern, '$1').replace(/\s{2,}/g, ' ').trim());
+    } else if (!tokenPattern.test(prompt)) {
+      const mentionToken = `@${slug}`;
       onPromptChange(prompt.trim() ? `${prompt.trimEnd()} ${mentionToken}` : mentionToken);
     }
-  }, [prompt, onPromptChange]);
+  }, [prompt, onPromptChange, selectedSlugs]);
 
   // Handle prompt change + mention detection
   const handlePromptInput = useCallback((value: string) => {
