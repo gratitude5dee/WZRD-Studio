@@ -42,9 +42,13 @@ import { LYRIC_STYLES } from '@/lib/lyric-styles';
 import {
   buildRemixTimelineSlots,
   assignClipToSlot,
+  generateRemixVersions,
   lyricBlocksToCaptions,
+  offsetCaptionsToSelection,
+  offsetCutMarkersToSelection,
   quoteRemixCredits,
   seededShuffle,
+  type RemixVersion,
 } from '@/lib/remix-utils';
 import { LyricRemixComposition } from '@/components/remix/LyricRemixComposition';
 import { KanvasLyricsHeader } from '@/components/kanvas-lyrics/KanvasLyricsHeader';
@@ -88,6 +92,8 @@ const KanvasRemix = () => {
   const exporting = exportModalOpen;
   const [controlsOpen, setControlsOpen] = useState(true);
   const [timelineSlots, setTimelineSlots] = useState<RemixTimelineSlot[]>([]);
+  const [versions, setVersions] = useState<RemixVersion[]>([]);
+  const [activeVersion, setActiveVersion] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentFrameMs, setCurrentFrameMs] = useState(0);
   const [dragOverSlot, setDragOverSlot] = useState<number | null>(null);
@@ -145,12 +151,19 @@ const KanvasRemix = () => {
   const durationMs = template?.selectionDurationMs ?? 15000;
   const hasAutoPopulated = useRef(false);
 
+  // Re-base template lyric/marker timestamps onto the render timeline
+  const renderCutMarkers = useMemo(
+    () => offsetCutMarkersToSelection(template?.cutMarkers ?? [], template?.selectionStartMs ?? 0, durationMs),
+    [template, durationMs]
+  );
+
   useEffect(() => {
     hasAutoPopulated.current = false;
-    const markers = template?.cutMarkers ?? [];
-    const slots = buildRemixTimelineSlots(durationMs, markers);
+    const slots = buildRemixTimelineSlots(durationMs, renderCutMarkers);
     setTimelineSlots(slots);
-  }, [template, durationMs]);
+    setVersions([]);
+    setActiveVersion(null);
+  }, [renderCutMarkers, durationMs]);
 
   // Auto-populate empty timeline slots with shuffled clips when assets load
   useEffect(() => {
@@ -168,7 +181,17 @@ const KanvasRemix = () => {
     );
   }, [assets, timelineSlots]);
 
-  const captions = useMemo(() => (template ? lyricBlocksToCaptions(template.lyricBlocks) : []), [template]);
+  const captions = useMemo(
+    () =>
+      template
+        ? offsetCaptionsToSelection(
+            lyricBlocksToCaptions(template.lyricBlocks),
+            template.selectionStartMs,
+            durationMs
+          )
+        : [],
+    [template, durationMs]
+  );
   const creditCost = quoteRemixCredits(durationMs, quantity);
   const selectedStyle = styles.find((style) => style.id === selectedStyleId) ?? LYRIC_STYLES[0];
   const rootCategory = categories.find((category) => category.id === 'bay-area');
@@ -213,7 +236,34 @@ const KanvasRemix = () => {
       }))
     );
     setShuffleEach(quantity > 1);
+    setActiveVersion(null);
   }, [assets, quantity]);
+
+  // Auto-generate 10 remix versions with varied footage and lyric styles
+  const autoGenerateVersions = useCallback(() => {
+    if (assets.length === 0) {
+      toast.error('No clips available to generate versions');
+      return;
+    }
+    const generated = generateRemixVersions(assets, durationMs, renderCutMarkers, 10, Date.now() % 100000);
+    setVersions(generated);
+    setActiveVersion(0);
+    setTimelineSlots(generated[0].slots);
+    const styleIds = styles.filter((s) => s.id !== 'none').map((s) => s.id as LyricStyleId);
+    if (styleIds.length > 0) setSelectedStyleId(styleIds[0]);
+    setQuantity(10);
+    setShuffleEach(true);
+    toast.success('Generated 10 remix versions — pick one to preview');
+  }, [assets, durationMs, renderCutMarkers, styles]);
+
+  const applyVersion = useCallback((index: number) => {
+    const version = versions[index];
+    if (!version) return;
+    setActiveVersion(index);
+    setTimelineSlots(version.slots);
+    const styleIds = styles.filter((s) => s.id !== 'none').map((s) => s.id as LyricStyleId);
+    if (styleIds.length > 0) setSelectedStyleId(styleIds[index % styleIds.length]);
+  }, [versions, styles]);
 
   // Drag-and-drop handlers
   const handleDragStart = useCallback((e: React.DragEvent, clipId: string) => {
@@ -302,9 +352,9 @@ const KanvasRemix = () => {
     lyricStyleId: selectedStyleId,
     scale,
     backgroundClips,
-    cutMarkers: template?.cutMarkers ?? [],
+    cutMarkers: renderCutMarkers,
     noCuts,
-  }), [aspectRatio, durationMs, audioUrl, captions, selectedStyleId, scale, backgroundClips, template?.cutMarkers, noCuts]);
+  }), [aspectRatio, durationMs, audioUrl, captions, selectedStyleId, scale, backgroundClips, renderCutMarkers, noCuts]);
 
   if (loading) {
     return (
@@ -355,7 +405,7 @@ const KanvasRemix = () => {
   }
 
   const scrubPercent = durationMs > 0 ? (currentFrameMs / durationMs) * 100 : 0;
-  const cutMarkerPcts = (template.cutMarkers ?? []).map((m) =>
+  const cutMarkerPcts = renderCutMarkers.map((m) =>
     durationMs > 0 ? (m.timestampMs / durationMs) * 100 : 0
   );
 
@@ -562,6 +612,35 @@ const KanvasRemix = () => {
                     </div>
                   </div>
 
+                  <button
+                    type="button"
+                    onClick={autoGenerateVersions}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-200 hover:bg-cyan-400/15"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    Auto-generate 10 versions
+                  </button>
+
+                  {versions.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {versions.map((version, i) => (
+                        <button
+                          key={version.seed}
+                          type="button"
+                          onClick={() => applyVersion(i)}
+                          className={cn(
+                            'rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] transition-colors',
+                            activeVersion === i
+                              ? 'border-cyan-400 bg-cyan-400/20 text-cyan-200 shadow-[0_0_12px_rgba(34,211,238,0.25)]'
+                              : 'border-white/10 bg-white/5 text-zinc-400 hover:border-cyan-400/40 hover:text-zinc-200'
+                          )}
+                        >
+                          V{i + 1}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-[1fr_auto] gap-2">
                     <button
                       type="button"
@@ -626,7 +705,7 @@ const KanvasRemix = () => {
                   lyricStyleId: selectedStyleId,
                   scale,
                   backgroundClips,
-                  cutMarkers: template.cutMarkers,
+                  cutMarkers: renderCutMarkers,
                   noCuts,
                   aspectRatio,
                   durationMs,
