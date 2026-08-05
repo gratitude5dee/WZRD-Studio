@@ -40,6 +40,7 @@ const lazyWithRetry = <T extends { default: React.ComponentType<Record<string, n
   });
 
 const Home = lazyWithRetry(() => import('@/legacy-pages/Home'));
+const SettingsPage = lazyWithRetry(() => import('@/legacy-pages/SettingsPage'));
 const SettingsBillingPage = lazyWithRetry(() => import('@/legacy-pages/SettingsBillingPage'));
 const SettingsBillingDocsPage = lazyWithRetry(() => import('@/legacy-pages/SettingsBillingDocsPage'));
 const ProjectSetup = lazyWithRetry(() => import('@/legacy-pages/ProjectSetup'));
@@ -179,6 +180,10 @@ const AuthenticatedRoutes = () => {
                   <Route
                     path="/credits"
                     element={<ProtectedRoute><Navigate to={appRoutes.settings.billing} replace /></ProtectedRoute>}
+                  />
+                  <Route
+                    path={appRoutes.settings.root}
+                    element={<ProtectedRoute><SettingsPage /></ProtectedRoute>}
                   />
                   <Route
                     path={appRoutes.settings.billing}

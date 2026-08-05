@@ -6,6 +6,8 @@ export interface RouteManifestEntry {
   category: RouteCategory;
 }
 
+export const WTR_EXTERNAL_URL = 'https://wtr.wzrd.tech/app';
+
 export const appRoutes = {
   landing: '/',
   login: '/login',
@@ -27,6 +29,7 @@ export const appRoutes = {
   postz: '/postz',
   clipStudio: '/clip-studio',
   settings: {
+    root: '/settings',
     billing: '/settings/billing',
     billingDocs: '/settings/billing/docs',
   },
@@ -82,6 +85,7 @@ export const ROUTE_MANIFEST: RouteManifestEntry[] = [
   { id: 'sourcify', pattern: appRoutes.sourcify, category: 'core' },
   { id: 'postz', pattern: appRoutes.postz, category: 'core' },
   { id: 'clip-studio', pattern: appRoutes.clipStudio, category: 'legacy' },
+  { id: 'settings', pattern: appRoutes.settings.root, category: 'core' },
   { id: 'settings-billing', pattern: appRoutes.settings.billing, category: 'core' },
   { id: 'settings-billing-docs', pattern: appRoutes.settings.billingDocs, category: 'core' },
   { id: 'project-studio', pattern: '/projects/:projectId/studio', category: 'core' },

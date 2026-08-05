@@ -65,7 +65,7 @@ function renderMobileDrawer() {
 }
 
 function getPrimaryNavLabels() {
-  const primaryLabels = ['All Projects', 'Kanvas', 'Clipper', 'Sourcify', 'Postz', 'Aura', 'Asset Store', 'IP Vault'];
+  const primaryLabels = ['All Projects', 'Kanvas', 'Postz', 'Aura', 'Asset Store', 'WTR'];
   return screen
     .getAllByRole('button')
     .map((button) => button.getAttribute('aria-label') ?? button.textContent?.trim() ?? '')
@@ -91,18 +91,17 @@ describe('home navigation IP Vault entry', () => {
     });
   });
 
-  it('places IP Vault after Asset Store in the desktop sidebar and navigates to it', () => {
+  it('places WTR after Asset Store in the desktop sidebar and opens it externally', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
     renderDesktopSidebar();
 
     expect(getPrimaryNavLabels()).toEqual([
       'All Projects',
       'Kanvas',
-      'Clipper',
-      'Sourcify',
       'Postz',
       'Aura',
       'Asset Store',
-      'IP Vault',
+      'WTR',
     ]);
 
     fireEvent.click(screen.getByRole('button', { name: /sourcify/i }));
@@ -111,8 +110,21 @@ describe('home navigation IP Vault entry', () => {
     fireEvent.click(screen.getByRole('button', { name: /postz/i }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/postz');
 
-    fireEvent.click(screen.getByRole('button', { name: /ip vault/i }));
-    expect(screen.getByTestId('location-path')).toHaveTextContent('/ip-vault');
+    fireEvent.click(screen.getByRole('button', { name: /^wtr$/i }));
+    expect(openSpy).toHaveBeenCalledWith('https://wtr.wzrd.tech/app', '_blank', 'noopener,noreferrer');
+    expect(screen.getByTestId('location-path')).toHaveTextContent('/postz');
+    openSpy.mockRestore();
+  });
+
+  it('exposes Clipper, Sourcify, and Lyrics under the Clip Studio group in the desktop sidebar', () => {
+    renderDesktopSidebar();
+
+    expect(screen.getByRole('button', { name: /clip studio/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /clipper/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sourcify/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /clipper/i }));
+    expect(screen.getByTestId('location-path')).toHaveTextContent('/clipper');
   });
 
   it('preserves Sourcify and Postz nav nodes when active view changes', () => {
@@ -151,18 +163,17 @@ describe('home navigation IP Vault entry', () => {
     expect(screen.getByRole('button', { name: /postz/i })).toBe(postzButton);
   });
 
-  it('places IP Vault after Asset Store in the mobile drawer and navigates to it', () => {
+  it('places WTR after Asset Store in the mobile drawer and opens it externally', () => {
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
     const firstRender = renderMobileDrawer();
 
     expect(getPrimaryNavLabels()).toEqual([
       'All Projects',
       'Kanvas',
-      'Clipper',
-      'Sourcify',
       'Postz',
       'Aura',
       'Asset Store',
-      'IP Vault',
+      'WTR',
     ]);
 
     fireEvent.click(screen.getByRole('button', { name: /sourcify/i }));
@@ -175,7 +186,9 @@ describe('home navigation IP Vault entry', () => {
     secondRender.unmount();
 
     renderMobileDrawer();
-    fireEvent.click(screen.getByRole('button', { name: /ip vault/i }));
-    expect(screen.getByTestId('location-path')).toHaveTextContent('/ip-vault');
+    fireEvent.click(screen.getByRole('button', { name: /^wtr$/i }));
+    expect(openSpy).toHaveBeenCalledWith('https://wtr.wzrd.tech/app', '_blank', 'noopener,noreferrer');
+    expect(screen.getByTestId('location-path')).toHaveTextContent('/home');
+    openSpy.mockRestore();
   });
 });
