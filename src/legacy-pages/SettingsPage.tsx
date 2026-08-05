@@ -29,6 +29,13 @@ import { YAxis } from '@/components/dither-kit/y-axis';
 
 const USAGE_DAYS = 14;
 
+function localDateKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 function truncateAddress(address: string): string {
   if (address.length <= 12) return address;
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
@@ -37,7 +44,8 @@ function truncateAddress(address: string): string {
 const SettingsPage = () => {
   const { user } = useAuth();
   const { isPortalLoading, checkoutAvailable, openPortal } = useBilling();
-  const { isLoading: creditsLoading, wallet, plan, availableCredits, transactions } = useCredits();
+  const { isLoading: creditsLoading, wallet, plan, availableCredits } = useCredits();
+  const [usageTransactions, setUsageTransactions] = useState<{ amount: number; created_at: string }[]>([]);
 
   const [username, setUsername] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -60,6 +68,30 @@ const SettingsPage = () => {
         setUsername(data?.username ?? null);
         setWalletAddress(data?.wallet_address ?? null);
         setProfileLoading(false);
+      });
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      setUsageTransactions([]);
+      return;
+    }
+    const windowStart = new Date();
+    windowStart.setDate(windowStart.getDate() - (USAGE_DAYS - 1));
+    windowStart.setHours(0, 0, 0, 0);
+    supabase
+      .from('credit_transactions')
+      .select('amount, created_at')
+      .eq('transaction_type', 'usage')
+      .gte('created_at', windowStart.toISOString())
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setUsageTransactions(
+          (Array.isArray(data) ? data : []).map((entry) => ({
+            amount: Number(entry.amount) || 0,
+            created_at: entry.created_at,
+          })),
+        );
       });
   }, [user]);
 
@@ -112,23 +144,21 @@ const SettingsPage = () => {
   const usageData = useMemo(() => {
     const days: { day: string; used: number }[] = [];
     const byDay = new Map<string, number>();
-    for (const tx of transactions) {
-      if (tx.transaction_type !== 'usage') continue;
-      const key = tx.created_at?.slice(0, 10);
-      if (!key) continue;
+    for (const tx of usageTransactions) {
+      if (!tx.created_at) continue;
+      const key = localDateKey(new Date(tx.created_at));
       byDay.set(key, (byDay.get(key) ?? 0) + Math.abs(tx.amount));
     }
     for (let i = USAGE_DAYS - 1; i >= 0; i -= 1) {
       const d = new Date();
       d.setDate(d.getDate() - i);
-      const key = d.toISOString().slice(0, 10);
       days.push({
         day: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        used: byDay.get(key) ?? 0,
+        used: byDay.get(localDateKey(d)) ?? 0,
       });
     }
     return days;
-  }, [transactions]);
+  }, [usageTransactions]);
 
   const hasUsage = usageData.some((d) => d.used > 0);
 
