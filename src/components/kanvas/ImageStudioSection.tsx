@@ -182,10 +182,12 @@ export default function ImageStudioSection({
 
   /* ---- Sub-nav ---- */
   const renderSubNav = () => (
-    <div className="flex items-center gap-4 md:gap-6 px-4 md:px-12 pt-4 md:pt-6">
+    <div role="tablist" aria-label="Image studio view" className="flex items-center gap-4 md:gap-6 px-4 md:px-12 pt-4 md:pt-6">
       {(["explore", "history"] as const).map((tab) => (
         <button
           key={tab}
+          role="tab"
+          aria-selected={activeTab === tab}
           onClick={() => setActiveTab(tab)}
           className={cn(
             "text-sm font-semibold capitalize transition-colors pb-2 border-b-2",
@@ -316,8 +318,8 @@ export default function ImageStudioSection({
       );
     }
     return (
-      <div className="px-12 py-8">
-        <div className="columns-2 md:columns-4 lg:columns-5 gap-4 space-y-4">
+      <div className="px-4 md:px-12 py-8">
+        <div className="columns-2 gap-4 space-y-4 md:columns-4 lg:columns-5">
           {displayJobs.map((job) => {
             const url = getJobPrimaryUrl(job);
             if (!url) return null;
@@ -610,7 +612,7 @@ export default function ImageStudioSection({
           {renderCarousel()}
           {/* Recent creations masonry */}
           {completedJobs.length > 0 && (
-            <div className="px-12 py-16">
+            <div className="px-4 md:px-12 py-16">
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-600 mb-1">Gallery</p>
@@ -625,7 +627,7 @@ export default function ImageStudioSection({
                   View All →
                 </button>
               </div>
-              <div className="columns-2 md:columns-4 lg:columns-5 gap-4 space-y-4">
+              <div className="columns-2 gap-4 space-y-4 md:columns-4 lg:columns-5">
                 {completedJobs.slice(0, 10).map((job) => {
                   const url = getJobPrimaryUrl(job);
                   if (!url) return null;
