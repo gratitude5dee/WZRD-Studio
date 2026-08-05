@@ -19,7 +19,6 @@ import type { KanvasAsset, KanvasAssetType, KanvasJob, KanvasModel } from "@/fea
 import { getJobPrimaryUrl } from "@/features/kanvas/helpers";
 import { getKanvasModelProvider } from "@/features/kanvas/modelProvider";
 import { useUserTier, sortModelsForTier } from "@/hooks/useUserTier";
-import { useSidebar } from "@/contexts/SidebarContext";
 import { MentionDropdown } from "@/components/character-creation/MentionDropdown";
 import { musicPolishAssets } from "@/lib/musicPolishAssets";
 import type { CharacterMention } from "@/types/character-creation";
@@ -146,7 +145,6 @@ export default function ImageStudioSection({
   const uploadRef = useRef<HTMLInputElement>(null);
   const completedJobs = jobs.filter((j) => j.status === "completed");
   const { tier } = useUserTier();
-  const { isCollapsed } = useSidebar();
 
   const generationModels = sortModelsForTier(models.filter((m) => m.mode === "text-to-image"), tier);
   const editingModels = sortModelsForTier(models.filter((m) => m.mode === "image-to-image"), tier);
@@ -321,7 +319,7 @@ export default function ImageStudioSection({
     }
     return (
       <div className="px-4 md:px-12 py-8">
-        <div className={cn("columns-2 gap-4 space-y-4", isCollapsed ? "md:columns-4 lg:columns-5" : "md:columns-3 lg:columns-4")}>
+        <div className="columns-2 gap-4 space-y-4 md:columns-4 lg:columns-5">
           {displayJobs.map((job) => {
             const url = getJobPrimaryUrl(job);
             if (!url) return null;
@@ -412,7 +410,7 @@ export default function ImageStudioSection({
   /* ---- Bottom Prompt Bar ---- */
   const renderPromptBar = () => (
     <div className="fixed bottom-16 left-3 right-3 md:bottom-8 md:left-8 md:right-8 flex justify-center z-50">
-      <div className={cn("relative bg-[#131313]/95 backdrop-blur-2xl border border-white/10 rounded-[28px] p-2.5 shadow-[0_20px_60px_rgba(0,0,0,0.9)] w-full transition-[max-width] duration-300", isCollapsed ? "max-w-[1100px]" : "max-w-[960px]")}>
+      <div className="relative bg-[#131313]/95 backdrop-blur-2xl border border-white/10 rounded-[28px] p-2.5 shadow-[0_20px_60px_rgba(0,0,0,0.9)] w-full max-w-[1100px]">
         {renderModelDropdown()}
 
         {/* Mobile: 2-row layout */}
@@ -629,7 +627,7 @@ export default function ImageStudioSection({
                   View All →
                 </button>
               </div>
-              <div className={cn("columns-2 gap-4 space-y-4", isCollapsed ? "md:columns-4 lg:columns-5" : "md:columns-3 lg:columns-4")}>
+              <div className="columns-2 gap-4 space-y-4 md:columns-4 lg:columns-5">
                 {completedJobs.slice(0, 10).map((job) => {
                   const url = getJobPrimaryUrl(job);
                   if (!url) return null;

@@ -25,7 +25,6 @@ import { cn } from "@/lib/utils";
 import type { KanvasAsset, KanvasAssetType, KanvasJob, KanvasModel } from "@/features/kanvas/types";
 import { getJobPrimaryUrl, isJobActive } from "@/features/kanvas/helpers";
 import { useUserTier, sortModelsForTier } from "@/hooks/useUserTier";
-import { useSidebar } from "@/contexts/SidebarContext";
 import { MentionDropdown } from "@/components/character-creation/MentionDropdown";
 import type { CharacterMention } from "@/types/character-creation";
 import { musicPolishAssets } from "@/lib/musicPolishAssets";
@@ -204,7 +203,6 @@ export function VideoStudioSection({
   onMentionSelect, onMentionTogglePin, onMentionChange, onCloseMentions,
 }: VideoStudioSectionProps) {
   const { tier, isFree } = useUserTier();
-  const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState<"create" | "edit" | "motion">("create");
   const [activeModelTab, setActiveModelTab] = useState(MODEL_TABS[0]);
   const [activeFilter, setActiveFilter] = useState("All");
@@ -509,7 +507,7 @@ export function VideoStudioSection({
               </button>
             ))}
           </div>
-          <div className={cn("grid grid-cols-2 gap-3", isCollapsed ? "sm:grid-cols-4 xl:grid-cols-5" : "sm:grid-cols-3 xl:grid-cols-4")}>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {PRESET_GALLERY.map((preset, i) => (
               <div key={preset.title} className="group relative aspect-video rounded-xl bg-[#1a1919] overflow-hidden cursor-pointer border border-white/5 hover:border-[#f97316]/30 transition-colors">
                 <img
@@ -541,7 +539,7 @@ export function VideoStudioSection({
               <p className="text-sm font-semibold text-white">Recent Creations</p>
               <button className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-[#f97316] transition-colors">View All →</button>
             </div>
-            <div className={cn("grid grid-cols-2 gap-4", isCollapsed ? "md:grid-cols-4" : "md:grid-cols-3 xl:grid-cols-4")}>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-4">
               {recentResults.map((job) => {
                 const url = getJobPrimaryUrl(job);
                 if (!url) return null;
@@ -772,7 +770,7 @@ export function VideoStudioSection({
   /* ================================================================ */
   return (
     <div className="fixed inset-0 top-[68px] bg-[#0a0a0a] z-20 overflow-y-auto px-4 py-4 md:p-8 pb-20 md:pb-8" style={{ scrollbarWidth: "none" }}>
-      <div className={cn("mx-auto transition-[max-width] duration-300", isCollapsed ? "max-w-[1600px]" : "max-w-[1400px]")}>
+      <div className="mx-auto max-w-[1600px]">
         {subNav}
         <div className="mt-4 md:mt-6">
           {activeTab === "edit" ? renderEditTab() : activeTab === "motion" ? renderMotionTab() : renderCreateTab()}
