@@ -29,6 +29,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
 AS $$
+#variable_conflict use_column
 DECLARE
   v_user_id UUID;
   v_total INTEGER;
@@ -48,7 +49,7 @@ BEGIN
 
   -- Idempotency check: an active hold for this key is returned as-is.
   -- Committed/released holds do not block a fresh reservation.
-  IF idempotency_key IS NOT NULL THEN
+  IF credits_reserve.idempotency_key IS NOT NULL THEN
     SELECT id INTO v_existing_hold_id
     FROM public.credit_holds
     WHERE credit_holds.idempotency_key = credits_reserve.idempotency_key
