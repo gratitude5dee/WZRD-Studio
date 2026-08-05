@@ -47,6 +47,7 @@ function sourceMetadata(input: GmiClipAnalysisInput) {
     url: source.url,
     creator: source.creator,
     durationSeconds: source.durationSeconds,
+    durationSec: source.durationSeconds,
     sourceMeta: {
       youtubeUrl: resolveAnalysisYoutubeUrl(source),
     },
