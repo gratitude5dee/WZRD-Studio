@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import type { KanvasAsset, KanvasAssetType, KanvasJob, KanvasModel } from "@/features/kanvas/types";
 import { getJobPrimaryUrl, isJobActive } from "@/features/kanvas/helpers";
 import { useUserTier, sortModelsForTier } from "@/hooks/useUserTier";
+import { useSidebar } from "@/contexts/SidebarContext";
 import { MentionDropdown } from "@/components/character-creation/MentionDropdown";
 import type { CharacterMention } from "@/types/character-creation";
 import { musicPolishAssets } from "@/lib/musicPolishAssets";
@@ -203,6 +204,7 @@ export function VideoStudioSection({
   onMentionSelect, onMentionTogglePin, onMentionChange, onCloseMentions,
 }: VideoStudioSectionProps) {
   const { tier, isFree } = useUserTier();
+  const { isCollapsed } = useSidebar();
   const [activeTab, setActiveTab] = useState<"create" | "edit" | "motion">("create");
   const [activeModelTab, setActiveModelTab] = useState(MODEL_TABS[0]);
   const [activeFilter, setActiveFilter] = useState("All");
@@ -237,24 +239,38 @@ export function VideoStudioSection({
   };
 
   /* ── Sub-nav ── */
+  const SUB_TABS = [
+    { key: "create", label: "Create Video", shortLabel: "Create", icon: Film },
+    { key: "edit", label: "Edit Video", shortLabel: "Edit", icon: SlidersHorizontal },
+    { key: "motion", label: "Motion Control", shortLabel: "Motion", icon: Users },
+  ] as const;
+
   const subNav = (
     <div className="space-y-3">
       <div className="flex justify-center">
-        <div className="inline-flex items-center bg-[#1A1A1A] rounded-full p-1 border border-white/[0.06]">
-          {(["create", "edit", "motion"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "px-5 py-2 rounded-full text-sm font-medium transition-all duration-200",
-                activeTab === tab
-                  ? "bg-white/10 text-[#f97316] shadow-[inset_0_0_12px_rgba(249,115,22,0.06)]"
-                  : "text-zinc-500 hover:text-zinc-300"
-              )}
-            >
-              {tab === "create" ? "Create Video" : tab === "edit" ? "Edit Video" : "Motion Control"}
-            </button>
-          ))}
+        <div role="tablist" aria-label="Video studio mode" className="inline-flex items-center bg-[#1A1A1A] rounded-full p-1 border border-white/[0.06]">
+          {SUB_TABS.map((tab) => {
+            const TabIcon = tab.icon;
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                role="tab"
+                aria-selected={active}
+                onClick={() => setActiveTab(tab.key)}
+                className={cn(
+                  "flex items-center gap-2 px-4 md:px-5 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                  active
+                    ? "bg-white/10 text-[#f97316] shadow-[inset_0_0_12px_rgba(249,115,22,0.06)]"
+                    : "text-zinc-500 hover:text-zinc-300"
+                )}
+              >
+                <TabIcon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.shortLabel}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
       <div className="flex items-center gap-4 text-[11px] text-zinc-600">
@@ -493,7 +509,7 @@ export function VideoStudioSection({
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className={cn("grid grid-cols-2 gap-3", isCollapsed ? "sm:grid-cols-4 xl:grid-cols-5" : "sm:grid-cols-3 xl:grid-cols-4")}>
             {PRESET_GALLERY.map((preset, i) => (
               <div key={preset.title} className="group relative aspect-video rounded-xl bg-[#1a1919] overflow-hidden cursor-pointer border border-white/5 hover:border-[#f97316]/30 transition-colors">
                 <img
@@ -525,7 +541,7 @@ export function VideoStudioSection({
               <p className="text-sm font-semibold text-white">Recent Creations</p>
               <button className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-[#f97316] transition-colors">View All →</button>
             </div>
-            <div className="grid grid-cols-4 gap-4">
+            <div className={cn("grid grid-cols-2 gap-4", isCollapsed ? "md:grid-cols-4" : "md:grid-cols-3 xl:grid-cols-4")}>
               {recentResults.map((job) => {
                 const url = getJobPrimaryUrl(job);
                 if (!url) return null;
@@ -558,8 +574,8 @@ export function VideoStudioSection({
   /*  EDIT TAB                                                         */
   /* ================================================================ */
   const renderEditTab = () => (
-    <div className="flex gap-8">
-      <div className="w-[300px] shrink-0 space-y-5">
+    <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+      <div className="w-full md:w-[300px] md:shrink-0 space-y-5">
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             Edit Video
@@ -653,10 +669,10 @@ export function VideoStudioSection({
   /*  MOTION CONTROL TAB                                               */
   /* ================================================================ */
   const renderMotionTab = () => (
-    <div className="flex gap-8">
+    <div className="flex flex-col-reverse md:flex-row gap-6 md:gap-8">
       <div className="min-w-0 flex-1 space-y-10">
         <div>
-          <h1 className="text-5xl font-bold tracking-tighter text-white lg:text-6xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tighter text-white lg:text-6xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
             RECREATE ANY <em className="not-italic text-[#f97316]">MOTION</em><br />WITH YOUR IMAGE
           </h1>
           <p className="mt-4 max-w-2xl text-sm text-zinc-500">Our neural animation engine analyzes reference motion and re-creates it with your character or scene.</p>
@@ -712,7 +728,7 @@ export function VideoStudioSection({
         {wzrdTip("Select a motion reference from the library, then add your character image. The AI transfers motion while maintaining identity and proportions.")}
       </div>
 
-      <div className="w-[280px] shrink-0 space-y-5">
+      <div className="w-full md:w-[280px] md:shrink-0 space-y-5">
         <Dropzone label="Add Motion to Copy" hint="Drop reference video (3-30s)" icon={Video} uploading={uploading} onUpload={(f) => void onUpload(f, "image")} accept="video/*,image/*" aspectClass="aspect-video" />
         <Dropzone label="Add Your Character" hint="Drop character image" icon={ImagePlus} uploading={false} onUpload={(f) => void onUpload(f, "image")} aspectClass="aspect-square" />
 
@@ -756,9 +772,11 @@ export function VideoStudioSection({
   /* ================================================================ */
   return (
     <div className="fixed inset-0 top-[68px] bg-[#0a0a0a] z-20 overflow-y-auto px-4 py-4 md:p-8 pb-20 md:pb-8" style={{ scrollbarWidth: "none" }}>
-      {subNav}
-      <div className="mt-4 md:mt-6">
-        {activeTab === "edit" ? renderEditTab() : activeTab === "motion" ? renderMotionTab() : renderCreateTab()}
+      <div className={cn("mx-auto transition-[max-width] duration-300", isCollapsed ? "max-w-[1600px]" : "max-w-[1400px]")}>
+        {subNav}
+        <div className="mt-4 md:mt-6">
+          {activeTab === "edit" ? renderEditTab() : activeTab === "motion" ? renderMotionTab() : renderCreateTab()}
+        </div>
       </div>
     </div>
   );
