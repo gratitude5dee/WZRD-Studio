@@ -300,7 +300,7 @@ export default function CinemaStudioSection({
   /* ── IMAGE BOTTOM BAR ── */
   function renderImageBar() {
     return (
-      <div className="absolute bottom-8 left-0 right-0 z-30">
+      <div className="absolute bottom-0 left-0 right-0 z-30">
         <div className="bg-[#0e0e0e]/95 backdrop-blur-2xl border-t border-white/[0.06] px-6 py-3">
           <div className="max-w-[1400px] mx-auto flex items-center gap-2.5">
             {/* Mode toggle */}
@@ -387,7 +387,7 @@ export default function CinemaStudioSection({
   /* ── VIDEO BOTTOM BAR ── */
   function renderVideoBar() {
     return (
-      <div className="absolute bottom-8 left-0 right-0 z-30">
+      <div className="absolute bottom-0 left-0 right-0 z-30">
         <div className="bg-[#0e0e0e]/95 backdrop-blur-2xl border-t border-white/[0.06] px-6 py-3">
           <div className="max-w-[1400px] mx-auto space-y-2.5">
             {/* Row 1: Prompt with @mention */}
@@ -821,11 +821,11 @@ export default function CinemaStudioSection({
   }
 
   return (
-    <div className="fixed inset-0 top-[68px] bg-[#090909] z-20 overflow-hidden flex flex-col pb-16 md:pb-0" style={{ scrollbarWidth: 'none' }}>
+    <div className="fixed inset-0 top-[68px] bg-[#090909] z-20 overflow-hidden flex flex-row pb-16 md:pb-0" style={{ scrollbarWidth: 'none' }}>
       <style>{`::-webkit-scrollbar { display: none; }`}</style>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-full relative">
+      <div className="flex-1 min-w-0 flex flex-col h-full relative">
         {/* Tab Nav — Centered Pill Slider */}
         <div className="flex items-center justify-center px-4 md:px-6 pt-3 md:pt-4 pb-2 flex-shrink-0">
           <div className="inline-flex bg-[#1A1A1A] rounded-full p-1 border border-white/[0.06] overflow-x-auto scrollbar-hide">
@@ -883,7 +883,7 @@ export default function CinemaStudioSection({
       {renderBuilderModal()}
 
       {/* Right Icon Rail */}
-      <div className="w-[56px] flex-shrink-0 h-full bg-[#0a0a0a] border-l border-white/[0.06] flex flex-col items-center py-4 gap-3">
+      <div className="hidden md:flex w-[56px] flex-shrink-0 h-full bg-[#0a0a0a] border-l border-white/[0.06] flex-col items-center py-4 gap-3">
         <button className="w-10 h-10 rounded-xl bg-[#1a1a1a] flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
           <Search className="h-4 w-4" />
         </button>
