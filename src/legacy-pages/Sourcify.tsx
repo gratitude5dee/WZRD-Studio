@@ -169,6 +169,31 @@ function isDirectMediaUrl(url: unknown): boolean {
   return false;
 }
 
+function isYoutubeVideoUrl(sourceUrl: string): boolean {
+  if (!sourceUrl) return false;
+  return /watch\?v=|\/shorts\/|youtu\.be\/|\/embed\/|\/live\//i.test(sourceUrl);
+}
+
+function isInstagramVideoUrl(sourceUrl: string): boolean {
+  if (!sourceUrl) return false;
+  return /instagram\.com\/(?:[^/]+\/)?(?:reels?|p|tv)\//i.test(sourceUrl);
+}
+
+function canRequestMp4(result: SourcifyResult): boolean {
+  const sourceUrl = typeof result.sourceUrl === "string" ? result.sourceUrl : "";
+  if (!sourceUrl) return false;
+  switch (result.platform) {
+    case "youtube":
+      return isYoutubeVideoUrl(sourceUrl);
+    case "instagram":
+      return isInstagramVideoUrl(sourceUrl);
+    case "tiktok":
+      return isTikTokVideoUrl(sourceUrl);
+    default:
+      return false;
+  }
+}
+
 
 function ResultCard({
   result,
@@ -188,17 +213,13 @@ function ResultCard({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [hovered, setHovered] = useState(false);
   const hasMp4 = isDirectMediaUrl(result.mediaUrl);
+  const hasMedia = Boolean(result.mediaUrl);
   const hasThumbnail = Boolean(result.thumbnailUrl);
   const sourceUrl = typeof result.sourceUrl === "string" ? result.sourceUrl : "";
   const youtubeEmbedUrl = !hasMp4 && result.platform === "youtube" ? youtubeHoverEmbedUrl(sourceUrl) : undefined;
   const canHoverPreview = hasMp4 || Boolean(youtubeEmbedUrl);
-  const canFetchMp4 =
-    !hasMp4 &&
-    Boolean(sourceUrl) &&
-    ((result.platform === "youtube" &&
-      (sourceUrl.includes("watch?v=") || sourceUrl.includes("/shorts/") || sourceUrl.includes("youtu.be/"))) ||
-      (result.platform === "instagram" && sourceUrl.includes("/reel/")) ||
-      (result.platform === "tiktok" && isTikTokVideoUrl(sourceUrl)));
+  const canFetchMp4 = !hasMp4 && canRequestMp4(result);
+  const isMetadataOnly = !hasMedia && !canFetchMp4;
 
   const handleMouseEnter = () => {
     if (!canHoverPreview) return;
@@ -226,7 +247,12 @@ function ResultCard({
   };
 
   return (
-    <Card className="overflow-hidden rounded-lg border-white/10 bg-[#111318]">
+    <Card
+      className={cn(
+        "overflow-hidden rounded-lg border-white/10 bg-[#111318] transition-colors hover:border-white/20",
+        selected && "border-orange-400/40 ring-1 ring-orange-400/30",
+      )}
+    >
       <div
         className={cn("group relative aspect-video bg-black/40", canHoverPreview && "cursor-pointer")}
         onMouseEnter={canHoverPreview ? handleMouseEnter : undefined}
@@ -334,7 +360,7 @@ function ResultCard({
               Fetch MP4
             </Button>
           ) : null}
-          {hasMp4 ? (
+          {hasMedia ? (
             <Button
               type="button"
               size="sm"
@@ -343,10 +369,17 @@ function ResultCard({
               disabled={disabled}
               onClick={() => onDownloadMp4(result)}
             >
+              <Download className="mr-1.5 h-3.5 w-3.5" />
               Download MP4
             </Button>
           ) : null}
         </div>
+
+        {isMetadataOnly && (
+          <p className="rounded-md border border-amber-300/15 bg-amber-400/5 px-2 py-1.5 text-[11px] leading-4 text-amber-200/90">
+            Metadata only — no downloadable video was detected for this result.
+          </p>
+        )}
 
         <div className="grid grid-cols-4 gap-2 text-[11px] text-zinc-500">
           <span>{metric(result.metrics.views)} views</span>
@@ -436,9 +469,9 @@ export default function Sourcify() {
     () => results.filter((result) => selectedIds.has(result.id)),
     [results, selectedIds],
   );
-  const downloadableSelection = selectedResults.filter((result) => result.mediaUrl && isDirectMediaUrl(result.mediaUrl));
+  const downloadableSelection = selectedResults.filter((result) => Boolean(result.mediaUrl));
   const needsDownloadSelection = selectedResults.filter(
-    (result) => (!result.mediaUrl || !isDirectMediaUrl(result.mediaUrl)) && result.sourceUrl,
+    (result) => !isDirectMediaUrl(result.mediaUrl) && canRequestMp4(result),
   );
 
   const filteredIds = useMemo(() => filteredResults.map((result) => result.id), [filteredResults]);
@@ -541,7 +574,7 @@ export default function Sourcify() {
   };
 
   const handleDownloadMp4 = (result: SourcifyResult) => {
-    if (!isDirectMediaUrl(result.mediaUrl)) return;
+    if (!result.mediaUrl) return;
     downloadSourcifyResults([result]);
   };
 
@@ -550,9 +583,7 @@ export default function Sourcify() {
     const selection = (requested ?? selectedResults).filter(Boolean);
     if (selection.length === 0) return;
 
-    const needsDownload = selection.filter(
-      (result) => (!result.mediaUrl || !isDirectMediaUrl(result.mediaUrl)) && result.sourceUrl,
-    );
+    const needsDownload = selection.filter((result) => !isDirectMediaUrl(result.mediaUrl) && canRequestMp4(result));
     if (needsDownload.length === 0) {
       toast("Selection already includes downloadable media.");
       return;
@@ -565,15 +596,11 @@ export default function Sourcify() {
     }
 
     const youtubeUrls = candidates
-      .filter((result) =>
-        result.platform === "youtube" &&
-        typeof result.sourceUrl === "string" &&
-        (result.sourceUrl.includes("watch?v=") || result.sourceUrl.includes("/shorts/") || result.sourceUrl.includes("youtu.be/")),
-      )
+      .filter((result) => result.platform === "youtube" && canRequestMp4(result))
       .map((result) => result.sourceUrl as string);
 
     const instagramUrls = candidates
-      .filter((result) => result.platform === "instagram" && typeof result.sourceUrl === "string" && result.sourceUrl.includes("/reel/"))
+      .filter((result) => result.platform === "instagram" && canRequestMp4(result))
       .map((result) => result.sourceUrl as string);
 
 

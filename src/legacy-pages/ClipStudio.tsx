@@ -33,7 +33,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { getDesktopBridge } from '@/lib/desktop';
 import { fitSelection, zoomAroundTime } from '@/lib/editor/timelineZoom';
-import { analyzeVideoWithAiProvider } from '@/features/clip-studio/gmiClipAnalysisService';
+import {
+  analyzeVideoWithAiProvider,
+  hasRequiredAnalysisSourceInfo,
+  MISSING_ANALYSIS_SOURCE_INFO_MESSAGE,
+} from '@/features/clip-studio/gmiClipAnalysisService';
 import {
   buildCaptionTitleTargets,
   buildExistingCaptionCollisionInputs,
@@ -1169,7 +1173,7 @@ export default function ClipStudio({ showAppHeader = true }: ClipStudioProps = {
     if (!source.durationSeconds || !source.width || !source.height) {
       setSource({
         ...source,
-        durationSeconds: element.duration,
+        durationSeconds: Number.isFinite(element.duration) && element.duration > 0 ? element.duration : source.durationSeconds,
         width: element.videoWidth,
         height: element.videoHeight,
       });
@@ -1411,6 +1415,11 @@ export default function ClipStudio({ showAppHeader = true }: ClipStudioProps = {
   ) => {
     if (!targetSource) {
       setError('Import a source before viral analysis.');
+      return;
+    }
+    if (!hasRequiredAnalysisSourceInfo(targetSource)) {
+      setError(MISSING_ANALYSIS_SOURCE_INFO_MESSAGE);
+      setStatus('Viral analysis is waiting on video metadata.');
       return;
     }
     setIsAnalyzing(true);

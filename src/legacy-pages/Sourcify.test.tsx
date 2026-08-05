@@ -152,4 +152,62 @@ describe("Sourcify page", () => {
       }),
     );
   });
+
+  it("renders download states for fetchable, downloadable, and metadata-only results", async () => {
+    sourcifyClientMocks.runSourcifyActor.mockResolvedValue({
+      results: [
+        {
+          id: "result-embed",
+          platform: "youtube",
+          category: "video",
+          title: "Embed video without media",
+          sourceUrl: "https://www.youtube.com/embed/abc123",
+          metrics: {},
+          downloadable: false,
+        },
+        {
+          id: "result-media",
+          platform: "instagram",
+          category: "reel",
+          title: "Reel with indirect media url",
+          sourceUrl: "https://www.instagram.com/reel/xyz/",
+          mediaUrl: "https://media.example.com/download?id=xyz",
+          metrics: {},
+          downloadable: true,
+        },
+        {
+          id: "result-metadata",
+          platform: "twitch",
+          category: "metadata",
+          title: "Profile metadata only",
+          sourceUrl: "https://www.twitch.tv/somechannel",
+          metrics: {},
+          downloadable: false,
+        },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <Sourcify />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Plan sources/i }));
+    expect(await screen.findByText("Brand A")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Run selected scrapes/i }));
+
+    expect(await screen.findByText("Embed video without media")).toBeInTheDocument();
+
+    // The embed result has no media, and the reel's media link is not a direct file,
+    // so both keep a Fetch MP4 option; the reel also gets Download MP4 for its media link.
+    expect(screen.getAllByRole("button", { name: /^Fetch MP4$/i })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /^Download MP4$/i })).toBeInTheDocument();
+    expect(screen.getByText(/Metadata only — no downloadable video/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Download MP4$/i }));
+    expect(sourcifyClientMocks.downloadSourcifyResults).toHaveBeenCalledWith([
+      expect.objectContaining({ id: "result-media" }),
+    ]);
+  });
 });
