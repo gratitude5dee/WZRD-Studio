@@ -2,15 +2,18 @@ import { useState, useCallback } from 'react';
 import {
   Sparkles, Search, Plus, ChevronLeft, ChevronRight,
   ImageIcon, Video, Users, Shuffle, Loader2, Clapperboard,
-  Camera, Film, Music,
+  Camera, Film, Music, X,
   Upload, Heart, Volume2, VolumeX,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import type { LucideIcon } from 'lucide-react';
 import type {
   KanvasAsset, KanvasJob, KanvasAssetType, KanvasModel,
 } from '@/features/kanvas/types';
 import type { KanvasCinemaSettings } from '@/features/kanvas/types';
-import type { CharacterMention } from '@/types/character-creation';
+import type { CharacterBlueprint, CharacterMention } from '@/types/character-creation';
+import { createBlueprint } from '@/services/characterBlueprintService';
+import { useCharacterCreationStore } from '@/lib/stores/character-creation-store';
 import { MentionDropdown } from '@/components/character-creation/MentionDropdown';
 import { useUserTier, sortModelsForTier } from "@/hooks/useUserTier";
 import { musicPolishAssets } from '@/lib/musicPolishAssets';
@@ -76,6 +79,41 @@ const CAMERA_PRESETS = [
   { label: 'Pan Left', desc: 'Horizontal pan' },
 ];
 
+type BuilderKind = 'anchor' | 'location';
+
+const BUILDER_CONFIG: Record<BuilderKind, {
+  title: string;
+  blueprintKind: CharacterBlueprint['kind'];
+  namePlaceholder: string;
+  descPlaceholder: string;
+  presets: { src: string; alt: string }[];
+}> = {
+  anchor: {
+    title: 'Create Artist Anchor',
+    blueprintKind: 'character',
+    namePlaceholder: 'Name your anchor (e.g. Lead Vocalist)...',
+    descPlaceholder: 'Describe the performer — look, wardrobe, energy...',
+    presets: [
+      { src: musicPolishAssets.blueprints.vocalist.src, alt: musicPolishAssets.blueprints.vocalist.alt },
+      { src: musicPolishAssets.talent.leadVocalist.src, alt: musicPolishAssets.talent.leadVocalist.alt },
+      { src: musicPolishAssets.talent.motionStage.src, alt: musicPolishAssets.talent.motionStage.alt },
+      { src: musicPolishAssets.talent.faceWardrobe.src, alt: musicPolishAssets.talent.faceWardrobe.alt },
+    ],
+  },
+  location: {
+    title: 'Create Location',
+    blueprintKind: 'environment',
+    namePlaceholder: 'Name your location (e.g. Neon Street)...',
+    descPlaceholder: 'Describe the set — lighting, mood, architecture...',
+    presets: [
+      { src: musicPolishAssets.blueprints.soundstage.src, alt: musicPolishAssets.blueprints.soundstage.alt },
+      { src: musicPolishAssets.cinema.neonStreet.src, alt: musicPolishAssets.cinema.neonStreet.alt },
+      { src: musicPolishAssets.cinema.soundstage.src, alt: musicPolishAssets.cinema.soundstage.alt },
+      { src: musicPolishAssets.landing.rooftopChoreography.src, alt: musicPolishAssets.landing.rooftopChoreography.alt },
+    ],
+  },
+};
+
 const FALLBACK_AVATARS = [
   musicPolishAssets.blueprints.vocalist.src,
   musicPolishAssets.cinema.performanceCloseup.src,
@@ -125,12 +163,102 @@ export default function CinemaStudioSection({
   const [duration, setDuration] = useState(12);
   const [genreScroll, setGenreScroll] = useState(0);
 
+  /* ── Anchor / Location builder state ── */
+  const [builderKind, setBuilderKind] = useState<BuilderKind | null>(null);
+  const [builderName, setBuilderName] = useState('');
+  const [builderDesc, setBuilderDesc] = useState('');
+  const [builderImage, setBuilderImage] = useState<string | null>(null);
+  const [builderSaving, setBuilderSaving] = useState(false);
+  const [createdBlueprints, setCreatedBlueprints] = useState<CharacterBlueprint[]>([]);
+  const [selectedSlugs, setSelectedSlugs] = useState<string[]>([]);
+
   const creditCost = genMode === 'video' ? 24 : (currentModel?.credits ?? 2);
 
-  // Resolve character avatars — prefer real blueprints, fall back to stock
-  const avatars = characterMentions.length > 0
-    ? characterMentions.map(m => ({ src: m.imageUrl ?? '', name: m.name, slug: m.slug }))
+  // Resolve character avatars — created blueprints first, then real
+  // blueprints from mentions, falling back to stock imagery.
+  const createdAvatars = createdBlueprints.map((bp) => ({
+    src: bp.imageUrl ?? '',
+    name: bp.name,
+    slug: bp.slug,
+  }));
+  const createdSlugs = new Set(createdAvatars.map((a) => a.slug));
+  const baseAvatars = characterMentions.length > 0
+    ? characterMentions
+        .filter((m) => !createdSlugs.has(m.slug))
+        .map(m => ({ src: m.imageUrl ?? '', name: m.name, slug: m.slug }))
     : FALLBACK_AVATARS.map((src, i) => ({ src, name: `Character ${i + 1}`, slug: '' }));
+  const avatars = [...createdAvatars, ...baseAvatars];
+
+  const openBuilder = useCallback((kind: BuilderKind) => {
+    setBuilderKind(kind);
+    setBuilderName('');
+    setBuilderDesc('');
+    setBuilderImage(null);
+  }, []);
+
+  const closeBuilder = useCallback(() => {
+    if (builderSaving) return;
+    setBuilderKind(null);
+  }, [builderSaving]);
+
+  const handleBuilderSave = useCallback(async () => {
+    if (!builderKind) return;
+    const name = builderName.trim();
+    if (!name) {
+      toast.error(builderKind === 'anchor' ? 'Give your anchor a name.' : 'Give your location a name.');
+      return;
+    }
+
+    const config = BUILDER_CONFIG[builderKind];
+    const description = builderDesc.trim();
+    setBuilderSaving(true);
+    try {
+      const blueprint = await createBlueprint({
+        name,
+        kind: config.blueprintKind,
+        traits: {},
+        faceDetails: {},
+        bodyDetails: {},
+        styleDetails: description ? { customPrompt: description } : {},
+        promptFragment: description || name,
+        tags: [builderKind === 'anchor' ? 'anchor' : 'location', 'cinema-studio'],
+        imageUrl: builderImage,
+        thumbnailUrl: builderImage,
+        referenceImages: builderImage
+          ? [{
+              imageUrl: builderImage,
+              label: 'Cinema Studio preset reference',
+              generationRole: 'primary',
+              isPrimary: true,
+            }]
+          : [],
+      });
+      setCreatedBlueprints((prev) => [blueprint, ...prev]);
+      useCharacterCreationStore.getState().addBlueprint(blueprint);
+      toast.success(`"${blueprint.name}" saved! Use @${blueprint.slug} to reference.`);
+      setBuilderKind(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save.');
+    } finally {
+      setBuilderSaving(false);
+    }
+  }, [builderKind, builderName, builderDesc, builderImage]);
+
+  const handleAvatarSelect = useCallback((slug: string) => {
+    if (!slug) return;
+    const deselecting = selectedSlugs.includes(slug);
+    setSelectedSlugs((prev) =>
+      deselecting ? prev.filter((s) => s !== slug) : [...prev, slug],
+    );
+    const escaped = slug.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const tokenPattern = new RegExp(`(^|\\s)@${escaped}(?=\\s|$)`, 'g');
+    if (deselecting) {
+      onPromptChange(prompt.replace(tokenPattern, '$1').replace(/\s{2,}/g, ' ').trim());
+    } else if (!tokenPattern.test(prompt)) {
+      const mentionToken = `@${slug}`;
+      onPromptChange(prompt.trim() ? `${prompt.trimEnd()} ${mentionToken}` : mentionToken);
+    }
+  }, [prompt, onPromptChange, selectedSlugs]);
 
   // Handle prompt change + mention detection
   const handlePromptInput = useCallback((value: string) => {
@@ -345,7 +473,18 @@ export default function CinemaStudioSection({
           {/* Character Avatars — real blueprints or fallback */}
           <div className="flex justify-center gap-3 mb-8">
             {avatars.slice(0, 4).map((a, i) => (
-              <div key={i} className="w-14 h-14 rounded-full border-2 border-white/10 overflow-hidden hover:border-[#f97316]/40 transition-colors cursor-pointer" title={a.name}>
+              <button
+                key={`${a.slug || a.name}-${i}`}
+                onClick={() => handleAvatarSelect(a.slug)}
+                className={`w-14 h-14 rounded-full border-2 overflow-hidden transition-colors ${
+                  a.slug && selectedSlugs.includes(a.slug)
+                    ? 'border-[#f97316] shadow-[0_0_16px_rgba(249,115,22,0.35)]'
+                    : 'border-white/10 hover:border-[#f97316]/40'
+                }`}
+                title={a.name}
+                aria-label={a.slug ? `Select ${a.name}` : a.name}
+                aria-pressed={Boolean(a.slug) && selectedSlugs.includes(a.slug)}
+              >
                 {a.src ? (
                   <img src={a.src} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
@@ -353,9 +492,13 @@ export default function CinemaStudioSection({
                     <Users className="h-5 w-5 text-zinc-600" />
                   </div>
                 )}
-              </div>
+              </button>
             ))}
-            <button className="w-14 h-14 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center text-zinc-500 hover:border-[#f97316]/30 hover:text-[#f97316] transition-colors">
+            <button
+              onClick={() => openBuilder('anchor')}
+              aria-label="Create Anchor"
+              className="w-14 h-14 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center text-zinc-500 hover:border-[#f97316]/30 hover:text-[#f97316] transition-colors"
+            >
               <Plus className="h-5 w-5" />
             </button>
           </div>
@@ -366,13 +509,13 @@ export default function CinemaStudioSection({
               <Users className="h-5 w-5 text-[#f97316] mb-3" />
               <p className="text-xs font-bold text-white mb-1">Artist Anchors</p>
               <p className="text-[10px] text-zinc-500 leading-relaxed">Keep performers consistent across scenes</p>
-              <button className="mt-3 text-[9px] uppercase tracking-widest text-[#f97316] font-bold">+ Create Anchor</button>
+              <button onClick={() => openBuilder('anchor')} className="mt-3 text-[9px] uppercase tracking-widest text-[#f97316] font-bold hover:text-orange-300 transition-colors">+ Create Anchor</button>
             </div>
             <div className="bg-[#1a1a1a]/90 border border-white/[0.06] rounded-lg p-5 text-left hover:border-white/10 transition-colors cursor-pointer backdrop-blur">
               <Film className="h-5 w-5 text-[#f97316] mb-3" />
               <p className="text-xs font-bold text-white mb-1">Stage Worlds</p>
               <p className="text-[10px] text-zinc-500 leading-relaxed">Lock soundstages, streets, and lyric plates</p>
-              <button className="mt-3 text-[9px] uppercase tracking-widest text-[#f97316] font-bold">+ Create Location</button>
+              <button onClick={() => openBuilder('location')} className="mt-3 text-[9px] uppercase tracking-widest text-[#f97316] font-bold hover:text-orange-300 transition-colors">+ Create Location</button>
             </div>
           </div>
         </div>
@@ -589,6 +732,94 @@ export default function CinemaStudioSection({
     );
   }
 
+  /* ── ANCHOR / LOCATION BUILDER MODAL ── */
+  function renderBuilderModal() {
+    if (!builderKind) return null;
+    const config = BUILDER_CONFIG[builderKind];
+
+    return (
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6" role="dialog" aria-label={config.title}>
+        <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#131313] p-6 shadow-2xl">
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-sm font-bold text-white uppercase tracking-widest" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              {config.title}
+            </h2>
+            <button
+              onClick={closeBuilder}
+              aria-label="Close builder"
+              className="rounded-full p-1.5 text-zinc-500 hover:text-white transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Name</label>
+              <input
+                type="text"
+                value={builderName}
+                onChange={(e) => setBuilderName(e.target.value)}
+                placeholder={config.namePlaceholder}
+                className="w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:border-[#f97316]/40 focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Description</label>
+              <textarea
+                rows={3}
+                value={builderDesc}
+                onChange={(e) => setBuilderDesc(e.target.value)}
+                placeholder={config.descPlaceholder}
+                className="w-full rounded-xl border border-white/10 bg-[#1a1a1a] px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:border-[#f97316]/40 focus:outline-none resize-none"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Reference Image</label>
+              <div className="grid grid-cols-4 gap-2">
+                {config.presets.map((preset) => (
+                  <button
+                    key={preset.src}
+                    onClick={() => setBuilderImage(builderImage === preset.src ? null : preset.src)}
+                    aria-label={preset.alt}
+                    aria-pressed={builderImage === preset.src}
+                    className={`aspect-square overflow-hidden rounded-lg border-2 transition-all ${
+                      builderImage === preset.src
+                        ? 'border-[#f97316] shadow-[0_0_16px_rgba(249,115,22,0.3)]'
+                        : 'border-white/10 hover:border-white/25'
+                    }`}
+                  >
+                    <img src={preset.src} alt={preset.alt} className="h-full w-full object-cover" loading="lazy" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-center justify-end gap-2">
+            <button
+              onClick={closeBuilder}
+              disabled={builderSaving}
+              className="rounded-full border border-white/10 px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleBuilderSave}
+              disabled={builderSaving || !builderName.trim()}
+              className="flex items-center gap-2 rounded-full bg-[#f97316] px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-black transition-all hover:shadow-[0_0_25px_rgba(249,115,22,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {builderSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              {builderKind === 'anchor' ? 'Save Anchor' : 'Save Location'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 top-[68px] bg-[#090909] z-20 overflow-hidden flex flex-col pb-16 md:pb-0" style={{ scrollbarWidth: 'none' }}>
       <style>{`::-webkit-scrollbar { display: none; }`}</style>
@@ -649,6 +880,8 @@ export default function CinemaStudioSection({
         {activeTab === 'video' && renderVideoBar()}
       </div>
 
+      {renderBuilderModal()}
+
       {/* Right Icon Rail */}
       <div className="w-[56px] flex-shrink-0 h-full bg-[#0a0a0a] border-l border-white/[0.06] flex flex-col items-center py-4 gap-3">
         <button className="w-10 h-10 rounded-xl bg-[#1a1a1a] flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
@@ -666,7 +899,11 @@ export default function CinemaStudioSection({
             )}
           </div>
         ))}
-        <button className="w-9 h-9 rounded-full border border-dashed border-white/10 flex items-center justify-center text-zinc-600 hover:border-[#f97316]/30 transition-colors">
+        <button
+          onClick={() => openBuilder('anchor')}
+          aria-label="Create Anchor"
+          className="w-9 h-9 rounded-full border border-dashed border-white/10 flex items-center justify-center text-zinc-600 hover:border-[#f97316]/30 transition-colors"
+        >
           <Plus className="h-3 w-3" />
         </button>
 
