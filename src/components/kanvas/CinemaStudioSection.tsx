@@ -300,7 +300,7 @@ export default function CinemaStudioSection({
   /* ── IMAGE BOTTOM BAR ── */
   function renderImageBar() {
     return (
-      <div className="absolute bottom-0 left-0 right-0 z-30">
+      <div className="absolute bottom-8 left-0 right-0 z-30">
         <div className="bg-[#0e0e0e]/95 backdrop-blur-2xl border-t border-white/[0.06] px-6 py-3">
           <div className="max-w-[1400px] mx-auto flex items-center gap-2.5">
             {/* Mode toggle */}
@@ -387,7 +387,7 @@ export default function CinemaStudioSection({
   /* ── VIDEO BOTTOM BAR ── */
   function renderVideoBar() {
     return (
-      <div className="absolute bottom-0 left-0 right-0 z-30">
+      <div className="absolute bottom-8 left-0 right-0 z-30">
         <div className="bg-[#0e0e0e]/95 backdrop-blur-2xl border-t border-white/[0.06] px-6 py-3">
           <div className="max-w-[1400px] mx-auto space-y-2.5">
             {/* Row 1: Prompt with @mention */}
