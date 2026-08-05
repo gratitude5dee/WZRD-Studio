@@ -3,6 +3,7 @@ import { Heart, MoreHorizontal, Plus, Search, ShieldCheck, Trash2, User2 } from 
 import { cn } from '@/lib/utils';
 import { FinalizeAssetDialog } from '@/components/ip-vault/FinalizeAssetDialog';
 import { useCharacterCreationStore } from '@/lib/stores/character-creation-store';
+import { CHARACTER_PRESETS, stashPresetStarter, type CharacterPreset } from './characterPresets';
 import type { CharacterBlueprint } from '@/types/character-creation';
 
 // ---------------------------------------------------------------------------
@@ -15,6 +16,15 @@ export function CharacterGallery() {
   const [search, setSearch] = React.useState('');
   const [contextMenu, setContextMenu] = React.useState<string | null>(null);
   const [finalizeBlueprint, setFinalizeBlueprint] = React.useState<CharacterBlueprint | null>(null);
+
+  const startFromPreset = React.useCallback((preset: CharacterPreset) => {
+    const state = useCharacterCreationStore.getState();
+    state.resetDraft();
+    state.updateDraftTraits(preset.traits);
+    state.updateDraftStyleDetails(preset.styleDetails);
+    stashPresetStarter(preset);
+    setMode('builder');
+  }, [setMode]);
 
   const filtered = React.useMemo(() => {
     if (!search.trim()) return blueprints;
@@ -50,6 +60,34 @@ export function CharacterGallery() {
           <Plus className="h-4 w-4 text-orange-400" />
           Create New
         </button>
+      </div>
+
+      {/* Preset starters */}
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
+          Start from a preset
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {CHARACTER_PRESETS.map((preset) => (
+            <button
+              key={preset.id}
+              type="button"
+              onClick={() => startFromPreset(preset)}
+              aria-label={`Start from preset ${preset.name}`}
+              className="group w-24 overflow-hidden rounded-xl border border-white/10 text-left transition-all hover:border-orange-400/40"
+            >
+              <div className="aspect-square w-full bg-zinc-900">
+                <img
+                  src={preset.imageUrl}
+                  alt={preset.alt}
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  loading="lazy"
+                />
+              </div>
+              <p className="truncate px-2 py-1.5 text-[10px] font-semibold text-zinc-300">{preset.name}</p>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Search */}
