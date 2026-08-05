@@ -218,7 +218,7 @@ function ResultCard({
   const sourceUrl = typeof result.sourceUrl === "string" ? result.sourceUrl : "";
   const youtubeEmbedUrl = !hasMp4 && result.platform === "youtube" ? youtubeHoverEmbedUrl(sourceUrl) : undefined;
   const canHoverPreview = hasMp4 || Boolean(youtubeEmbedUrl);
-  const canFetchMp4 = !hasMedia && canRequestMp4(result);
+  const canFetchMp4 = !hasMp4 && canRequestMp4(result);
   const isMetadataOnly = !hasMedia && !canFetchMp4;
 
   const handleMouseEnter = () => {
@@ -470,7 +470,9 @@ export default function Sourcify() {
     [results, selectedIds],
   );
   const downloadableSelection = selectedResults.filter((result) => Boolean(result.mediaUrl));
-  const needsDownloadSelection = selectedResults.filter((result) => !result.mediaUrl && canRequestMp4(result));
+  const needsDownloadSelection = selectedResults.filter(
+    (result) => !isDirectMediaUrl(result.mediaUrl) && canRequestMp4(result),
+  );
 
   const filteredIds = useMemo(() => filteredResults.map((result) => result.id), [filteredResults]);
   const allFilteredSelected = useMemo(
@@ -581,7 +583,7 @@ export default function Sourcify() {
     const selection = (requested ?? selectedResults).filter(Boolean);
     if (selection.length === 0) return;
 
-    const needsDownload = selection.filter((result) => !result.mediaUrl && canRequestMp4(result));
+    const needsDownload = selection.filter((result) => !isDirectMediaUrl(result.mediaUrl) && canRequestMp4(result));
     if (needsDownload.length === 0) {
       toast("Selection already includes downloadable media.");
       return;

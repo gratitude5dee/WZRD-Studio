@@ -199,7 +199,9 @@ describe("Sourcify page", () => {
 
     expect(await screen.findByText("Embed video without media")).toBeInTheDocument();
 
-    expect(screen.getByRole("button", { name: /^Fetch MP4$/i })).toBeInTheDocument();
+    // The embed result has no media, and the reel's media link is not a direct file,
+    // so both keep a Fetch MP4 option; the reel also gets Download MP4 for its media link.
+    expect(screen.getAllByRole("button", { name: /^Fetch MP4$/i })).toHaveLength(2);
     expect(screen.getByRole("button", { name: /^Download MP4$/i })).toBeInTheDocument();
     expect(screen.getByText(/Metadata only — no downloadable video/i)).toBeInTheDocument();
 
