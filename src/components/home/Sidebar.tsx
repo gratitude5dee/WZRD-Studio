@@ -317,7 +317,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
     return (
       <TooltipProvider delayDuration={200}>
         {/* Invisible hover trigger zone */}
-        <div className="fixed left-0 top-[68px] bottom-0 w-[80px] z-[49]" />
+        <div className="fixed left-0 top-[68px] bottom-0 w-[80px] z-[49] pointer-events-none" />
 
         <aside
           className={cn(
