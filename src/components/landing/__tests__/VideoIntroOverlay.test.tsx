@@ -73,7 +73,7 @@ describe('VideoIntroOverlay', () => {
 
   it('shows controls immediately on touch viewports and uses the mobile source', () => {
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-      matches: query.includes('pointer: coarse'),
+      matches: query.includes('pointer: coarse') || query.includes('orientation: portrait'),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
       addListener: vi.fn(),

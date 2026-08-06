@@ -17,7 +17,7 @@ export function shouldShowVideoIntro(): boolean {
 
 interface VideoIntroOverlayProps {
   src: string;
-  /** Lighter encode served to small/coarse-pointer viewports. */
+  /** Portrait-cropped encode served to portrait phone viewports. */
   mobileSrc?: string;
   onComplete: () => void;
 }
@@ -30,6 +30,11 @@ function isTouchViewport(): boolean {
   return window.matchMedia('(pointer: coarse), (max-width: 767px)').matches;
 }
 
+function isPortraitPhoneViewport(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(orientation: portrait) and (max-width: 767px)').matches;
+}
+
 export default function VideoIntroOverlay({ src, mobileSrc, onComplete }: VideoIntroOverlayProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,7 +43,8 @@ export default function VideoIntroOverlay({ src, mobileSrc, onComplete }: VideoI
   // Touch devices have no hover: start with controls visible so they're discoverable
   const [controlsVisible, setControlsVisible] = useState(() => isTouchViewport());
   const [isEnding, setIsEnding] = useState(false);
-  const videoSrc = isTouch && mobileSrc ? mobileSrc : src;
+  const [isPortraitPhone] = useState(() => isPortraitPhoneViewport());
+  const videoSrc = isPortraitPhone && mobileSrc ? mobileSrc : src;
 
   const finish = useCallback(() => {
     try {
