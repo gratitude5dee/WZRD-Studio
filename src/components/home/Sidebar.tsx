@@ -1,16 +1,25 @@
-import { Users, Globe, Star, ChevronLeft, LogOut, Layers, Sparkles, FolderKanban, Images, ShieldCheck, Scissors, DatabaseZap, CalendarDays, Clapperboard, Music2, type LucideIcon } from 'lucide-react';
+import { ChevronLeft, LogOut, type LucideIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import CreditsDisplay from '../CreditsDisplay';
 import { Badge } from '@/components/ui/badge';
-import { memo, useState, useCallback } from 'react';
+import { memo, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { ShineBorder } from '@/components/ui/shine-border';
 import { useSidebar } from '@/contexts/SidebarContext';
-import { appRoutes, WTR_EXTERNAL_URL } from '@/lib/routes';
+import { appRoutes } from '@/lib/routes';
+import {
+  FLOATING_NAV_ITEMS,
+  SIDEBAR_SECTIONS,
+  isNavGroup,
+  useNavGroupState,
+  type SidebarNavGroup,
+  type SidebarNavItem,
+  type SidebarNavNode,
+} from './navigation';
 import {
   Tooltip,
   TooltipContent,
@@ -23,61 +32,10 @@ interface SidebarProps {
   onViewChange: (view: string) => void;
 }
 
-type SidebarNavItem = {
-  id: string;
-  label: string;
-  description?: string;
-  icon: LucideIcon;
-  isRoute?: boolean;
-  path?: string;
-  externalUrl?: string;
-  showBadge?: boolean;
-};
-
-type FloatingNavItem =
-  | (SidebarNavItem & { group: 'main' | 'secondary' | 'extra' })
-  | { id: string; label: ''; icon: null; group: 'divider' };
-
-export { WTR_EXTERNAL_URL };
-
-const MAIN_NAV_ITEMS: SidebarNavItem[] = [
-  { id: 'all', label: 'All Projects', icon: FolderKanban },
-  { id: 'kanvas', label: 'Kanvas', icon: Layers, isRoute: true, path: appRoutes.kanvas, showBadge: true },
-  { id: 'postz', label: 'Postz', icon: CalendarDays, isRoute: true, path: appRoutes.postz },
-  { id: 'aura', label: 'Aura', icon: Sparkles },
-  { id: 'asset-store', label: 'Asset Store', icon: Images },
-  { id: 'ip-vault', label: 'WTR', description: 'Confidential Data Management', icon: ShieldCheck, externalUrl: WTR_EXTERNAL_URL },
-];
-
-const CLIP_STUDIO_NAV_ITEMS: SidebarNavItem[] = [
-  { id: 'clipper', label: 'Clipper', icon: Scissors, isRoute: true, path: appRoutes.clipper, showBadge: true },
-  { id: 'sourcify', label: 'Sourcify', icon: DatabaseZap, isRoute: true, path: appRoutes.sourcify, showBadge: true },
-  { id: 'lyrics', label: 'Lyrics', icon: Music2, isRoute: true, path: appRoutes.kanvasLyrics },
-];
-
-const SECONDARY_NAV_ITEMS: SidebarNavItem[] = [
-  { id: 'shared', label: 'Shared with me', icon: Users },
-  { id: 'community', label: 'Community', icon: Globe },
-];
-
-const RAIL_NAV_ITEMS: FloatingNavItem[] = [
-  ...MAIN_NAV_ITEMS.map((item) => ({ ...item, group: 'main' as const })),
-  { id: '_divider1', label: '', icon: null, group: 'divider' },
-  ...CLIP_STUDIO_NAV_ITEMS.map((item) => ({ ...item, group: 'main' as const })),
-  { id: '_divider2', label: '', icon: null, group: 'divider' },
-  ...SECONDARY_NAV_ITEMS.map((item) => ({ ...item, group: 'secondary' as const })),
-  { id: '_divider3', label: '', icon: null, group: 'divider' },
-  { id: '_favorites', label: 'Favorites', icon: Star, group: 'extra' },
-];
-
 const SIDEBAR_VARIANTS = {
   expanded: { width: 256 },
   collapsed: { width: 64 },
 };
-
-export function openExternalNavItem(url: string) {
-  window.open(url, '_blank', 'noopener,noreferrer');
-}
 
 const SectionLabel = ({ icon: Icon, label, accent = false }: { icon: LucideIcon; label: string; accent?: boolean }) => (
   <div className="flex items-center gap-2 px-3 mb-3">
@@ -92,11 +50,13 @@ const PrimaryNavItem = memo(function PrimaryNavItem({
   item,
   isActive,
   isCollapsed,
+  isOpen,
   onClick,
 }: {
   item: SidebarNavItem;
   isActive: boolean;
   isCollapsed: boolean;
+  isOpen?: boolean;
   onClick: (item: SidebarNavItem) => void;
 }) {
   const Icon = item.icon;
@@ -106,7 +66,7 @@ const PrimaryNavItem = memo(function PrimaryNavItem({
       whileHover={{ x: isCollapsed ? 0 : 2 }}
       whileTap={{ scale: 0.98 }}
       aria-label={item.label}
-      title={item.description}
+      aria-expanded={isOpen}
       onClick={() => onClick(item)}
       className={cn(
         "relative w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
@@ -141,6 +101,12 @@ const PrimaryNavItem = memo(function PrimaryNavItem({
           New
         </Badge>
       )}
+      {isOpen !== undefined && !isCollapsed && (
+        <ChevronLeft className={cn(
+          "w-4 h-4 flex-shrink-0 transition-transform duration-200",
+          isOpen ? "-rotate-90" : "rotate-0"
+        )} />
+      )}
     </motion.button>
   );
 
@@ -148,7 +114,7 @@ const PrimaryNavItem = memo(function PrimaryNavItem({
     return (
       <Tooltip delayDuration={0}>
         <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side="right" className="z-[60] font-medium">
+        <TooltipContent side="right" className="font-medium">
           <span className="flex items-center gap-2">
             {item.label}
             {item.showBadge && (
@@ -165,62 +131,160 @@ const PrimaryNavItem = memo(function PrimaryNavItem({
   return content;
 });
 
-const SecondaryNavItem = memo(function SecondaryNavItem({
+const ChildNavItem = memo(function ChildNavItem({
   item,
   isActive,
-  isCollapsed,
   onClick,
 }: {
   item: SidebarNavItem;
   isActive: boolean;
-  isCollapsed: boolean;
   onClick: (item: SidebarNavItem) => void;
 }) {
   const Icon = item.icon;
 
-  const content = (
+  return (
     <button
       aria-label={item.label}
       onClick={() => onClick(item)}
       className={cn(
-        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
-        isCollapsed && "justify-center px-2",
+        "w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-sm transition-all duration-200",
         isActive
-          ? "bg-[rgba(249,115,22,0.12)] text-[#f97316] border border-[rgba(249,115,22,0.2)]"
+          ? "bg-[rgba(249,115,22,0.1)] text-[#f97316]"
           : "text-text-secondary hover:text-text-primary hover:bg-[rgba(249,115,22,0.06)] dark:text-muted-foreground dark:hover:text-foreground dark:hover:bg-white/[0.04]"
       )}
     >
-      <div className={cn(
-        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-        isActive ? "bg-[rgba(249,115,22,0.15)]" : "bg-surface-2 dark:bg-white/[0.04]"
-      )}>
-        <Icon className={cn("w-4 h-4", isActive && "text-[#f97316]")} />
-      </div>
-      {!isCollapsed && (
-        <span className="whitespace-nowrap">
-          {item.label}
-        </span>
+      <Icon className={cn("w-4 h-4 flex-shrink-0", isActive && "text-[#f97316]")} />
+      <span className="flex-1 text-left whitespace-nowrap">{item.label}</span>
+      {item.showBadge && (
+        <Badge variant="secondary" className="text-[9px] bg-[rgba(249,115,22,0.15)] text-[#f97316] border-[rgba(249,115,22,0.2)] px-1.5 py-0.5 font-semibold">
+          New
+        </Badge>
       )}
     </button>
   );
+});
 
-  if (isCollapsed) {
-    return (
-      <Tooltip delayDuration={0}>
-        <TooltipTrigger asChild>{content}</TooltipTrigger>
-        <TooltipContent side="right" className="z-[60] font-medium">{item.label}</TooltipContent>
-      </Tooltip>
-    );
-  }
+const FloatingNavButton = memo(function FloatingNavButton({
+  item,
+  isActive,
+  isChild = false,
+  onClick,
+}: {
+  item: SidebarNavItem;
+  isActive: boolean;
+  isChild?: boolean;
+  onClick: () => void;
+}) {
+  const Icon = item.icon;
 
-  return content;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={item.label}
+          className={cn(
+            'relative flex items-center justify-center rounded-lg transition-all duration-200',
+            isChild ? 'h-8 w-8' : 'h-10 w-10',
+            isActive
+              ? 'bg-white/10 text-[#f97316]'
+              : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300',
+          )}
+        >
+          {isActive && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full bg-[#f97316] shadow-[0_0_6px_rgba(249,115,22,0.4)]" />
+          )}
+          <Icon className={cn(isChild ? 'h-4 w-4' : 'h-[18px] w-[18px]')} />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="right" sideOffset={8} className="z-[60]">
+        <span className="flex items-center gap-2">
+          {item.label}
+          {item.showBadge && (
+            <Badge variant="secondary" className="text-[9px] bg-[rgba(249,115,22,0.15)] text-[#f97316] border-[rgba(249,115,22,0.2)] px-1.5 py-0.5">
+              New
+            </Badge>
+          )}
+        </span>
+      </TooltipContent>
+    </Tooltip>
+  );
+});
+
+const NavGroupBlock = memo(function NavGroupBlock({
+  group,
+  activeView,
+  isOpen,
+  onToggle,
+  onChildClick,
+}: {
+  group: SidebarNavGroup;
+  activeView: string;
+  isOpen: boolean;
+  onToggle: (groupId: string) => void;
+  onChildClick: (item: SidebarNavItem) => void;
+}) {
+  return (
+    <div>
+      <PrimaryNavItem
+        item={group}
+        isActive={activeView === group.id}
+        isCollapsed={false}
+        isOpen={isOpen}
+        onClick={() => onToggle(group.id)}
+      />
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="mt-1 ml-6 pl-3 border-l border-border-default space-y-0.5 dark:border-white/[0.06] overflow-hidden"
+          >
+            {group.children.length === 0 ? (
+              <p className="text-xs text-text-tertiary py-2 italic dark:text-muted-foreground/50">{group.emptyLabel}</p>
+            ) : (
+              group.children.map((child) => (
+                <ChildNavItem
+                  key={child.id}
+                  item={child}
+                  isActive={activeView === child.id}
+                  onClick={onChildClick}
+                />
+              ))
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
 });
 
 export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: SidebarProps) {
-  const [favoritesOpen, setFavoritesOpen] = useState(true);
-  const [clipStudioOpen, setClipStudioOpen] = useState(true);
+  const { isGroupOpen, toggleGroup } = useNavGroupState(activeView);
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const navigate = useNavigate();
+  const [isFloatingVisible, setIsFloatingVisible] = useState(false);
+
+  // Hover-reveal for collapsed (floating) mode
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (isCollapsed) {
+      setIsFloatingVisible(e.clientX <= 80);
+    }
+  }, [isCollapsed]);
+
+  useEffect(() => {
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [handleMouseMove]);
+
+  // Reset floating visibility when expanding
+  useEffect(() => {
+    if (!isCollapsed) setIsFloatingVisible(false);
+  }, [isCollapsed]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -233,45 +297,48 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
   };
 
   const handlePrimaryNavClick = useCallback((item: SidebarNavItem) => {
-    if (item.externalUrl) {
-      openExternalNavItem(item.externalUrl);
-    } else if (item.isRoute) {
+    if (item.isRoute) {
       navigate(item.path ?? appRoutes.kanvas);
     } else {
       onViewChange(item.id);
     }
   }, [navigate, onViewChange]);
 
-  const handleSecondaryNavClick = useCallback((item: SidebarNavItem) => {
-    onViewChange(item.id);
-  }, [onViewChange]);
-
-  const handleRailNavClick = useCallback((item: Exclude<FloatingNavItem, { group: 'divider' }>) => {
-    if (item.externalUrl) {
-      openExternalNavItem(item.externalUrl);
-    } else if (item.isRoute) {
-      navigate(item.path ?? appRoutes.kanvas);
-    } else if (item.id === '_favorites') {
-      setFavoritesOpen((current) => !current);
-    } else {
-      onViewChange(item.id);
+  const handleFloatingNavClick = useCallback((node: SidebarNavNode) => {
+    if (isNavGroup(node)) {
+      toggleGroup(node.id);
+      return;
     }
-  }, [navigate, onViewChange]);
+    handlePrimaryNavClick(node);
+  }, [handlePrimaryNavClick, toggleGroup]);
 
-  // ── Collapsed mode: persistent slim icon rail ──
+  // ── Floating pill (collapsed mode) ──
   if (isCollapsed) {
     return (
       <TooltipProvider delayDuration={200}>
+        {/* Invisible hover trigger zone */}
+        <div className="fixed left-0 top-[68px] bottom-0 w-[80px] z-[49]" />
+
         <aside
           className={cn(
-            'fixed left-0 top-0 z-50 flex h-screen w-16 flex-col items-center overflow-y-auto py-3',
-            'bg-surface-1 border-r border-border-default',
-            'dark:glass-sidebar dark:border-white/[0.04]',
+            'fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 flex flex-col items-center py-3 rounded-2xl',
+            'bg-[#0A0A0A]/90 backdrop-blur-xl',
+            'shadow-[0_0_15px_rgba(249,115,22,0.15),0_0_30px_rgba(249,115,22,0.05),0_8px_32px_rgba(0,0,0,0.5)]',
+            'transition-all duration-300 ease-out',
+            isFloatingVisible ? 'w-14 opacity-100 translate-x-0' : 'w-3 opacity-0 -translate-x-2 pointer-events-none overflow-hidden',
           )}
+          onMouseEnter={() => setIsFloatingVisible(true)}
+          onMouseLeave={() => setIsFloatingVisible(false)}
         >
-          {/* Faint orange top-highlight */}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-orange-500/5 to-transparent" />
+          {/* Animated orange glow border */}
+          <ShineBorder
+            shineColor={["#f97316", "#d4a574"]}
+            borderWidth={1}
+            duration={8}
+          />
 
+          {/* Faint orange top-highlight */}
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-orange-500/5 to-transparent pointer-events-none" />
           {/* Expand button */}
           <Tooltip>
             <TooltipTrigger asChild>
@@ -279,7 +346,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
                 type="button"
                 onClick={() => setIsCollapsed(false)}
                 aria-label="Expand sidebar"
-                className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
               >
                 <ChevronLeft className="h-[18px] w-[18px] rotate-180" />
               </button>
@@ -288,56 +355,42 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
           </Tooltip>
 
           {/* Divider */}
-          <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
+          <div className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />
 
           {/* Nav items */}
-          <nav className="relative flex flex-1 flex-col items-center gap-1">
-            {RAIL_NAV_ITEMS.map((item) => {
-              if (item.group === 'divider') {
-                return <div key={item.id} className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />;
+          <nav className="flex flex-1 flex-col items-center gap-1">
+            {FLOATING_NAV_ITEMS.map((entry) => {
+              if (entry.kind === 'divider') {
+                return <div key={entry.id} className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />;
               }
-              const Icon = item.icon!;
-              const isActive = activeView === item.id;
+
+              const node = entry.node;
+              const group = isNavGroup(node) ? node : null;
+              const isOpen = group ? isGroupOpen(group.id) : false;
+
               return (
-                <Tooltip key={item.id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => handleRailNavClick(item)}
-                      aria-label={item.label}
-                      className={cn(
-                        'relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-all duration-200',
-                        isActive
-                          ? 'bg-[rgba(249,115,22,0.12)] text-[#f97316]'
-                          : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300',
-                      )}
-                    >
-                      {isActive && (
-                        <span className="absolute left-0 top-1/2 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-[#f97316] shadow-[0_0_6px_rgba(249,115,22,0.4)]" />
-                      )}
-                      <Icon className="h-[18px] w-[18px]" />
-                      {'showBadge' in item && item.showBadge && (
-                        <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[#f97316]" />
-                      )}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" sideOffset={8} className="z-[60]">
-                    <span className="flex items-center gap-2">
-                      {item.label}
-                      {'showBadge' in item && item.showBadge && (
-                        <Badge variant="secondary" className="text-[9px] bg-[rgba(249,115,22,0.15)] text-[#f97316] border-[rgba(249,115,22,0.2)] px-1.5 py-0.5">
-                          New
-                        </Badge>
-                      )}
-                    </span>
-                  </TooltipContent>
-                </Tooltip>
+                <div key={node.id} className="flex flex-col items-center gap-1">
+                  <FloatingNavButton
+                    item={node}
+                    isActive={activeView === node.id}
+                    onClick={() => handleFloatingNavClick(node)}
+                  />
+                  {group && isOpen && group.children.map((child) => (
+                    <FloatingNavButton
+                      key={child.id}
+                      item={child}
+                      isActive={activeView === child.id}
+                      isChild
+                      onClick={() => handlePrimaryNavClick(child)}
+                    />
+                  ))}
+                </div>
               );
             })}
           </nav>
 
           {/* Divider */}
-          <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
+          <div className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />
 
           {/* Logout */}
           <Tooltip>
@@ -346,7 +399,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
                 type="button"
                 onClick={handleLogout}
                 aria-label="Logout"
-                className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
+                className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
               >
                 <LogOut className="h-[18px] w-[18px]" />
               </button>
@@ -355,7 +408,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
           </Tooltip>
 
           {/* Brand dot */}
-          <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center">
+          <div className="mt-1 flex h-6 w-6 items-center justify-center">
             <div className="h-2 w-2 rounded-full bg-[#f97316]/60 shadow-[0_0_6px_rgba(249,115,22,0.3)]" />
           </div>
         </aside>
@@ -363,7 +416,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
     );
   }
 
-  // ── Expanded mode ──
+  // ── Expanded mode (unchanged) ──
   return (
     <TooltipProvider>
       <motion.aside
@@ -408,109 +461,35 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
 
         {/* Main Navigation */}
         <nav data-tour="sidebar-nav" className="relative z-10 flex-1 space-y-6 overflow-y-auto p-4">
-          {/* Main Menu Section */}
-          <div>
-            <SectionLabel icon={Sparkles} label="Main Menu" accent />
-            <div className="space-y-1">
-              {MAIN_NAV_ITEMS.map((item) => (
-                <PrimaryNavItem
-                  key={item.id}
-                  item={item}
-                  isActive={activeView === item.id}
-                  isCollapsed={isCollapsed}
-                  onClick={handlePrimaryNavClick}
-                />
-              ))}
-            </div>
-
-            {/* Clip Studio expandable group */}
-            <div className="mt-1">
-              <button
-                onClick={() => setClipStudioOpen(!clipStudioOpen)}
-                aria-label="Clip Studio"
-                aria-expanded={clipStudioOpen}
-                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors dark:text-muted-foreground dark:hover:text-foreground"
-              >
-                <div className="w-8 h-8 rounded-lg bg-surface-2 flex items-center justify-center dark:bg-white/[0.04] flex-shrink-0">
-                  <Clapperboard className="w-4 h-4" />
-                </div>
-                <span className="flex-1 text-left font-medium whitespace-nowrap">Clip Studio</span>
-                <ChevronLeft className={cn(
-                  "w-4 h-4 transition-transform duration-200",
-                  clipStudioOpen ? "-rotate-90" : "rotate-0"
-                )} />
-              </button>
-
-              <AnimatePresence>
-                {clipStudioOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="mt-1 ml-6 pl-3 border-l border-border-default space-y-1 dark:border-white/[0.06] overflow-hidden"
-                  >
-                    {CLIP_STUDIO_NAV_ITEMS.map((item) => (
-                      <PrimaryNavItem
-                        key={item.id}
-                        item={item}
-                        isActive={activeView === item.id}
-                        isCollapsed={isCollapsed}
-                        onClick={handlePrimaryNavClick}
-                      />
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          {/* Studio Navigation */}
-          <div>
-            <SectionLabel icon={Users} label="Studio" />
-            <div className="space-y-1">
-              {SECONDARY_NAV_ITEMS.map((item) => (
-                <SecondaryNavItem
-                  key={item.id}
-                  item={item}
-                  isActive={activeView === item.id}
-                  isCollapsed={isCollapsed}
-                  onClick={handleSecondaryNavClick}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Favorites Section */}
-          <div>
-            <button
-              onClick={() => setFavoritesOpen(!favoritesOpen)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors dark:text-muted-foreground dark:hover:text-foreground"
-            >
-              <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center dark:bg-amber/10 flex-shrink-0">
-                <Star className="w-4 h-4 text-amber-500" />
-              </div>
-              <span className="flex-1 text-left font-medium whitespace-nowrap">Favorites</span>
-              <ChevronLeft className={cn(
-                "w-4 h-4 transition-transform duration-200",
-                favoritesOpen ? "-rotate-90" : "rotate-0"
-              )} />
-            </button>
-            
-            <AnimatePresence>
-              {favoritesOpen && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="mt-2 ml-6 pl-3 border-l border-border-default space-y-1 dark:border-white/[0.06] overflow-hidden"
-                >
-                  <p className="text-xs text-text-tertiary py-2 italic dark:text-muted-foreground/50">No favorites yet</p>
-                </motion.div>
+          {SIDEBAR_SECTIONS.map((section) => (
+            <div key={section.id}>
+              {section.label && section.labelIcon && (
+                <SectionLabel icon={section.labelIcon} label={section.label} accent={section.accent} />
               )}
-            </AnimatePresence>
-          </div>
+              <div className="space-y-1">
+                {section.items.map((node) =>
+                  isNavGroup(node) ? (
+                    <NavGroupBlock
+                      key={node.id}
+                      group={node}
+                      activeView={activeView}
+                      isOpen={isGroupOpen(node.id)}
+                      onToggle={toggleGroup}
+                      onChildClick={handlePrimaryNavClick}
+                    />
+                  ) : (
+                    <PrimaryNavItem
+                      key={node.id}
+                      item={node}
+                      isActive={activeView === node.id}
+                      isCollapsed={false}
+                      onClick={handlePrimaryNavClick}
+                    />
+                  )
+                )}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom Section */}
