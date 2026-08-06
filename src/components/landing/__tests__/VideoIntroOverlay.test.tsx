@@ -71,6 +71,21 @@ describe('VideoIntroOverlay', () => {
     expect(screen.getByRole('button', { name: 'Mute intro' })).toBeInTheDocument();
   });
 
+  it('shows controls immediately on touch viewports and uses the mobile source', () => {
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query.includes('pointer: coarse'),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    })) as unknown as typeof window.matchMedia;
+
+    render(<VideoIntroOverlay src="/introani.mp4" mobileSrc="/introani-mobile.mp4" onComplete={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'Skip intro' })).toBeInTheDocument();
+    const video = screen.getByTestId('video-intro-overlay').querySelector('video')!;
+    expect(video.getAttribute('src')).toBe('/introani-mobile.mp4');
+  });
+
   it('marks the intro as seen when the video errors', () => {
     const onComplete = vi.fn();
     render(<VideoIntroOverlay src="/introani.mp4" onComplete={onComplete} />);

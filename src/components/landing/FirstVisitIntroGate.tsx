@@ -17,7 +17,13 @@ export default function FirstVisitIntroGate() {
 
   return (
     <AnimatePresence>
-      {active && <VideoIntroOverlay src="/introani.mp4" onComplete={() => setActive(false)} />}
+      {active && (
+        <VideoIntroOverlay
+          src="/introani.mp4"
+          mobileSrc="/introani-mobile.mp4"
+          onComplete={() => setActive(false)}
+        />
+      )}
     </AnimatePresence>
   );
 }

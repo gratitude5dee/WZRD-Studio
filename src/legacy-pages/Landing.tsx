@@ -129,7 +129,7 @@ const Landing = () => {
       <AnimatePresence>
         {videoIntroActive && (
           <Suspense fallback={<div className="fixed inset-0 z-[99999] bg-black" />}>
-            <VideoIntroOverlay src="/introani.mp4" onComplete={handleVideoIntroComplete} />
+            <VideoIntroOverlay src="/introani.mp4" mobileSrc="/introani-mobile.mp4" onComplete={handleVideoIntroComplete} />
           </Suspense>
         )}
       </AnimatePresence>

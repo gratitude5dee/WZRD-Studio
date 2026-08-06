@@ -17,17 +17,28 @@ export function shouldShowVideoIntro(): boolean {
 
 interface VideoIntroOverlayProps {
   src: string;
+  /** Lighter encode served to small/coarse-pointer viewports. */
+  mobileSrc?: string;
   onComplete: () => void;
 }
 
 const CONTROLS_HIDE_DELAY = 2200;
+const CONTROLS_HIDE_DELAY_TOUCH = 3500;
 
-export default function VideoIntroOverlay({ src, onComplete }: VideoIntroOverlayProps) {
+function isTouchViewport(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(pointer: coarse), (max-width: 767px)').matches;
+}
+
+export default function VideoIntroOverlay({ src, mobileSrc, onComplete }: VideoIntroOverlayProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isTouch] = useState(() => isTouchViewport());
   const [isMuted, setIsMuted] = useState(true);
-  const [controlsVisible, setControlsVisible] = useState(false);
+  // Touch devices have no hover: start with controls visible so they're discoverable
+  const [controlsVisible, setControlsVisible] = useState(() => isTouchViewport());
   const [isEnding, setIsEnding] = useState(false);
+  const videoSrc = isTouch && mobileSrc ? mobileSrc : src;
 
   const finish = useCallback(() => {
     try {
@@ -42,16 +53,23 @@ export default function VideoIntroOverlay({ src, onComplete }: VideoIntroOverlay
     setIsEnding(true);
   }, []);
 
-  // Reveal controls on pointer movement, hide again after a quiet period
+  // Reveal controls on pointer movement or tap, hide again after a quiet period
   const revealControls = useCallback(() => {
     setControlsVisible(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    hideTimerRef.current = setTimeout(() => setControlsVisible(false), CONTROLS_HIDE_DELAY);
-  }, []);
+    hideTimerRef.current = setTimeout(
+      () => setControlsVisible(false),
+      isTouch ? CONTROLS_HIDE_DELAY_TOUCH : CONTROLS_HIDE_DELAY,
+    );
+  }, [isTouch]);
 
-  useEffect(() => () => {
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-  }, []);
+  // Arm the initial auto-hide countdown on touch devices
+  useEffect(() => {
+    if (isTouch) revealControls();
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, [isTouch, revealControls]);
 
   // Autoplay must start muted; surface the video only once it can play
   useEffect(() => {
@@ -87,7 +105,7 @@ export default function VideoIntroOverlay({ src, onComplete }: VideoIntroOverlay
     >
       <video
         ref={videoRef}
-        src={src}
+        src={videoSrc}
         muted={isMuted}
         autoPlay
         playsInline
@@ -123,10 +141,14 @@ export default function VideoIntroOverlay({ src, onComplete }: VideoIntroOverlay
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/[0.07] to-transparent backdrop-blur-[2px] [mask-image:linear-gradient(to_bottom,black,transparent)]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent backdrop-blur-[2px] [mask-image:linear-gradient(to_top,black,transparent)]" />
 
-      {/* ── Hover-revealed controls (top right) ── */}
+      {/* ── Hover/tap-revealed controls (top right, inside safe area) ── */}
       <div
+        style={{
+          top: 'max(1.25rem, env(safe-area-inset-top))',
+          right: 'max(1.25rem, env(safe-area-inset-right))',
+        }}
         className={cn(
-          'absolute right-5 top-5 z-10 flex items-center gap-2 transition-all duration-500',
+          'absolute z-10 flex items-center gap-2 transition-all duration-500',
           controlsVisible ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0',
         )}
       >
