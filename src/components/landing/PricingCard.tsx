@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PixelLayer } from '@/components/effects/PixelLayer';
 
 interface PricingCardProps {
   title: string;
@@ -65,9 +66,10 @@ export const PricingCard = ({
       )}
       
       <div className={cn(
-        "glass-card p-6 rounded-xl shadow-lg flex flex-col h-full border",
+        "relative overflow-hidden glass-card p-6 rounded-xl shadow-lg flex flex-col h-full border",
         popular ? "border-orange-500/50" : "border-white/10"
       )}>
+        <PixelLayer variant="wzrd" />
         <h3 className="text-2xl font-bold mb-2 text-white">{title}</h3>
         <div className="mb-4">
           <span className="text-3xl font-bold text-white">{displayPrice}</span>
