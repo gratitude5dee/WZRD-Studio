@@ -1,6 +1,7 @@
 import React from 'react';
 import { Heart, MoreHorizontal, Plus, Search, ShieldCheck, Trash2, User2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { KanvasEmptyState } from '@/components/kanvas/primitives';
 import { FinalizeAssetDialog } from '@/components/ip-vault/FinalizeAssetDialog';
 import { useCharacterCreationStore } from '@/lib/stores/character-creation-store';
 import { CHARACTER_PRESETS, stashPresetStarter, type CharacterPreset } from './characterPresets';
@@ -104,14 +105,16 @@ export function CharacterGallery() {
 
       {/* Grid */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <User2 className="mb-4 h-12 w-12 text-zinc-600" />
-          <p className="text-sm text-zinc-400">
-            {blueprints.length === 0
+        <KanvasEmptyState
+          bare
+          className="py-16"
+          icon={<User2 className="h-12 w-12" />}
+          title={
+            blueprints.length === 0
               ? 'No characters yet. Create your first one!'
-              : 'No characters match your search.'}
-          </p>
-        </div>
+              : 'No characters match your search.'
+          }
+        />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((bp) => (

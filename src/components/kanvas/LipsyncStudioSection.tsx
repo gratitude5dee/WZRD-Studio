@@ -7,7 +7,6 @@ import {
   FileText,
   HelpCircle,
   Archive,
-  Loader2,
   Mic2,
   Play,
   Smile,
@@ -24,6 +23,7 @@ import {
 import type { KanvasAsset, KanvasAssetType, KanvasJob, KanvasModel } from "@/features/kanvas/types";
 import { getJobPrimaryUrl, isJobActive } from "@/features/kanvas/helpers";
 import { cn } from "@/lib/utils";
+import { KanvasSpinner } from "@/components/kanvas/primitives";
 import { useUserTier, sortModelsForTier } from "@/hooks/useUserTier";
 import { musicPolishAssets } from "@/lib/musicPolishAssets";
 import type { MusicPolishAsset } from "@/lib/musicPolishAssets";
@@ -146,13 +146,13 @@ function WizardSidebar({
   onStepChange: (step: WizardStep) => void;
 }) {
   return (
-    <div className="hidden md:fixed md:left-0 md:top-[68px] md:bottom-0 md:w-[260px] md:bg-[#090909] md:z-40 md:flex md:flex-col md:overflow-hidden">
+    <div className="hidden md:fixed md:left-0 md:top-[68px] md:bottom-0 md:w-[260px] md:bg-kanvas-bg md:z-40 md:flex md:flex-col md:overflow-hidden">
       {/* Header */}
       <div className="px-6 pt-8 pb-6">
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-[#f97316] font-['Space_Grotesk']">
+        <p className="text-xs font-bold uppercase tracking-[0.3em] text-kanvas-accent font-kanvas-display">
           UGC FACTORY
         </p>
-        <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-zinc-600">
+        <p className="mt-1 text-[10px] uppercase tracking-[0.2em] text-kanvas-text-faint">
           Production Wizard
         </p>
       </div>
@@ -168,10 +168,10 @@ function WizardSidebar({
               type="button"
               onClick={() => onStepChange(step.key)}
               className={cn(
-                "w-full flex items-center gap-4 rounded-full px-4 py-3 text-xs uppercase tracking-[0.15em] font-['Space_Grotesk'] font-bold transition-all",
+                "w-full flex items-center gap-4 rounded-full px-4 py-3 text-xs uppercase tracking-[0.15em] font-kanvas-display font-bold transition-all",
                 active
-                  ? "bg-[#f97316] text-black"
-                  : "text-zinc-500 hover:text-white hover:bg-white/5"
+                  ? "bg-kanvas-accent text-kanvas-accent-contrast"
+                  : "text-kanvas-text-muted hover:text-kanvas-text-primary hover:bg-white/5"
               )}
             >
               <span className={cn(
@@ -189,15 +189,15 @@ function WizardSidebar({
 
       {/* Footer */}
       <div className="px-4 pb-8 space-y-3">
-        <button className="flex items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-white transition-colors w-full">
+        <button className="flex items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-kanvas-text-faint hover:text-kanvas-text-primary transition-colors w-full">
           <HelpCircle className="h-3.5 w-3.5" />
           Support
         </button>
-        <button className="flex items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-zinc-600 hover:text-white transition-colors w-full">
+        <button className="flex items-center gap-3 px-4 py-2 text-[10px] uppercase tracking-[0.2em] text-kanvas-text-faint hover:text-kanvas-text-primary transition-colors w-full">
           <Archive className="h-3.5 w-3.5" />
           Archive
         </button>
-        <button className="w-full flex items-center justify-center gap-2 rounded-full border border-white/10 bg-transparent px-4 py-3 text-[10px] uppercase tracking-[0.2em] text-zinc-400 hover:bg-white/5 hover:text-white transition-all font-['Space_Grotesk'] font-bold">
+        <button className="w-full flex items-center justify-center gap-2 rounded-full border border-kanvas-border-default bg-transparent px-4 py-3 text-[10px] uppercase tracking-[0.2em] text-kanvas-text-secondary hover:bg-white/5 hover:text-kanvas-text-primary transition-all font-kanvas-display font-bold">
           <Download className="h-3.5 w-3.5" />
           Export Project
         </button>
@@ -265,12 +265,12 @@ function LipsyncDashboard({
     <div className="space-y-12 pb-24">
       {/* Hero */}
       <div className="pt-4">
-        <h1 className="text-6xl md:text-8xl font-black font-['Space_Grotesk'] tracking-tighter leading-[0.9]">
-          <span className="text-white">LIPSYNC MODELS,</span>
+        <h1 className="text-6xl md:text-8xl font-black font-kanvas-display tracking-tighter leading-[0.9]">
+          <span className="text-kanvas-text-primary">LIPSYNC MODELS,</span>
           <br />
-          <span className="text-[#f97316]">ONE CLICK AWAY</span>
+          <span className="text-kanvas-accent">ONE CLICK AWAY</span>
         </h1>
-        <p className="mt-6 max-w-lg text-sm text-zinc-500 leading-relaxed">
+        <p className="mt-6 max-w-lg text-sm text-kanvas-text-muted leading-relaxed">
           Upload a portrait, paste your script, and let AI bring it to life with natural lip movements and expressions.
         </p>
       </div>
@@ -279,14 +279,14 @@ function LipsyncDashboard({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Left Column — Input */}
         <div className="space-y-6">
-          <div className="rounded-2xl border border-white/5 bg-[#131313] p-5 space-y-4">
+          <div className="rounded-kanvas-lg border border-kanvas-border-subtle bg-kanvas-surface-1 p-5 space-y-4">
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => onLipsyncModeChange("talking-head")}
                 className={cn(
-                  "rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition-all font-['Space_Grotesk']",
-                  lipsyncMode === "talking-head" ? "bg-[#f97316] text-black" : "bg-white/[0.03] text-zinc-500 hover:text-white"
+                  "rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition-all font-kanvas-display",
+                  lipsyncMode === "talking-head" ? "bg-kanvas-accent text-kanvas-accent-contrast" : "bg-kanvas-surface-2 text-kanvas-text-muted hover:text-kanvas-text-primary"
                 )}
               >
                 Talking Head
@@ -295,8 +295,8 @@ function LipsyncDashboard({
                 type="button"
                 onClick={() => onLipsyncModeChange("lip-sync")}
                 className={cn(
-                  "rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition-all font-['Space_Grotesk']",
-                  lipsyncMode === "lip-sync" ? "bg-[#f97316] text-black" : "bg-white/[0.03] text-zinc-500 hover:text-white"
+                  "rounded-full px-4 py-2 text-[10px] font-bold uppercase tracking-[0.18em] transition-all font-kanvas-display",
+                  lipsyncMode === "lip-sync" ? "bg-kanvas-accent text-kanvas-accent-contrast" : "bg-kanvas-surface-2 text-kanvas-text-muted hover:text-kanvas-text-primary"
                 )}
               >
                 Lip Sync
@@ -305,15 +305,15 @@ function LipsyncDashboard({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold">Model</p>
-                <p className="text-[10px] text-zinc-600">
+                <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted font-bold">Model</p>
+                <p className="text-[10px] text-kanvas-text-faint">
                   {`${currentModel?.credits ?? 0} credits`}
                 </p>
               </div>
               <select
                 value={currentModel?.id ?? ""}
                 onChange={(event) => onModelChange(event.target.value)}
-                className="w-full appearance-none rounded-2xl border border-white/5 bg-black/20 px-4 py-3 text-sm text-white focus:border-[#f97316]/30 focus:outline-none"
+                className="w-full appearance-none rounded-kanvas-lg border border-kanvas-border-subtle bg-black/20 px-4 py-3 text-sm text-kanvas-text-primary focus:border-kanvas-accent-edge focus:outline-none"
               >
                 {sortedModels.map((model) => (
                   <option key={model.id} value={model.id}>
@@ -324,17 +324,17 @@ function LipsyncDashboard({
             </div>
 
             <div className="grid grid-cols-3 gap-2 text-[10px] uppercase tracking-[0.15em]">
-              <div className="rounded-xl bg-black/20 px-3 py-2 text-zinc-500">
+              <div className="rounded-kanvas-md bg-black/20 px-3 py-2 text-kanvas-text-muted">
                 Portrait
-                <div className="mt-2 text-white">{imageId ? "Ready" : "Missing"}</div>
+                <div className="mt-2 text-kanvas-text-primary">{imageId ? "Ready" : "Missing"}</div>
               </div>
-              <div className="rounded-xl bg-black/20 px-3 py-2 text-zinc-500">
+              <div className="rounded-kanvas-md bg-black/20 px-3 py-2 text-kanvas-text-muted">
                 Video
-                <div className="mt-2 text-white">{videoId ? "Ready" : "Missing"}</div>
+                <div className="mt-2 text-kanvas-text-primary">{videoId ? "Ready" : "Missing"}</div>
               </div>
-              <div className="rounded-xl bg-black/20 px-3 py-2 text-zinc-500">
+              <div className="rounded-kanvas-md bg-black/20 px-3 py-2 text-kanvas-text-muted">
                 Audio
-                <div className="mt-2 text-white">{audioId ? "Ready" : "Missing"}</div>
+                <div className="mt-2 text-kanvas-text-primary">{audioId ? "Ready" : "Missing"}</div>
               </div>
             </div>
           </div>
@@ -343,7 +343,7 @@ function LipsyncDashboard({
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="relative w-full aspect-[16/9] overflow-hidden rounded-2xl border border-white/5 bg-[#131313] flex flex-col items-center justify-center gap-3 hover:border-[#f97316]/20 transition-all group cursor-pointer"
+            className="relative w-full aspect-[16/9] overflow-hidden rounded-kanvas-lg border border-kanvas-border-subtle bg-kanvas-surface-1 flex flex-col items-center justify-center gap-3 hover:border-kanvas-accent-edge transition-all group cursor-pointer"
           >
             <img
               src={musicPolishAssets.kanvas.aiVisualWall.src}
@@ -354,16 +354,16 @@ function LipsyncDashboard({
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/55 to-black/30" />
             {uploadingImage ? (
-              <Loader2 className="relative h-8 w-8 animate-spin text-[#f97316]" />
+              <KanvasSpinner className="relative h-8 w-8 text-kanvas-accent" />
             ) : (
-              <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f97316]/10 group-hover:bg-[#f97316]/20 transition-colors">
-                <Upload className="h-6 w-6 text-[#f97316]" />
+              <div className="relative flex h-14 w-14 items-center justify-center rounded-kanvas-lg bg-kanvas-accent-soft group-hover:bg-kanvas-accent-soft transition-colors">
+                <Upload className="h-6 w-6 text-kanvas-accent" />
               </div>
             )}
-            <p className="relative text-xs uppercase tracking-[0.2em] text-zinc-300 font-bold">
+            <p className="relative text-xs uppercase tracking-[0.2em] text-kanvas-text-secondary font-bold">
               Upload Asset
             </p>
-            <p className="relative text-[10px] text-zinc-500">PNG, JPG, MP4 — Max 50MB</p>
+            <p className="relative text-[10px] text-kanvas-text-muted">PNG, JPG, MP4 — Max 50MB</p>
           </button>
           <input
             ref={fileRef}
@@ -381,15 +381,15 @@ function LipsyncDashboard({
           />
 
           {/* Audio Toggle */}
-          <div className="flex items-center gap-1 rounded-full bg-[#131313] p-1 w-fit">
+          <div className="flex items-center gap-1 rounded-full bg-kanvas-surface-1 p-1 w-fit">
             <button
               type="button"
               onClick={() => setAudioMode("text")}
               className={cn(
-                "px-5 py-2.5 rounded-full text-xs uppercase tracking-[0.15em] font-bold transition-all font-['Space_Grotesk']",
+                "px-5 py-2.5 rounded-full text-xs uppercase tracking-[0.15em] font-bold transition-all font-kanvas-display",
                 audioMode === "text"
-                  ? "bg-[#f97316] text-black"
-                  : "text-zinc-500 hover:text-white"
+                  ? "bg-kanvas-accent text-kanvas-accent-contrast"
+                  : "text-kanvas-text-muted hover:text-kanvas-text-primary"
               )}
             >
               Audio Text
@@ -398,10 +398,10 @@ function LipsyncDashboard({
               type="button"
               onClick={() => setAudioMode("generate")}
               className={cn(
-                "px-5 py-2.5 rounded-full text-xs uppercase tracking-[0.15em] font-bold transition-all font-['Space_Grotesk']",
+                "px-5 py-2.5 rounded-full text-xs uppercase tracking-[0.15em] font-bold transition-all font-kanvas-display",
                 audioMode === "generate"
-                  ? "bg-[#f97316] text-black"
-                  : "text-zinc-500 hover:text-white"
+                  ? "bg-kanvas-accent text-kanvas-accent-contrast"
+                  : "text-kanvas-text-muted hover:text-kanvas-text-primary"
               )}
             >
               Generate Audio
@@ -409,19 +409,19 @@ function LipsyncDashboard({
           </div>
 
           {/* Script Input */}
-          <div className="relative rounded-2xl bg-[#131313] p-6">
+          <div className="relative rounded-kanvas-lg bg-kanvas-surface-1 p-6">
             <textarea
               value={prompt}
               onChange={(e) => onPromptChange(e.target.value)}
               placeholder="Write your script here... The AI will generate lip-synced video from this text."
-              className="w-full min-h-[150px] bg-transparent text-white text-sm placeholder:text-zinc-600 resize-none focus:outline-none font-['Space_Grotesk']"
+              className="w-full min-h-[150px] bg-transparent text-kanvas-text-primary text-sm placeholder:text-kanvas-text-faint resize-none focus:outline-none font-kanvas-display"
               maxLength={2000}
             />
             <div className="absolute bottom-4 right-4 flex items-center gap-3">
-              <span className="text-[10px] text-zinc-600 font-mono">
+              <span className="text-[10px] text-kanvas-text-faint font-mono">
                 {prompt.length} / 2000
               </span>
-              <Wand2 className="h-4 w-4 text-zinc-600 hover:text-[#f97316] cursor-pointer transition-colors" />
+              <Wand2 className="h-4 w-4 text-kanvas-text-faint hover:text-kanvas-accent cursor-pointer transition-colors" />
             </div>
           </div>
 
@@ -430,11 +430,11 @@ function LipsyncDashboard({
             type="button"
             onClick={onGenerate}
             disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 bg-[#f97316] text-black font-bold uppercase tracking-[0.15em] py-4 rounded-full hover:shadow-[0_0_30px_rgba(249,115,22,0.3)] transition-all font-['Space_Grotesk'] disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 bg-kanvas-accent text-kanvas-accent-contrast font-bold uppercase tracking-[0.15em] py-4 rounded-full hover:shadow-[0_0_30px_hsl(var(--kanvas-accent)/0.3)] transition-all font-kanvas-display disabled:opacity-50"
           >
             {submitting ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <KanvasSpinner className="h-5 w-5 text-kanvas-accent-contrast" />
                 Processing
               </>
             ) : (
@@ -453,35 +453,35 @@ function LipsyncDashboard({
             <div
               key={step.num}
               className={cn(
-                "rounded-2xl bg-[#1a1919]/60 p-6 flex items-center gap-6 transition-all",
-                i === activeWorkflowStep && "border-l-4 border-[#f97316]"
+                "rounded-kanvas-lg bg-kanvas-surface-2/60 p-6 flex items-center gap-6 transition-all",
+                i === activeWorkflowStep && "border-l-4 border-kanvas-accent"
               )}
             >
               <span className={cn(
-                "text-4xl font-black font-['Space_Grotesk'] tracking-tighter",
-                i === activeWorkflowStep ? "text-[#f97316]" : "text-zinc-700"
+                "text-4xl font-black font-kanvas-display tracking-tighter",
+                i === activeWorkflowStep ? "text-kanvas-accent" : "text-kanvas-text-faint"
               )}>
                 {step.num}
               </span>
               <div>
                 <p className={cn(
-                  "text-sm font-bold uppercase tracking-[0.15em] font-['Space_Grotesk']",
-                  i === activeWorkflowStep ? "text-white" : "text-zinc-500"
+                  "text-sm font-bold uppercase tracking-[0.15em] font-kanvas-display",
+                  i === activeWorkflowStep ? "text-kanvas-text-primary" : "text-kanvas-text-muted"
                 )}>
                   {step.title}
                 </p>
-                <p className="text-xs text-zinc-600 mt-1">{step.desc}</p>
+                <p className="text-xs text-kanvas-text-faint mt-1">{step.desc}</p>
               </div>
               {i < activeWorkflowStep && (
-                <Check className="ml-auto h-5 w-5 text-[#f97316]" />
+                <Check className="ml-auto h-5 w-5 text-kanvas-accent" />
               )}
             </div>
           ))}
 
           {/* Latest Render */}
           {latestCompleted && (
-            <div className="rounded-2xl bg-[#131313] p-6 flex gap-6">
-              <div className="h-24 w-24 rounded-xl overflow-hidden bg-white/5 shrink-0">
+            <div className="rounded-kanvas-lg bg-kanvas-surface-1 p-6 flex gap-6">
+              <div className="h-24 w-24 rounded-kanvas-md overflow-hidden bg-white/5 shrink-0">
                 {latestUrl ? (
                   latestCompleted.resultPayload?.mediaType === "video" ? (
                     <video src={latestUrl} muted playsInline preload="metadata" className="h-full w-full object-cover" />
@@ -490,21 +490,21 @@ function LipsyncDashboard({
                   )
                 ) : (
                   <div className="h-full w-full flex items-center justify-center">
-                    <Film className="h-6 w-6 text-zinc-600" />
+                    <Film className="h-6 w-6 text-kanvas-text-faint" />
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-xs uppercase tracking-[0.2em] text-zinc-500 font-bold">Latest Render</p>
-                <p className="text-sm font-semibold text-white mt-1 truncate">
+                <p className="text-xs uppercase tracking-[0.2em] text-kanvas-text-muted font-bold">Latest Render</p>
+                <p className="text-sm font-semibold text-kanvas-text-primary mt-1 truncate">
                   {latestCompleted.modelId ?? "Lipsync Output"}
                 </p>
                 <div className="flex items-center gap-2 mt-3">
-                  <button className="px-4 py-1.5 rounded-full bg-white/10 text-white text-[10px] uppercase tracking-[0.15em] font-bold hover:bg-white/15 transition-colors flex items-center gap-1.5">
+                  <button className="px-4 py-1.5 rounded-full bg-white/10 text-kanvas-text-primary text-[10px] uppercase tracking-[0.15em] font-bold hover:bg-white/15 transition-colors flex items-center gap-1.5">
                     <Eye className="h-3 w-3" />
                     Preview
                   </button>
-                  <button className="px-4 py-1.5 rounded-full bg-[#ff3399]/10 text-[#ff3399] text-[10px] uppercase tracking-[0.15em] font-bold hover:bg-[#ff3399]/20 transition-colors">
+                  <button className="px-4 py-1.5 rounded-full bg-kanvas-accent-soft text-kanvas-accent text-[10px] uppercase tracking-[0.15em] font-bold hover:bg-kanvas-accent/20 transition-colors">
                     Upscale
                   </button>
                 </div>
@@ -532,9 +532,9 @@ function UGCTemplates({
     <div className="space-y-10 pb-24 relative">
       {/* Hero */}
       <div className="pt-4">
-        <h1 className="text-6xl md:text-8xl font-black font-['Space_Grotesk'] tracking-tighter leading-[0.9]">
-          <span className="text-white">Choose your </span>
-          <span className="text-[#f97316]">Template</span>
+        <h1 className="text-6xl md:text-8xl font-black font-kanvas-display tracking-tighter leading-[0.9]">
+          <span className="text-kanvas-text-primary">Choose your </span>
+          <span className="text-kanvas-accent">Template</span>
         </h1>
       </div>
 
@@ -550,8 +550,8 @@ function UGCTemplates({
               className={cn(
                 "relative rounded-[2rem] h-[400px] overflow-hidden group cursor-pointer transition-all",
                 selected
-                  ? "border-2 border-[#f97316] shadow-[0_0_30px_rgba(249,115,22,0.15)]"
-                  : "border border-white/5 hover:border-white/10"
+                  ? "border-2 border-kanvas-accent shadow-[0_0_30px_hsl(var(--kanvas-accent)/0.15)]"
+                  : "border border-kanvas-border-subtle hover:border-kanvas-border-default"
               )}
             >
               <img
@@ -565,8 +565,8 @@ function UGCTemplates({
 
               {/* Selected check */}
               {selected && (
-                <div className="absolute top-4 right-4 z-10 h-8 w-8 rounded-full bg-[#f97316] flex items-center justify-center">
-                  <Check className="h-4 w-4 text-black" />
+                <div className="absolute top-4 right-4 z-10 h-8 w-8 rounded-full bg-kanvas-accent flex items-center justify-center">
+                  <Check className="h-4 w-4 text-kanvas-accent-contrast" />
                 </div>
               )}
 
@@ -574,11 +574,11 @@ function UGCTemplates({
               <div className="absolute bottom-6 left-6 right-6 z-10 text-left">
                 <p className={cn(
                   "text-[10px] uppercase tracking-[0.3em] font-bold mb-2",
-                  selected ? "text-[#f97316]" : "text-zinc-500"
+                  selected ? "text-kanvas-accent" : "text-kanvas-text-muted"
                 )}>
                   {tpl.label}
                 </p>
-                <p className="text-3xl font-black text-white font-['Space_Grotesk'] tracking-tight">
+                <p className="text-3xl font-black text-kanvas-text-primary font-kanvas-display tracking-tight">
                   {tpl.title}
                 </p>
                 <p className="mt-2 text-xs italic leading-relaxed text-zinc-400 line-clamp-2">
@@ -594,7 +594,7 @@ function UGCTemplates({
       <button
         type="button"
         onClick={onNext}
-        className="fixed bottom-8 right-8 z-50 w-20 h-20 rounded-full bg-[#f97316] text-black flex items-center justify-center shadow-[0_0_40px_rgba(249,115,22,0.3)] hover:shadow-[0_0_60px_rgba(249,115,22,0.5)] transition-all"
+        className="fixed bottom-8 right-8 z-50 w-20 h-20 rounded-full bg-kanvas-accent text-kanvas-accent-contrast flex items-center justify-center shadow-[0_0_40px_hsl(var(--kanvas-accent)/0.3)] hover:shadow-[0_0_60px_hsl(var(--kanvas-accent)/0.5)] transition-all"
       >
         <ArrowRight className="h-8 w-8" />
       </button>
@@ -618,21 +618,21 @@ function UGCAudioSettings({
     <div className="space-y-10 pb-24">
       {/* Hero */}
       <div className="pt-4">
-        <h1 className="text-6xl md:text-8xl font-black font-['Space_Grotesk'] tracking-tighter leading-[0.9]">
-          <span className="text-white">AUDIO </span>
-          <span className="text-[#f97316]">SETTINGS</span>
+        <h1 className="text-6xl md:text-8xl font-black font-kanvas-display tracking-tighter leading-[0.9]">
+          <span className="text-kanvas-text-primary">AUDIO </span>
+          <span className="text-kanvas-accent">SETTINGS</span>
         </h1>
       </div>
 
       {/* Dropdowns */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="relative">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-3">Select Language</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted font-bold mb-3">Select Language</p>
           <div className="relative">
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="w-full appearance-none bg-[#131313] border border-white/5 rounded-2xl px-5 py-4 text-white text-sm font-['Space_Grotesk'] focus:outline-none focus:border-[#f97316]/30 transition-colors"
+              className="w-full appearance-none bg-kanvas-surface-1 border border-kanvas-border-subtle rounded-kanvas-lg px-5 py-4 text-kanvas-text-primary text-sm font-kanvas-display focus:outline-none focus:border-kanvas-accent-edge transition-colors"
             >
               <option value="english">English</option>
               <option value="spanish">Spanish</option>
@@ -640,30 +640,30 @@ function UGCAudioSettings({
               <option value="german">German</option>
               <option value="japanese">Japanese</option>
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-kanvas-text-muted pointer-events-none" />
           </div>
         </div>
         <div className="relative">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-3">Select Accent</p>
+          <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted font-bold mb-3">Select Accent</p>
           <div className="relative">
             <select
               value={accent}
               onChange={(e) => setAccent(e.target.value)}
-              className="w-full appearance-none bg-[#131313] border border-white/5 rounded-2xl px-5 py-4 text-white text-sm font-['Space_Grotesk'] focus:outline-none focus:border-[#f97316]/30 transition-colors"
+              className="w-full appearance-none bg-kanvas-surface-1 border border-kanvas-border-subtle rounded-kanvas-lg px-5 py-4 text-kanvas-text-primary text-sm font-kanvas-display focus:outline-none focus:border-kanvas-accent-edge transition-colors"
             >
               <option value="neutral">Neutral</option>
               <option value="british">British</option>
               <option value="australian">Australian</option>
               <option value="southern">Southern</option>
             </select>
-            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500 pointer-events-none" />
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-kanvas-text-muted pointer-events-none" />
           </div>
         </div>
       </div>
 
       {/* Voice Type Row */}
       <div>
-        <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-4">Voice Type</p>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted font-bold mb-4">Voice Type</p>
         <div className="flex flex-wrap gap-3">
           {VOICE_TYPES.map((vt) => (
             <button
@@ -671,10 +671,10 @@ function UGCAudioSettings({
               type="button"
               onClick={() => setVoiceType(vt)}
               className={cn(
-                "px-6 py-3 rounded-full text-xs uppercase tracking-[0.15em] font-bold transition-all font-['Space_Grotesk']",
+                "px-6 py-3 rounded-full text-xs uppercase tracking-[0.15em] font-bold transition-all font-kanvas-display",
                 voiceType === vt
-                  ? "bg-[#f97316] text-black"
-                  : "bg-[#131313] text-zinc-500 hover:text-white hover:bg-white/5"
+                  ? "bg-kanvas-accent text-kanvas-accent-contrast"
+                  : "bg-kanvas-surface-1 text-kanvas-text-muted hover:text-kanvas-text-primary hover:bg-white/5"
               )}
             >
               {vt}
@@ -685,7 +685,7 @@ function UGCAudioSettings({
 
       {/* Emotional Delivery Grid */}
       <div>
-        <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-4">Emotional Delivery</p>
+        <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted font-bold mb-4">Emotional Delivery</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {EMOTIONS.map((em) => {
             const active = emotion === em.id;
@@ -696,19 +696,19 @@ function UGCAudioSettings({
                 type="button"
                 onClick={() => setEmotion(em.id)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-3 rounded-2xl p-6 transition-all aspect-square",
+                  "flex flex-col items-center justify-center gap-3 rounded-kanvas-lg p-6 transition-all aspect-square",
                   active
-                    ? "border-2 border-[#f97316] bg-[#f97316]/5"
-                    : "border border-white/5 bg-[#131313] hover:border-white/10"
+                    ? "border-2 border-kanvas-accent bg-kanvas-accent/5"
+                    : "border border-kanvas-border-subtle bg-kanvas-surface-1 hover:border-kanvas-border-default"
                 )}
               >
                 <EmIcon className={cn(
                   "h-6 w-6",
-                  active ? "text-[#f97316]" : "text-zinc-600"
+                  active ? "text-kanvas-accent" : "text-kanvas-text-faint"
                 )} />
                 <span className={cn(
                   "text-[10px] uppercase tracking-[0.2em] font-bold",
-                  active ? "text-[#f97316]" : "text-zinc-500"
+                  active ? "text-kanvas-accent" : "text-kanvas-text-muted"
                 )}>
                   {em.label}
                 </span>
@@ -719,25 +719,25 @@ function UGCAudioSettings({
       </div>
 
       {/* Voice Preview Player */}
-      <div className="rounded-[2rem] bg-[#131313] p-6 flex items-center gap-6">
+      <div className="rounded-[2rem] bg-kanvas-surface-1 p-6 flex items-center gap-6">
         <button
           type="button"
-          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#f97316] text-black hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] transition-all"
+          className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-kanvas-accent text-kanvas-accent-contrast hover:shadow-[0_0_20px_hsl(var(--kanvas-accent)/0.3)] transition-all"
         >
           <Play className="h-6 w-6 ml-1" />
         </button>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-white font-['Space_Grotesk']">
+          <p className="text-sm font-bold text-kanvas-text-primary font-kanvas-display">
             Voice Preview: Neutral {voiceType}
           </p>
-          <p className="text-xs text-zinc-500 italic mt-1 truncate">
+          <p className="text-xs text-kanvas-text-muted italic mt-1 truncate">
             "Hello, this is a sample of the selected voice..."
           </p>
           <div className="mt-3 flex items-center gap-3">
             <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-              <div className="h-full w-1/3 rounded-full bg-[#f97316]" />
+              <div className="h-full w-1/3 rounded-full bg-kanvas-accent" />
             </div>
-            <span className="text-[10px] text-zinc-600 font-mono whitespace-nowrap">0:04 / 0:12</span>
+            <span className="text-[10px] text-kanvas-text-faint font-mono whitespace-nowrap">0:04 / 0:12</span>
           </div>
         </div>
       </div>
@@ -747,7 +747,7 @@ function UGCAudioSettings({
         <button
           type="button"
           onClick={onNext}
-          className="flex items-center gap-2 bg-[#f97316] text-black font-bold uppercase tracking-[0.15em] px-8 py-3 rounded-full hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] transition-all text-xs font-['Space_Grotesk']"
+          className="flex items-center gap-2 bg-kanvas-accent text-kanvas-accent-contrast font-bold uppercase tracking-[0.15em] px-8 py-3 rounded-full hover:shadow-[0_0_20px_hsl(var(--kanvas-accent)/0.3)] transition-all text-xs font-kanvas-display"
         >
           Next Step
           <ArrowRight className="h-4 w-4" />
@@ -771,19 +771,19 @@ function EnvironmentPanel({
   return (
     <div className="space-y-10 pb-24">
       <div>
-        <h2 className="text-4xl font-black font-['Space_Grotesk'] text-white tracking-tight">Dial In The Render Space</h2>
-        <p className="mt-3 max-w-2xl text-sm text-zinc-500">
+        <h2 className="text-4xl font-black font-kanvas-display text-kanvas-text-primary tracking-tight">Dial In The Render Space</h2>
+        <p className="mt-3 max-w-2xl text-sm text-kanvas-text-muted">
           These values are persisted into the lip-sync request payload so the render step uses the exact same framing and output settings.
         </p>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <label className="rounded-3xl border border-white/10 bg-[#121212] p-6">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Aspect Ratio</p>
+        <label className="rounded-kanvas-xl border border-kanvas-border-default bg-kanvas-surface-1 p-6">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted">Aspect Ratio</p>
           <select
             value={String(settings.aspect_ratio ?? "16:9")}
             onChange={(event) => onSettingsChange("aspect_ratio", event.target.value)}
-            className="mt-4 w-full bg-transparent text-white outline-none"
+            className="mt-4 w-full bg-transparent text-kanvas-text-primary outline-none"
           >
             {["16:9", "9:16", "1:1"].map((value) => (
               <option key={value} value={value} className="bg-black">
@@ -793,12 +793,12 @@ function EnvironmentPanel({
           </select>
         </label>
 
-        <label className="rounded-3xl border border-white/10 bg-[#121212] p-6">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Resolution</p>
+        <label className="rounded-kanvas-xl border border-kanvas-border-default bg-kanvas-surface-1 p-6">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted">Resolution</p>
           <select
             value={String(settings.resolution ?? "1080p")}
             onChange={(event) => onSettingsChange("resolution", event.target.value)}
-            className="mt-4 w-full bg-transparent text-white outline-none"
+            className="mt-4 w-full bg-transparent text-kanvas-text-primary outline-none"
           >
             {["720p", "1080p", "1440p"].map((value) => (
               <option key={value} value={value} className="bg-black">
@@ -808,14 +808,14 @@ function EnvironmentPanel({
           </select>
         </label>
 
-        <label className="rounded-3xl border border-white/10 bg-[#121212] p-6">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Generate Audio</p>
+        <label className="rounded-kanvas-xl border border-kanvas-border-default bg-kanvas-surface-1 p-6">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted">Generate Audio</p>
           <button
             type="button"
             onClick={() => onSettingsChange("generate_audio", !(settings.generate_audio ?? true))}
             className={cn(
               "mt-4 inline-flex rounded-full px-4 py-2 text-xs font-bold uppercase tracking-[0.15em]",
-              settings.generate_audio ?? true ? "bg-[#f97316] text-black" : "bg-white/5 text-zinc-400"
+              settings.generate_audio ?? true ? "bg-kanvas-accent text-kanvas-accent-contrast" : "bg-white/5 text-kanvas-text-secondary"
             )}
           >
             {(settings.generate_audio ?? true) ? "Enabled" : "Disabled"}
@@ -827,7 +827,7 @@ function EnvironmentPanel({
         <button
           type="button"
           onClick={onNext}
-          className="flex items-center gap-2 bg-[#f97316] text-black font-bold uppercase tracking-[0.15em] px-8 py-3 rounded-full hover:shadow-[0_0_20px_rgba(249,115,22,0.3)] transition-all text-xs font-['Space_Grotesk']"
+          className="flex items-center gap-2 bg-kanvas-accent text-kanvas-accent-contrast font-bold uppercase tracking-[0.15em] px-8 py-3 rounded-full hover:shadow-[0_0_20px_hsl(var(--kanvas-accent)/0.3)] transition-all text-xs font-kanvas-display"
         >
           Continue To Render
           <ArrowRight className="h-4 w-4" />
@@ -873,34 +873,34 @@ function RenderPanel({
   return (
     <div className="space-y-8 pb-24">
       <div>
-        <h2 className="text-4xl font-black font-['Space_Grotesk'] text-white tracking-tight">Render Review</h2>
-        <p className="mt-3 max-w-2xl text-sm text-zinc-500">
+        <h2 className="text-4xl font-black font-kanvas-display text-kanvas-text-primary tracking-tight">Render Review</h2>
+        <p className="mt-3 max-w-2xl text-sm text-kanvas-text-muted">
           Review the exact request payload inputs before dispatching the render. The generate button here uses the current model, selected assets, prompt, and environment settings.
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         {summary.map((item) => (
-          <div key={item.label} className="rounded-3xl border border-white/10 bg-[#121212] p-5">
-            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">{item.label}</p>
-            <p className="mt-3 text-sm text-white break-all">{item.value}</p>
+          <div key={item.label} className="rounded-kanvas-xl border border-kanvas-border-default bg-kanvas-surface-1 p-5">
+            <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted">{item.label}</p>
+            <p className="mt-3 text-sm text-kanvas-text-primary break-all">{item.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="rounded-3xl border border-white/10 bg-[#121212] p-6">
+      <div className="rounded-kanvas-xl border border-kanvas-border-default bg-kanvas-surface-1 p-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500">Latest Status</p>
-            <p className="mt-2 text-sm text-white">{selectedJob ? selectedJob.status : "Ready to render"}</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted">Latest Status</p>
+            <p className="mt-2 text-sm text-kanvas-text-primary">{selectedJob ? selectedJob.status : "Ready to render"}</p>
           </div>
           <button
             type="button"
             onClick={onGenerate}
             disabled={submitting || !audioId}
-            className="inline-flex items-center gap-2 rounded-full bg-[#f97316] px-6 py-3 text-xs font-bold uppercase tracking-[0.18em] text-black disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-full bg-kanvas-accent px-6 py-3 text-xs font-bold uppercase tracking-[0.18em] text-kanvas-accent-contrast disabled:opacity-50"
           >
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {submitting ? <KanvasSpinner className="h-5 w-5 text-kanvas-accent-contrast" /> : <Sparkles className="h-4 w-4" />}
             Generate Render
           </button>
         </div>
@@ -934,7 +934,7 @@ export default function LipsyncStudioSection(props: LipsyncStudioProps) {
   }
 
   return (
-    <div className="fixed inset-0 top-[68px] z-30 bg-[#000000] overflow-hidden">
+    <div className="fixed inset-0 top-[68px] z-30 bg-kanvas-bg overflow-hidden">
       {/* Film Grain */}
       <div
         className="pointer-events-none fixed inset-0 z-[1] mix-blend-overlay opacity-[0.15]"
@@ -942,7 +942,7 @@ export default function LipsyncStudioSection(props: LipsyncStudioProps) {
       />
 
       {/* Mobile: horizontal step indicator */}
-      <div className="md:hidden flex items-center gap-1 px-4 py-3 overflow-x-auto scrollbar-hide border-b border-white/[0.06] bg-[#090909] z-40 relative">
+      <div className="md:hidden flex items-center gap-1 px-4 py-3 overflow-x-auto scrollbar-hide border-b border-kanvas-border-subtle bg-kanvas-bg z-40 relative">
         {WIZARD_STEPS.map((step, i) => {
           const active = activeStep === step.key;
           const StepIcon = step.icon;
@@ -953,8 +953,8 @@ export default function LipsyncStudioSection(props: LipsyncStudioProps) {
               className={cn(
                 "shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all",
                 active
-                  ? "bg-[#f97316] text-black"
-                  : "text-zinc-500 bg-white/[0.03]"
+                  ? "bg-kanvas-accent text-kanvas-accent-contrast"
+                  : "text-kanvas-text-muted bg-kanvas-surface-2"
               )}
             >
               <StepIcon className="h-3 w-3" />

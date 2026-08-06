@@ -86,8 +86,8 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
       <aside
         className={cn(
           'hidden md:flex fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 max-h-[calc(100vh-100px)] flex-col items-center py-3 rounded-2xl',
-          'bg-[#0A0A0A]/90 backdrop-blur-xl',
-          'shadow-[0_0_15px_rgba(249,115,22,0.15),0_0_30px_rgba(249,115,22,0.05),0_8px_32px_rgba(0,0,0,0.5)]',
+          'bg-kanvas-bg/90 backdrop-blur-xl',
+          'shadow-[0_0_15px_hsl(var(--kanvas-accent)/0.15),0_0_30px_hsl(var(--kanvas-accent)/0.05),0_8px_32px_rgba(0,0,0,0.5)]',
           'transition-all duration-300 ease-out',
           isVisible
             ? 'w-14 opacity-100 translate-x-0'
@@ -98,7 +98,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
       >
         {/* Animated orange glow border (matches the home floating pill) */}
         <ShineBorder
-          shineColor={['#f97316', '#d4a574']}
+          shineColor={['hsl(25 95% 53%)', '#d4a574']}
           borderWidth={1}
           duration={8}
         />
@@ -113,7 +113,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
               type="button"
               onClick={() => navigate(appRoutes.home)}
               aria-label="Home"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-kanvas-text-muted transition-all duration-200 hover:bg-white/[0.04] hover:text-kanvas-text-secondary"
             >
               <Home className="h-[18px] w-[18px]" />
             </button>
@@ -166,7 +166,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
               type="button"
               onClick={handleLogout}
               aria-label="Logout"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-kanvas-text-muted transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
             >
               <LogOut className="h-[18px] w-[18px]" />
             </button>
@@ -176,7 +176,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
 
         {/* Brand dot */}
         <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center">
-          <div className="h-2 w-2 rounded-full bg-[#f97316]/60 shadow-[0_0_6px_rgba(249,115,22,0.3)]" />
+          <div className="h-2 w-2 rounded-full bg-kanvas-accent/60 shadow-[0_0_6px_hsl(var(--kanvas-accent)/0.3)]" />
         </div>
       </aside>
     </TooltipProvider>
