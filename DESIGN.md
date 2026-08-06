@@ -74,3 +74,10 @@ then discover the system one element at a time.
   labels are plain language, not faux-terminal theater.
 - Water and Fire are clearly marked **Coming soon** with no financial claims or
   implied availability.
+
+## Related design docs
+
+- [Kanvas design system](docs/design/kanvas-system.md) — tokens, theme
+  recipes, primitives, accent policy, and rules of engagement for the
+  `/kanvas` studio surfaces.
+
