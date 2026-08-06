@@ -6,6 +6,8 @@ import ScrollingPartners from '@/components/landing/ScrollingPartners';
 import { SmartVideo } from '@/components/media/SmartVideo';
 import { heroVideo } from '@/lib/brandMedia';
 import { musicStyleRange } from '@/lib/musicPolishAssets';
+import { DitherGradient } from '@/components/dither-kit';
+import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
 
 interface HeroSectionProps {
   headline?: string;
@@ -52,6 +54,15 @@ export function HeroSection({
             linear-gradient(180deg, rgba(255,255,255,0.02), transparent 42%)
           `,
         }}
+      />
+
+      {/* Dithered wash layered over the radial accents */}
+      <DitherGradient
+        from={ditherColors.primary}
+        direction="up"
+        bloom={ditherBloom.marketing}
+        opacity={0.35}
+        className="pointer-events-none absolute inset-x-0 top-auto bottom-0 -z-10 h-1/2"
       />
 
       <div className="relative z-10 container mx-auto px-4">

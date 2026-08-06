@@ -1,3 +1,5 @@
+"use client"
+
 import { CartesianCanvas } from "./cartesian-canvas"
 import { type CartesianChartProps, CartesianRoot } from "./cartesian-root"
 

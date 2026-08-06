@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import HeroSection from '@/components/landing/HeroSection';
 import { LazySection } from '@/components/landing/LazySection';
+import { DitherGradient } from '@/components/dither-kit';
+import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
 
 const CinematicIntro = lazy(() => import('@/components/landing/CinematicIntro'));
 
@@ -186,6 +188,13 @@ const Landing = () => {
 
       {/* ===== HERO AREA ===== */}
       <div className="relative overflow-hidden">
+        <DitherGradient
+          from={ditherColors.primary}
+          direction="up"
+          bloom={ditherBloom.marketing}
+          opacity={0.22}
+          className="pointer-events-none absolute inset-x-0 top-auto bottom-0 z-0 h-64"
+        />
         <div className="relative z-10">
           <HeroSection />
           <SectionDivider />

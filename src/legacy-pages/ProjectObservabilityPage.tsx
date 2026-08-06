@@ -17,6 +17,19 @@ import {
 } from '@/services/observabilityService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import {
+  Bar,
+  BarChart,
+  type ChartConfig,
+  Grid,
+  Legend,
+  Radar,
+  RadarChart,
+  Tooltip as DitherTooltip,
+  XAxis,
+  YAxis,
+} from '@/components/dither-kit';
+import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
 
 /* ── helpers ─────────────────────────────────────────────── */
 
@@ -42,6 +55,15 @@ const scoreLabel = (value: unknown) => {
 const scorePercent = (value: unknown) => {
   if (typeof value !== 'number' || Number.isNaN(value)) return 0;
   return Math.round(value * 100);
+};
+
+const thresholdRadarConfig: ChartConfig = {
+  score: { label: 'Threshold', color: ditherColors.primary },
+};
+
+const runsBarConfig: ChartConfig = {
+  generation: { label: 'Generation', color: ditherColors.primary },
+  evaluation: { label: 'Evaluation', color: ditherColors.secondary },
 };
 
 type StatusColor = 'emerald' | 'red' | 'amber' | 'blue' | 'zinc';
@@ -231,6 +253,29 @@ const ProjectObservabilityPage = () => {
     return items.filter((item) => item.status === statusFilter);
   }, [data, statusFilter]);
 
+  const thresholdRadarData = useMemo(
+    () => [
+      { metric: 'Storyline', score: scorePercent(data?.thresholds.storyline) },
+      { metric: 'Continuity', score: scorePercent(data?.thresholds.continuity) },
+      { metric: 'Character', score: scorePercent(data?.thresholds.character_consistency) },
+      { metric: 'Canon', score: scorePercent(data?.thresholds.canon_compliance) },
+      { metric: 'Disagreement', score: scorePercent(data?.thresholds.max_disagreement) },
+    ],
+    [data]
+  );
+
+  // Runs already listed on the Runs tab, bucketed by status for the dither bars.
+  const runsByStatus = useMemo(() => {
+    const buckets = new Map<string, { status: string; generation: number; evaluation: number }>();
+    for (const item of timelineItems) {
+      const status = item.status || 'unknown';
+      const bucket = buckets.get(status) ?? { status, generation: 0, evaluation: 0 };
+      bucket[item.type] += 1;
+      buckets.set(status, bucket);
+    }
+    return [...buckets.values()];
+  }, [timelineItems]);
+
   const submitReview = useCallback(
     async (taskId: string, feedbackType: 'approve' | 'reject' | 'annotate', targetType: 'storyline' | 'scene' | 'shot' | 'character', targetId: string) => {
       if (!projectId) return;
@@ -349,6 +394,15 @@ const ProjectObservabilityPage = () => {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <RadarChart
+                      data={thresholdRadarData}
+                      config={thresholdRadarConfig}
+                      nameKey="metric"
+                      bloom={ditherBloom.marketing}
+                      className="h-52 w-full"
+                    >
+                      <Radar dataKey="score" />
+                    </RadarChart>
                     <ScoreBar label="Storyline" value={data?.thresholds.storyline} />
                     <ScoreBar label="Continuity" value={data?.thresholds.continuity} />
                     <ScoreBar label="Character consistency" value={data?.thresholds.character_consistency} />
@@ -370,6 +424,31 @@ const ProjectObservabilityPage = () => {
               {timelineItems.length === 0 ? (
                 <EmptyState icon={Activity} title="No runs yet" description="Generation and evaluation runs will appear here once the pipeline starts." />
               ) : (
+                <>
+                <Card className="border-white/[0.06] bg-white/[0.02]">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="flex items-center gap-2 text-sm font-medium text-white">
+                      <BarChart3 className="h-4 w-4 text-primary" /> Runs by status
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <BarChart
+                      data={runsByStatus}
+                      config={runsBarConfig}
+                      bloom={ditherBloom.marketing}
+                      className="h-56 w-full"
+                    >
+                      <Grid />
+                      <Bar dataKey="generation" />
+                      <Bar dataKey="evaluation" />
+                      <XAxis dataKey="status" />
+                      <YAxis />
+                      <Legend />
+                      <DitherTooltip labelKey="status" />
+                    </BarChart>
+                  </CardContent>
+                </Card>
+
                 <AnimatePresence mode="popLayout">
                   {timelineItems.map((item, i) => {
                     const color = getStatusColor(item.status);
@@ -395,6 +474,7 @@ const ProjectObservabilityPage = () => {
                     );
                   })}
                 </AnimatePresence>
+                </>
               )}
             </TabsContent>
 
