@@ -42,6 +42,8 @@ import { cn } from '@/lib/utils';
 import type { Project } from '@/components/home/ProjectCard';
 import { supabase } from '@/integrations/supabase/client';
 import { appRoutes } from '@/lib/routes';
+import { DitherGradient } from '@/components/dither-kit';
+import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
 
 type ViewMode = 'grid' | 'list';
 const HOME_NAV_VIEW_IDS = new Set(['all', 'aura', 'asset-store', 'ip-vault', 'shared', 'community']);
@@ -484,8 +486,15 @@ export default function Home() {
           </header>
 
           {/* Stats Row - Responsive grid */}
-          <div data-tour="stats-section" className="px-4 md:px-6 py-4 md:py-6 border-b border-orange-100 dark:border-[rgba(249,115,22,0.1)] bg-gradient-to-b from-orange-50/50 dark:from-[rgba(249,115,22,0.02)] to-transparent">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+          <div data-tour="stats-section" className="relative overflow-hidden px-4 md:px-6 py-4 md:py-6 border-b border-orange-100 dark:border-[rgba(249,115,22,0.1)] bg-gradient-to-b from-orange-50/50 dark:from-[rgba(249,115,22,0.02)] to-transparent">
+            <DitherGradient
+              from={ditherColors.primary}
+              direction="up"
+              bloom={ditherBloom.dashboard}
+              opacity={0.18}
+              className="pointer-events-none absolute inset-0"
+            />
+            <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               <StatCard 
                 icon={<FolderKanban className="w-5 h-5" />}
                 label="Total Projects"

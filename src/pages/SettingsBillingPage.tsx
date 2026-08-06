@@ -23,6 +23,12 @@ import { useCredits } from '@/hooks/useCredits';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { appRoutes } from '@/lib/routes';
+import { Bar, BarChart, type ChartConfig, XAxis } from '@/components/dither-kit';
+import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
+
+const creditsChartConfig: ChartConfig = {
+  credits: { label: 'Credits', color: ditherColors.primary },
+};
 
 /* ------------------------------------------------------------------ */
 /*  Fallback data (used when billing-catalog returns empty)            */
@@ -252,6 +258,15 @@ const SettingsBillingPage = () => {
     return { monthlyQuota, available, percentage };
   }, [wallet, availableCredits, plan]);
 
+  const creditsChartData = useMemo(
+    () => [
+      { label: 'Available', credits: Math.max(0, Math.ceil(walletSummary.available)) },
+      { label: 'Used', credits: Math.max(0, walletSummary.monthlyQuota - Math.ceil(walletSummary.available)) },
+      { label: 'Quota', credits: Math.max(0, walletSummary.monthlyQuota) },
+    ],
+    [walletSummary]
+  );
+
   const subscriptionPlanCode = subscription?.plan_code || plan?.plan_code || wallet?.plan_code || 'free';
   const renewDate = subscription?.current_period_end || wallet?.reset_at || null;
 
@@ -393,6 +408,15 @@ const SettingsBillingPage = () => {
               <span>{Math.ceil(walletSummary.available).toLocaleString()} available</span>
               <span>{walletSummary.monthlyQuota.toLocaleString()} monthly</span>
             </div>
+            <BarChart
+              data={creditsChartData}
+              config={creditsChartConfig}
+              bloom={ditherBloom.dashboard}
+              className="mt-4 h-28 w-full"
+            >
+              <Bar dataKey="credits" />
+              <XAxis dataKey="label" />
+            </BarChart>
             <Button
               className="mt-4 w-full bg-amber-500 text-zinc-950 hover:bg-amber-400 font-medium"
               onClick={() => setIsTopUpOpen(true)}
