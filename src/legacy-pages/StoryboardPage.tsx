@@ -1,8 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Plus, Loader2, AlertCircle, Film, Sparkles, CircleStop, Scissors } from 'lucide-react';
-import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { DitherGradient } from '@/components/dither-kit';
+import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppHeader from '@/components/AppHeader';
 import { SettingsPanel } from '@/components/studio/panels/SettingsPanel';
@@ -24,7 +27,7 @@ import { useProjectSettingsStore } from '@/store/projectSettingsStore';
 import { ConfirmGenerateDialog } from '@/components/ui/ConfirmGenerateDialog';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { PanelLeft } from 'lucide-react';
+import { PanelLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useRegisterVoiceActions } from '@/voice/VoiceAgentProvider';
 import type { VoiceActionRegistration, VoiceActionResult } from '@/voice/actions/registry';
 import { scrollVoiceTargetIntoView, useVoiceSelection } from '@/voice/VoiceSelectionContext';
@@ -55,6 +58,8 @@ const StoryboardPage = () => {
   const { selectedTargets, selectTarget, setExpandedShotId } = useVoiceSelection();
   const { saveAsset } = useSaveToProjectAssets(projectId);
   
+  const sidebarPanelRef = useRef<PanelImperativeHandle | null>(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [scenes, setScenes] = useState<SceneDetails[]>([]);
   const [projectDetails, setProjectDetails] = useState<ProjectDetails | null>(null);
   const [characters, setCharacters] = useState<CharacterDetails[]>([]);
@@ -801,9 +806,42 @@ const StoryboardPage = () => {
 
   const mainContent = (
     <div className="p-3 md:p-6 h-full overflow-y-auto relative">
+      <DitherGradient
+        from={ditherColors.primary}
+        direction="down"
+        bloom={ditherBloom.dashboard}
+        opacity={0.09}
+        className="pointer-events-none absolute inset-x-0 top-0 bottom-auto h-36 [mask-image:linear-gradient(to_bottom,black,transparent)]"
+      />
       {projectDetails && (
         <div className="mb-4 md:mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
+            {!isMobile && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label={isSidebarCollapsed ? 'Show scene details' : 'Hide scene details'}
+                    onClick={() => {
+                      const panel = sidebarPanelRef.current;
+                      if (!panel) return;
+                      if (panel.isCollapsed()) {
+                        panel.expand();
+                      } else {
+                        panel.collapse();
+                      }
+                    }}
+                    className="shrink-0 h-10 w-10 border-zinc-800 bg-[#141414] text-zinc-300 hover:bg-[#1a1a1a] hover:border-[rgba(249,115,22,0.25)]"
+                  >
+                    {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="glass-panel border-zinc-700">
+                  <p className="text-xs">{isSidebarCollapsed ? 'Show scene details' : 'Hide scene details'}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             {isMobile && (
               <Sheet>
                 <SheetTrigger asChild>
@@ -974,9 +1012,19 @@ const StoryboardPage = () => {
         <div className="flex-grow overflow-hidden">{mainContent}</div>
       ) : (
         <ResizablePanelGroup orientation="horizontal" className="flex-grow">
-          <ResizablePanel defaultSize={20} minSize={15} maxSize={30} className="h-full">
-            {sidebarNode}
+          <ResizablePanel
+            panelRef={sidebarPanelRef}
+            defaultSize={20}
+            minSize={15}
+            maxSize={30}
+            collapsible
+            collapsedSize={0}
+            onResize={(size) => setIsSidebarCollapsed(size.asPercentage === 0)}
+            className="h-full"
+          >
+            <div className="h-full overflow-hidden">{sidebarNode}</div>
           </ResizablePanel>
+          <ResizableHandle className="bg-white/[0.06] hover:bg-[rgba(249,115,22,0.35)] transition-colors" />
           <ResizablePanel defaultSize={80}>{mainContent}</ResizablePanel>
         </ResizablePanelGroup>
       )}

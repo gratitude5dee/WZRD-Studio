@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Loader2, UserPlus, Plus, FolderKanban, Activity, Image, Sparkles, Settings, HelpCircle, ChevronDown, ChevronRight, User, LogOut, Palette, Coins, Search } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
 import wzrdLogo from '@/assets/wzrd-logo.png';
 import { ProjectList } from '@/components/home/ProjectList';
@@ -58,7 +57,6 @@ export default function Home() {
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const onboarding = useOnboardingTour();
   const isDemo = isDemoModeEnabled();
-  const isMobile = useIsMobile();
 
   const [activeView, setActiveView] = useState('all');
   const [activeTab, setActiveTab] = useState<'all' | 'private' | 'public'>('all');
@@ -244,11 +242,11 @@ export default function Home() {
         />
 
         {/* Main Content */}
-        <motion.div 
-          className="flex-1 pb-20 md:pb-0"
-          animate={{ marginLeft: isMobile ? 0 : (isCollapsed ? 64 : 256) }}
-          transition={{ type: "spring", stiffness: 300, damping: 30 }}
-          initial={false}
+        <div
+          className={cn(
+            "flex-1 min-w-0 pb-20 md:pb-0 ml-0 transition-[margin-left] duration-300 ease-out",
+            !isCollapsed && "md:ml-64"
+          )}
         >
           {/* Mobile Header */}
           <MobileHeader onMenuClick={() => setIsMobileSidebarOpen(true)} />
@@ -492,8 +490,8 @@ export default function Home() {
               from={ditherColors.primary}
               direction="up"
               bloom={ditherBloom.dashboard}
-              opacity={0.18}
-              className="pointer-events-none absolute inset-0"
+              opacity={0.1}
+              className="pointer-events-none absolute inset-0 [mask-image:linear-gradient(to_top,rgba(0,0,0,0.85),transparent_85%)]"
             />
             <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               <StatCard 
@@ -610,7 +608,7 @@ export default function Home() {
               />
             )}
           </main>
-        </motion.div>
+        </div>
 
         {/* Mobile Bottom Navigation */}
         <MobileBottomNav
