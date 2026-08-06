@@ -83,11 +83,9 @@ export function PixelLayer({ variant = "wzrd", className, disabled = false }: Pi
         for (const pixel of pixels) {
           const elapsed = timestamp - pixel.start - pixel.delay;
           if (pixel.phase === "in") {
-            if (elapsed < 0) {
-              active = true;
-            } else if (pixel.size < pixel.maxSize) {
+            active = true;
+            if (elapsed >= 0 && pixel.size < pixel.maxSize) {
               pixel.size = Math.min(pixel.maxSize, pixel.size + pixel.maxSize * 0.08);
-              active = true;
             }
           } else if (pixel.phase === "out") {
             if (pixel.size > 0) {
@@ -167,7 +165,7 @@ export function PixelLayer({ variant = "wzrd", className, disabled = false }: Pi
         width: "100%",
         height: "100%",
         pointerEvents: "none",
-        zIndex: 0,
+        zIndex: -1,
       }}
     />
   );

@@ -193,7 +193,7 @@ export const ProjectCard = ({ project, onOpen, onDelete, onRename }: ProjectCard
         whileHover={{ y: -6, scale: 1.02 }}
         transition={{ duration: 0.2 }}
         className={cn(
-          'group relative rounded-2xl overflow-hidden cursor-pointer',
+          'group relative isolate rounded-2xl overflow-hidden cursor-pointer',
           'bg-surface-1 border border-border-default',
           'shadow-sm hover:shadow-xl',
           'transition-all duration-300 ease-out',
