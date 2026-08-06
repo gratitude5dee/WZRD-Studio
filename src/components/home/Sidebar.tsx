@@ -20,6 +20,9 @@ import {
   type SidebarNavItem,
   type SidebarNavNode,
 } from './navigation';
+import { FloatingNavPill, FloatingNavButton } from './FloatingNavPill';
+
+export { FloatingNavButton } from './FloatingNavPill';
 import {
   Tooltip,
   TooltipContent,
@@ -164,54 +167,6 @@ const ChildNavItem = memo(function ChildNavItem({
   );
 });
 
-export const FloatingNavButton = memo(function FloatingNavButton({
-  item,
-  isActive,
-  isChild = false,
-  onClick,
-}: {
-  item: SidebarNavItem;
-  isActive: boolean;
-  isChild?: boolean;
-  onClick: () => void;
-}) {
-  const Icon = item.icon;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          onClick={onClick}
-          aria-label={item.label}
-          className={cn(
-            'relative flex items-center justify-center rounded-lg transition-all duration-200',
-            isChild ? 'h-8 w-8' : 'h-10 w-10',
-            isActive
-              ? 'bg-white/10 text-[#f97316]'
-              : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300',
-          )}
-        >
-          {isActive && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full bg-[#f97316] shadow-[0_0_6px_rgba(249,115,22,0.4)]" />
-          )}
-          <Icon className={cn(isChild ? 'h-4 w-4' : 'h-[18px] w-[18px]')} />
-        </button>
-      </TooltipTrigger>
-      <TooltipContent side="right" sideOffset={8} className="z-[60]">
-        <span className="flex items-center gap-2">
-          {item.label}
-          {item.showBadge && (
-            <Badge variant="secondary" className="text-[9px] bg-[rgba(249,115,22,0.15)] text-[#f97316] border-[rgba(249,115,22,0.2)] px-1.5 py-0.5">
-              New
-            </Badge>
-          )}
-        </span>
-      </TooltipContent>
-    </Tooltip>
-  );
-});
-
 const NavGroupBlock = memo(function NavGroupBlock({
   group,
   activeView,
@@ -267,24 +222,6 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
   const { isGroupOpen, toggleGroup } = useNavGroupState(activeView);
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const navigate = useNavigate();
-  const [isFloatingVisible, setIsFloatingVisible] = useState(false);
-
-  // Hover-reveal for collapsed (floating) mode
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (isCollapsed) {
-      setIsFloatingVisible(e.clientX <= 80);
-    }
-  }, [isCollapsed]);
-
-  useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [handleMouseMove]);
-
-  // Reset floating visibility when expanding
-  useEffect(() => {
-    if (!isCollapsed) setIsFloatingVisible(false);
-  }, [isCollapsed]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -297,122 +234,23 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
   };
 
   const handlePrimaryNavClick = useCallback((item: SidebarNavItem) => {
-    if (item.isRoute) {
+    if (item.externalUrl) {
+      window.open(item.externalUrl, '_blank', 'noopener,noreferrer');
+    } else if (item.isRoute) {
       navigate(item.path ?? appRoutes.kanvas);
     } else {
       onViewChange(item.id);
     }
   }, [navigate, onViewChange]);
 
-  const handleFloatingNavClick = useCallback((node: SidebarNavNode) => {
-    if (isNavGroup(node)) {
-      toggleGroup(node.id);
-      return;
-    }
-    handlePrimaryNavClick(node);
-  }, [handlePrimaryNavClick, toggleGroup]);
-
   // ── Floating pill (collapsed mode) ──
   if (isCollapsed) {
     return (
-      <TooltipProvider delayDuration={200}>
-        {/* Invisible hover trigger zone */}
-        <div className="fixed left-0 top-[68px] bottom-0 w-[80px] z-[49] pointer-events-none" />
-
-        <aside
-          className={cn(
-            'fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 flex max-h-[calc(100vh-100px)] flex-col items-center py-3 rounded-2xl',
-            'bg-[#0A0A0A]/90 backdrop-blur-xl',
-            'shadow-[0_0_15px_rgba(249,115,22,0.15),0_0_30px_rgba(249,115,22,0.05),0_8px_32px_rgba(0,0,0,0.5)]',
-            'transition-all duration-300 ease-out',
-            isFloatingVisible ? 'w-14 opacity-100 translate-x-0' : 'w-3 opacity-0 -translate-x-2 pointer-events-none overflow-hidden',
-          )}
-          onMouseEnter={() => setIsFloatingVisible(true)}
-          onMouseLeave={() => setIsFloatingVisible(false)}
-        >
-          {/* Animated orange glow border */}
-          <ShineBorder
-            shineColor={["#f97316", "#d4a574"]}
-            borderWidth={1}
-            duration={8}
-          />
-
-          {/* Faint orange top-highlight */}
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-orange-500/5 to-transparent pointer-events-none" />
-          {/* Expand button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={() => setIsCollapsed(false)}
-                aria-label="Expand sidebar"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
-              >
-                <ChevronLeft className="h-[18px] w-[18px] rotate-180" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8} className="z-[60]">Expand sidebar</TooltipContent>
-          </Tooltip>
-
-          {/* Divider */}
-          <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
-
-          {/* Nav items */}
-          <nav className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto hide-scrollbar">
-            {FLOATING_NAV_ITEMS.map((entry) => {
-              if (entry.kind === 'divider') {
-                return <div key={entry.id} className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />;
-              }
-
-              const node = entry.node;
-              const group = isNavGroup(node) ? node : null;
-              const isOpen = group ? isGroupOpen(group.id) : false;
-
-              return (
-                <div key={node.id} className="flex shrink-0 flex-col items-center gap-1">
-                  <FloatingNavButton
-                    item={node}
-                    isActive={activeView === node.id}
-                    onClick={() => handleFloatingNavClick(node)}
-                  />
-                  {group && isOpen && group.children.map((child) => (
-                    <FloatingNavButton
-                      key={child.id}
-                      item={child}
-                      isActive={activeView === child.id}
-                      isChild
-                      onClick={() => handlePrimaryNavClick(child)}
-                    />
-                  ))}
-                </div>
-              );
-            })}
-          </nav>
-
-          {/* Divider */}
-          <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
-
-          {/* Logout */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={handleLogout}
-                aria-label="Logout"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
-              >
-                <LogOut className="h-[18px] w-[18px]" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={8} className="z-[60]">Logout</TooltipContent>
-          </Tooltip>
-
-          {/* Brand dot */}
-          <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center">
-            <div className="h-2 w-2 rounded-full bg-[#f97316]/60 shadow-[0_0_6px_rgba(249,115,22,0.3)]" />
-          </div>
-        </aside>
-      </TooltipProvider>
+      <FloatingNavPill
+        activeView={activeView}
+        onViewChange={onViewChange}
+        onExpand={() => setIsCollapsed(false)}
+      />
     );
   }
 

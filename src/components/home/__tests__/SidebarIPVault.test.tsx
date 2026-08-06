@@ -128,10 +128,15 @@ describe('home navigation structure', () => {
     expect(screen.getByTestId('location-path')).toHaveTextContent('/postz');
 
     // IP Management children are only rendered once the group is expanded.
-    expect(screen.queryByRole('button', { name: 'WTR' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'IP Vault' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'IP Management' }));
-    fireEvent.click(screen.getByRole('button', { name: 'WTR' }));
+    fireEvent.click(screen.getByRole('button', { name: 'IP Vault' }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/ip-vault');
+
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    fireEvent.click(screen.getByRole('button', { name: 'WTR' }));
+    expect(openSpy).toHaveBeenCalledWith('https://wtr.wzrd.tech', '_blank', 'noopener,noreferrer');
+    openSpy.mockRestore();
 
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/settings/billing');
@@ -216,8 +221,12 @@ describe('home navigation structure', () => {
 
     const thirdRender = renderMobileDrawer();
     fireEvent.click(screen.getByRole('button', { name: 'IP Management' }));
-    fireEvent.click(screen.getByRole('button', { name: 'WTR' }));
+    fireEvent.click(screen.getByRole('button', { name: 'IP Vault' }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/ip-vault');
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    fireEvent.click(screen.getByRole('button', { name: 'WTR' }));
+    expect(openSpy).toHaveBeenCalledWith('https://wtr.wzrd.tech', '_blank', 'noopener,noreferrer');
+    openSpy.mockRestore();
     thirdRender.unmount();
 
     renderMobileDrawer();

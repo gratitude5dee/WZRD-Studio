@@ -32,7 +32,9 @@ export const MobileSidebarDrawer = ({ isOpen, onClose, activeView, onViewChange 
   };
 
   const handleNavClick = (item: SidebarNavItem) => {
-    if (item.isRoute) {
+    if (item.externalUrl) {
+      window.open(item.externalUrl, '_blank', 'noopener,noreferrer');
+    } else if (item.isRoute) {
       navigate(item.path ?? appRoutes.kanvas);
     } else {
       onViewChange(item.id);

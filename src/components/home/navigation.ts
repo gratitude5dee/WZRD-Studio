@@ -27,6 +27,8 @@ export type SidebarNavItem = {
   icon: LucideIcon;
   isRoute?: boolean;
   path?: string;
+  /** Opens in a new tab instead of navigating in-app. */
+  externalUrl?: string;
   showBadge?: boolean;
 };
 
@@ -107,7 +109,8 @@ const IP_MANAGEMENT_GROUP: SidebarNavGroup = {
   collapsible: true,
   children: [
     { id: 'asset-store', label: 'Asset Store', icon: Images },
-    { id: 'ip-vault', label: 'WTR', icon: ShieldCheck, isRoute: true, path: appRoutes.ipVault },
+    { id: 'ip-vault', label: 'IP Vault', icon: ShieldCheck, isRoute: true, path: appRoutes.ipVault },
+    { id: 'wtr', label: 'WTR', icon: Globe, externalUrl: 'https://wtr.wzrd.tech' },
   ],
 };
 

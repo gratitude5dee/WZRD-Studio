@@ -27,6 +27,7 @@ import { useProjectSettingsStore } from '@/store/projectSettingsStore';
 import { ConfirmGenerateDialog } from '@/components/ui/ConfirmGenerateDialog';
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { FloatingNavPill } from '@/components/home/FloatingNavPill';
 import { PanelLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useRegisterVoiceActions } from '@/voice/VoiceAgentProvider';
 import type { VoiceActionRegistration, VoiceActionResult } from '@/voice/actions/registry';
@@ -1007,6 +1008,7 @@ const StoryboardPage = () => {
 
   return (
     <div className="flex h-screen flex-col bg-[#090909] text-white">
+      {!isMobile && <FloatingNavPill activeView="timeline" />}
       <AppHeader onOpenSettings={() => setIsSettingsPanelOpen(true)} />
       {isMobile ? (
         <div className="flex-grow overflow-hidden">{mainContent}</div>

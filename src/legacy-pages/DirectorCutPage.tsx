@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { appRoutes } from '@/lib/routes';
 import { DIRECTORS_CUT_CREDITS } from '@/lib/constants/credits';
 import { LocalAssemblyPanel } from '@/features/local-media/LocalAssemblyPanel';
+import { FloatingNavPill } from '@/components/home/FloatingNavPill';
 
 const StatCard = ({
   label,
@@ -193,6 +194,9 @@ const DirectorCutPage = () => {
 
   return (
     <div className="flex h-screen flex-col bg-[#0A0D16]">
+      <div className="hidden md:block">
+        <FloatingNavPill activeView="directors-cut" />
+      </div>
       <AppHeader />
       <div className="flex-1 overflow-y-auto px-6 py-8">
         <div className="mx-auto w-full max-w-5xl space-y-6">
