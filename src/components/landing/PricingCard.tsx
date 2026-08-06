@@ -66,7 +66,7 @@ export const PricingCard = ({
       )}
       
       <div className={cn(
-        "relative overflow-hidden glass-card p-6 rounded-xl shadow-lg flex flex-col h-full border",
+        "relative isolate overflow-hidden glass-card p-6 rounded-xl shadow-lg flex flex-col h-full border",
         popular ? "border-orange-500/50" : "border-white/10"
       )}>
         <PixelLayer variant="wzrd" />

@@ -48,6 +48,7 @@ export function PixelLayer({ variant = "wzrd", className, disabled = false }: Pi
     const { colors, gap } = VARIANT_COLORS[variant];
     let pixels: Pixel[] = [];
     let initialized = false;
+    let hovered = false;
     let width = 0;
     let height = 0;
 
@@ -83,11 +84,9 @@ export function PixelLayer({ variant = "wzrd", className, disabled = false }: Pi
         for (const pixel of pixels) {
           const elapsed = timestamp - pixel.start - pixel.delay;
           if (pixel.phase === "in") {
-            if (elapsed < 0) {
-              active = true;
-            } else if (pixel.size < pixel.maxSize) {
+            active = true;
+            if (elapsed >= 0 && pixel.size < pixel.maxSize) {
               pixel.size = Math.min(pixel.maxSize, pixel.size + pixel.maxSize * 0.08);
-              active = true;
             }
           } else if (pixel.phase === "out") {
             if (pixel.size > 0) {
@@ -110,11 +109,13 @@ export function PixelLayer({ variant = "wzrd", className, disabled = false }: Pi
     const unregister = registerRenderer(renderer);
 
     const handleEnter = () => {
+      hovered = true;
       if (!initialized) initField();
       setPhase("in");
       wakeEngine();
     };
     const handleLeave = () => {
+      hovered = false;
       if (!initialized) return;
       setPhase("out");
       wakeEngine();
@@ -123,7 +124,7 @@ export function PixelLayer({ variant = "wzrd", className, disabled = false }: Pi
     const handleResize = debounce(() => {
       if (!initialized) return;
       initField();
-      setPhase("in");
+      setPhase(hovered ? "in" : "out");
       wakeEngine();
     }, 150);
 
@@ -167,7 +168,7 @@ export function PixelLayer({ variant = "wzrd", className, disabled = false }: Pi
         width: "100%",
         height: "100%",
         pointerEvents: "none",
-        zIndex: 0,
+        zIndex: -1,
       }}
     />
   );
