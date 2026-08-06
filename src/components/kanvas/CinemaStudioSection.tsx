@@ -1,7 +1,7 @@
 import { useState, useCallback, type ElementType } from 'react';
 import {
   Sparkles, Search, Plus, ChevronLeft, ChevronRight,
-  ImageIcon, Video, Users, Shuffle, Loader2, Clapperboard,
+  ImageIcon, Video, Users, Shuffle, Clapperboard,
   Camera, Film, Music,
   Upload, Heart, Volume2, VolumeX,
 } from 'lucide-react';
@@ -13,6 +13,7 @@ import type { CharacterMention } from '@/types/character-creation';
 import { MentionDropdown } from '@/components/character-creation/MentionDropdown';
 import { useUserTier, sortModelsForTier } from "@/hooks/useUserTier";
 import { musicPolishAssets } from '@/lib/musicPolishAssets';
+import { KanvasSpinner } from '@/components/kanvas/primitives';
 type CinemaTab = 'image' | 'video' | 'cast';
 type FilterItem = 'genre' | 'budget' | 'era' | 'archetype' | 'identity' | 'appearance' | 'details' | 'outfit';
 
@@ -152,15 +153,14 @@ export default function CinemaStudioSection({
           onTogglePin={onMentionTogglePin}
           visible={showMentionDropdown}
         />
-        <div className="bg-[#1a1a1a] rounded-full px-4 py-2.5 flex items-center">
+        <div className="bg-kanvas-surface-2 rounded-full px-4 py-2.5 flex items-center">
           <input
             type="text"
             value={prompt}
             onChange={(e) => handlePromptInput(e.target.value)}
             onBlur={() => onCloseMentions?.()}
             placeholder={placeholder}
-            className="flex-1 bg-transparent border-none text-white placeholder-zinc-600 text-sm focus:outline-none min-w-0"
-            style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+            className="flex-1 bg-transparent border-none text-kanvas-text-primary placeholder-kanvas-text-faint text-sm focus:outline-none min-w-0 font-kanvas-display"
             onKeyDown={(e) => e.key === 'Enter' && !submitting && onGenerate()}
           />
         </div>
@@ -172,14 +172,14 @@ export default function CinemaStudioSection({
   function renderImageBar() {
     return (
       <div className="absolute bottom-8 left-0 right-0 z-30">
-        <div className="bg-[#0e0e0e]/95 backdrop-blur-2xl border-t border-white/[0.06] px-6 py-3">
+        <div className="bg-kanvas-surface-1/95 backdrop-blur-2xl border-t border-kanvas-border-subtle px-6 py-3">
           <div className="max-w-[1400px] mx-auto flex items-center gap-2.5">
             {/* Mode toggle */}
-            <div className="flex bg-[#1a1a1a] rounded-full p-0.5 flex-shrink-0">
+            <div className="flex bg-kanvas-surface-2 rounded-full p-0.5 flex-shrink-0">
               <button
                 onClick={() => setGenMode('image')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all ${
-                  genMode === 'image' ? 'bg-[#f97316] text-black' : 'text-zinc-500 hover:text-white'
+                  genMode === 'image' ? 'bg-kanvas-accent text-kanvas-accent-contrast' : 'text-kanvas-text-muted hover:text-kanvas-text-primary'
                 }`}
               >
                 <ImageIcon className="h-3 w-3" /> Image
@@ -187,7 +187,7 @@ export default function CinemaStudioSection({
               <button
                 onClick={() => setGenMode('video')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-bold transition-all ${
-                  genMode === 'video' ? 'bg-[#f97316] text-black' : 'text-zinc-500 hover:text-white'
+                  genMode === 'video' ? 'bg-kanvas-accent text-kanvas-accent-contrast' : 'text-kanvas-text-muted hover:text-kanvas-text-primary'
                 }`}
               >
                 <Video className="h-3 w-3" /> Video
@@ -195,7 +195,7 @@ export default function CinemaStudioSection({
             </div>
 
             {/* + button */}
-            <button className="w-9 h-9 rounded-full bg-[#1a1a1a] border border-white/[0.06] flex items-center justify-center text-zinc-500 hover:text-[#f97316] transition-colors flex-shrink-0">
+            <button className="w-9 h-9 rounded-full bg-kanvas-surface-2 border border-kanvas-border-subtle flex items-center justify-center text-kanvas-text-muted hover:text-kanvas-accent transition-colors flex-shrink-0">
               <Plus className="h-4 w-4" />
             </button>
 
@@ -203,50 +203,50 @@ export default function CinemaStudioSection({
             {renderPromptInput('Describe your scene — use @ to add characters & locations')}
 
             {/* Scenes */}
-            <button className="text-[10px] uppercase tracking-widest text-zinc-500 hover:text-white border border-white/[0.06] rounded-full px-3 py-2 transition-colors flex-shrink-0">
+            <button className="text-[10px] uppercase tracking-widest text-kanvas-text-muted hover:text-kanvas-text-primary border border-kanvas-border-subtle rounded-full px-3 py-2 transition-colors flex-shrink-0">
               Scenes
             </button>
 
             {/* Counter */}
-            <div className="flex items-center gap-1 text-zinc-500 flex-shrink-0 bg-[#1a1a1a] rounded-full px-2 py-1.5">
-              <button onClick={() => setScenes(Math.max(1, scenes - 1))} className="hover:text-white p-0.5"><ChevronLeft className="h-3 w-3" /></button>
-              <span className="text-[10px] font-bold text-white min-w-[24px] text-center">{scenes}/4</span>
-              <button onClick={() => setScenes(Math.min(4, scenes + 1))} className="hover:text-white p-0.5"><ChevronRight className="h-3 w-3" /></button>
+            <div className="flex items-center gap-1 text-kanvas-text-muted flex-shrink-0 bg-kanvas-surface-2 rounded-full px-2 py-1.5">
+              <button onClick={() => setScenes(Math.max(1, scenes - 1))} className="hover:text-kanvas-text-primary p-0.5"><ChevronLeft className="h-3 w-3" /></button>
+              <span className="text-[10px] font-bold text-kanvas-text-primary min-w-[24px] text-center">{scenes}/4</span>
+              <button onClick={() => setScenes(Math.min(4, scenes + 1))} className="hover:text-kanvas-text-primary p-0.5"><ChevronRight className="h-3 w-3" /></button>
             </div>
 
             {/* Aspect */}
-            <button className="text-[10px] uppercase tracking-widest text-zinc-400 border border-white/[0.06] rounded-full px-3 py-2 flex-shrink-0 hover:text-white transition-colors">{aspectRatio}</button>
+            <button className="text-[10px] uppercase tracking-widest text-kanvas-text-secondary border border-kanvas-border-subtle rounded-full px-3 py-2 flex-shrink-0 hover:text-kanvas-text-primary transition-colors">{aspectRatio}</button>
 
             {/* Quality */}
-            <button className="text-[10px] uppercase tracking-widest text-zinc-400 border border-white/[0.06] rounded-full px-3 py-2 flex-shrink-0 flex items-center gap-1 hover:text-white transition-colors">
+            <button className="text-[10px] uppercase tracking-widest text-kanvas-text-secondary border border-kanvas-border-subtle rounded-full px-3 py-2 flex-shrink-0 flex items-center gap-1 hover:text-kanvas-text-primary transition-colors">
               <Heart className="h-3 w-3" /> {quality}
             </button>
 
             {/* Characters & Locations card */}
-            <button className="bg-[#1a1a1a] border border-white/[0.06] rounded-xl px-4 py-2 flex items-center gap-3 hover:border-white/10 transition-colors flex-shrink-0">
+            <button className="bg-kanvas-surface-2 border border-kanvas-border-subtle rounded-kanvas-md px-4 py-2 flex items-center gap-3 hover:border-kanvas-border-default transition-colors flex-shrink-0">
               <div className="flex -space-x-2">
                 {avatars.slice(0, 3).map((a, i) => (
-                  <div key={i} className="w-6 h-6 rounded-full overflow-hidden border border-[#1a1a1a]">
+                  <div key={i} className="w-6 h-6 rounded-full overflow-hidden border border-kanvas-surface-2">
                     {a.src ? (
                       <img src={a.src} alt={a.name} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                        <Users className="h-3 w-3 text-zinc-600" />
+                      <div className="w-full h-full bg-kanvas-surface-3 flex items-center justify-center">
+                        <Users className="h-3 w-3 text-kanvas-text-faint" />
                       </div>
                     )}
                   </div>
                 ))}
               </div>
-              <span className="text-[10px] text-zinc-400 whitespace-nowrap">Characters and Locations</span>
+              <span className="text-[10px] text-kanvas-text-secondary whitespace-nowrap">Characters and Locations</span>
             </button>
 
             {/* Generate */}
             <button
               onClick={onGenerate}
               disabled={submitting || !prompt.trim()}
-              className="bg-[#f97316] text-black font-bold uppercase tracking-widest text-[11px] px-6 py-2.5 rounded-full flex items-center gap-2 hover:shadow-[0_0_25px_rgba(249,115,22,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              className="bg-kanvas-accent text-kanvas-accent-contrast font-bold uppercase tracking-widest text-[11px] px-6 py-2.5 rounded-full flex items-center gap-2 hover:shadow-[0_0_25px_hsl(var(--kanvas-accent)/0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {submitting ? <KanvasSpinner className="text-kanvas-accent-contrast" /> : <Sparkles className="h-4 w-4" />}
               GENERATE ✦ {creditCost}
             </button>
           </div>
@@ -259,7 +259,7 @@ export default function CinemaStudioSection({
   function renderVideoBar() {
     return (
       <div className="absolute bottom-8 left-0 right-0 z-30">
-        <div className="bg-[#0e0e0e]/95 backdrop-blur-2xl border-t border-white/[0.06] px-6 py-3">
+        <div className="bg-kanvas-surface-1/95 backdrop-blur-2xl border-t border-kanvas-border-subtle px-6 py-3">
           <div className="max-w-[1400px] mx-auto space-y-2.5">
             {/* Row 1: Prompt with @mention */}
             <div className="flex items-center gap-2.5">
@@ -268,45 +268,45 @@ export default function CinemaStudioSection({
 
             {/* Row 2: Controls */}
             <div className="flex items-center gap-2">
-              <button className="text-[10px] uppercase tracking-widest text-zinc-400 border border-white/[0.06] rounded-full px-3 py-1.5 flex-shrink-0 hover:text-white transition-colors">
+              <button className="text-[10px] uppercase tracking-widest text-kanvas-text-secondary border border-kanvas-border-subtle rounded-full px-3 py-1.5 flex-shrink-0 hover:text-kanvas-text-primary transition-colors">
                 Single shot
               </button>
-              <button className="text-[10px] uppercase tracking-widest text-zinc-400 border border-white/[0.06] rounded-full px-3 py-1.5 flex-shrink-0 hover:text-white transition-colors">{aspectRatio}</button>
-              <button className="text-[10px] uppercase tracking-widest text-zinc-400 border border-white/[0.06] rounded-full px-3 py-1.5 flex-shrink-0 hover:text-white transition-colors">{resolution}</button>
-              <button className="text-[10px] uppercase tracking-widest text-zinc-400 border border-white/[0.06] rounded-full px-3 py-1.5 flex-shrink-0 flex items-center gap-1.5 hover:text-white transition-colors">
+              <button className="text-[10px] uppercase tracking-widest text-kanvas-text-secondary border border-kanvas-border-subtle rounded-full px-3 py-1.5 flex-shrink-0 hover:text-kanvas-text-primary transition-colors">{aspectRatio}</button>
+              <button className="text-[10px] uppercase tracking-widest text-kanvas-text-secondary border border-kanvas-border-subtle rounded-full px-3 py-1.5 flex-shrink-0 hover:text-kanvas-text-primary transition-colors">{resolution}</button>
+              <button className="text-[10px] uppercase tracking-widest text-kanvas-text-secondary border border-kanvas-border-subtle rounded-full px-3 py-1.5 flex-shrink-0 flex items-center gap-1.5 hover:text-kanvas-text-primary transition-colors">
                 <div className="w-2 h-2 rounded-full bg-purple-400" />
                 General
               </button>
               <button
                 onClick={() => setSoundOn(!soundOn)}
-                className={`text-[10px] uppercase tracking-widest border border-white/[0.06] rounded-full px-3 py-1.5 flex-shrink-0 flex items-center gap-1.5 transition-colors ${
-                  soundOn ? 'text-[#f97316]' : 'text-zinc-500'
+                className={`text-[10px] uppercase tracking-widest border border-kanvas-border-subtle rounded-full px-3 py-1.5 flex-shrink-0 flex items-center gap-1.5 transition-colors ${
+                  soundOn ? 'text-kanvas-accent' : 'text-kanvas-text-muted'
                 }`}
               >
                 {soundOn ? <Volume2 className="h-3 w-3" /> : <VolumeX className="h-3 w-3" />}
                 Sound {soundOn ? 'On' : 'Off'}
               </button>
-              <div className="flex items-center gap-1 text-zinc-500 flex-shrink-0 bg-[#1a1a1a] rounded-full px-2 py-1">
-                <button onClick={() => setScenes(Math.max(1, scenes - 1))} className="hover:text-white p-0.5"><ChevronLeft className="h-3 w-3" /></button>
-                <span className="text-[10px] font-bold text-white min-w-[24px] text-center">{scenes}/4</span>
-                <button onClick={() => setScenes(Math.min(4, scenes + 1))} className="hover:text-white p-0.5"><ChevronRight className="h-3 w-3" /></button>
+              <div className="flex items-center gap-1 text-kanvas-text-muted flex-shrink-0 bg-kanvas-surface-2 rounded-full px-2 py-1">
+                <button onClick={() => setScenes(Math.max(1, scenes - 1))} className="hover:text-kanvas-text-primary p-0.5"><ChevronLeft className="h-3 w-3" /></button>
+                <span className="text-[10px] font-bold text-kanvas-text-primary min-w-[24px] text-center">{scenes}/4</span>
+                <button onClick={() => setScenes(Math.min(4, scenes + 1))} className="hover:text-kanvas-text-primary p-0.5"><ChevronRight className="h-3 w-3" /></button>
               </div>
 
               <div className="flex-1" />
 
-              <button className="text-[10px] uppercase tracking-widest text-zinc-400 border border-dashed border-white/10 rounded-full px-4 py-1.5 flex items-center gap-1.5 hover:text-white hover:border-white/20 transition-colors flex-shrink-0">
+              <button className="text-[10px] uppercase tracking-widest text-kanvas-text-secondary border border-dashed border-kanvas-border-default rounded-full px-4 py-1.5 flex items-center gap-1.5 hover:text-kanvas-text-primary hover:border-kanvas-border-strong transition-colors flex-shrink-0">
                 <Plus className="h-3 w-3" /> Start Frame
               </button>
-              <button className="text-[10px] uppercase tracking-widest text-zinc-400 border border-dashed border-white/10 rounded-full px-4 py-1.5 flex items-center gap-1.5 hover:text-white hover:border-white/20 transition-colors flex-shrink-0">
+              <button className="text-[10px] uppercase tracking-widest text-kanvas-text-secondary border border-dashed border-kanvas-border-default rounded-full px-4 py-1.5 flex items-center gap-1.5 hover:text-kanvas-text-primary hover:border-kanvas-border-strong transition-colors flex-shrink-0">
                 <Plus className="h-3 w-3" /> End Frame
               </button>
 
               <button
                 onClick={onGenerate}
                 disabled={submitting || !prompt.trim()}
-                className="bg-[#f97316] text-black font-bold uppercase tracking-widest text-[11px] px-6 py-2 rounded-full flex items-center gap-2 hover:shadow-[0_0_25px_rgba(249,115,22,0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                className="bg-kanvas-accent text-kanvas-accent-contrast font-bold uppercase tracking-widest text-[11px] px-6 py-2 rounded-full flex items-center gap-2 hover:shadow-[0_0_25px_hsl(var(--kanvas-accent)/0.3)] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
               >
-                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                {submitting ? <KanvasSpinner className="text-kanvas-accent-contrast" /> : <Sparkles className="h-4 w-4" />}
                 GENERATE ✦ {creditCost}
               </button>
             </div>
@@ -327,51 +327,51 @@ export default function CinemaStudioSection({
           loading="lazy"
           decoding="async"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-[#090909]/90 to-[#090909] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-kanvas-bg/90 to-kanvas-bg pointer-events-none" />
         <div className="relative z-10 text-center max-w-3xl px-8">
           <p className="text-[10px] uppercase tracking-[0.3em] text-cyan-200/70 font-bold mb-4">PREMIUM MUSIC VIDEO STUDIO</p>
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight leading-[1.1] mb-6" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h1 className="text-5xl md:text-6xl font-black font-kanvas-display tracking-tight leading-[1.1] mb-6">
             <span className="bg-gradient-to-r from-cyan-200 via-white to-orange-200 bg-clip-text text-transparent">
               Build the treatment
             </span>
             <br />
-            <span className="text-white">before the camera rolls.</span>
+            <span className="text-kanvas-text-primary">before the camera rolls.</span>
           </h1>
-          <p className="text-zinc-500 text-sm mb-10 max-w-lg mx-auto">
+          <p className="text-kanvas-text-muted text-sm mb-10 max-w-lg mx-auto">
             Define fictional artists, sets, camera language, and visual motifs with production-grade stills.
           </p>
 
           {/* Character Avatars — real blueprints or fallback */}
           <div className="flex justify-center gap-3 mb-8">
             {avatars.slice(0, 4).map((a, i) => (
-              <div key={i} className="w-14 h-14 rounded-full border-2 border-white/10 overflow-hidden hover:border-[#f97316]/40 transition-colors cursor-pointer" title={a.name}>
+              <div key={i} className="w-14 h-14 rounded-full border-2 border-kanvas-border-default overflow-hidden hover:border-kanvas-accent-edge transition-colors cursor-pointer" title={a.name}>
                 {a.src ? (
                   <img src={a.src} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
-                  <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-zinc-600" />
+                  <div className="w-full h-full bg-kanvas-surface-3 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-kanvas-text-faint" />
                   </div>
                 )}
               </div>
             ))}
-            <button className="w-14 h-14 rounded-full border-2 border-dashed border-white/10 flex items-center justify-center text-zinc-500 hover:border-[#f97316]/30 hover:text-[#f97316] transition-colors">
+            <button className="w-14 h-14 rounded-full border-2 border-dashed border-kanvas-border-default flex items-center justify-center text-kanvas-text-muted hover:border-kanvas-accent-edge hover:text-kanvas-accent transition-colors">
               <Plus className="h-5 w-5" />
             </button>
           </div>
 
           {/* Quick action cards */}
           <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-            <div className="bg-[#1a1a1a]/90 border border-white/[0.06] rounded-lg p-5 text-left hover:border-white/10 transition-colors cursor-pointer backdrop-blur">
-              <Users className="h-5 w-5 text-[#f97316] mb-3" />
-              <p className="text-xs font-bold text-white mb-1">Artist Anchors</p>
-              <p className="text-[10px] text-zinc-500 leading-relaxed">Keep performers consistent across scenes</p>
-              <button className="mt-3 text-[9px] uppercase tracking-widest text-[#f97316] font-bold">+ Create Anchor</button>
+            <div className="bg-kanvas-surface-2/90 border border-kanvas-border-subtle rounded-kanvas-sm p-5 text-left hover:border-kanvas-border-default transition-colors cursor-pointer backdrop-blur">
+              <Users className="h-5 w-5 text-kanvas-accent mb-3" />
+              <p className="text-xs font-bold text-kanvas-text-primary mb-1">Artist Anchors</p>
+              <p className="text-[10px] text-kanvas-text-muted leading-relaxed">Keep performers consistent across scenes</p>
+              <button className="mt-3 text-[9px] uppercase tracking-widest text-kanvas-accent font-bold">+ Create Anchor</button>
             </div>
-            <div className="bg-[#1a1a1a]/90 border border-white/[0.06] rounded-lg p-5 text-left hover:border-white/10 transition-colors cursor-pointer backdrop-blur">
-              <Film className="h-5 w-5 text-[#f97316] mb-3" />
-              <p className="text-xs font-bold text-white mb-1">Stage Worlds</p>
-              <p className="text-[10px] text-zinc-500 leading-relaxed">Lock soundstages, streets, and lyric plates</p>
-              <button className="mt-3 text-[9px] uppercase tracking-widest text-[#f97316] font-bold">+ Create Location</button>
+            <div className="bg-kanvas-surface-2/90 border border-kanvas-border-subtle rounded-kanvas-sm p-5 text-left hover:border-kanvas-border-default transition-colors cursor-pointer backdrop-blur">
+              <Film className="h-5 w-5 text-kanvas-accent mb-3" />
+              <p className="text-xs font-bold text-kanvas-text-primary mb-1">Stage Worlds</p>
+              <p className="text-[10px] text-kanvas-text-muted leading-relaxed">Lock soundstages, streets, and lyric plates</p>
+              <button className="mt-3 text-[9px] uppercase tracking-widest text-kanvas-accent font-bold">+ Create Location</button>
             </div>
           </div>
         </div>
@@ -385,7 +385,7 @@ export default function CinemaStudioSection({
       <div className="flex-1 overflow-y-auto pb-40 px-8 pt-8" style={{ scrollbarWidth: 'none' }}>
         <div className="max-w-[1200px] mx-auto">
           {/* Camera Presets */}
-          <p className="text-[9px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-4">Camera Movement</p>
+          <p className="text-[9px] uppercase tracking-[0.2em] text-kanvas-text-muted font-bold mb-4">Camera Movement</p>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-3 mb-10">
             {CAMERA_PRESETS.map((preset) => {
               const isActive = cameraPreset === preset.label;
@@ -393,16 +393,16 @@ export default function CinemaStudioSection({
                 <button
                   key={preset.label}
                   onClick={() => setCameraPreset(preset.label)}
-                  className={`rounded-lg overflow-hidden border transition-all ${
-                    isActive ? 'border-[#f97316]/40 shadow-[0_0_20px_rgba(249,115,22,0.1)]' : 'border-white/[0.06] hover:border-white/10'
+                  className={`rounded-kanvas-sm overflow-hidden border transition-all ${
+                    isActive ? 'border-kanvas-accent-edge shadow-[0_0_20px_hsl(var(--kanvas-accent)/0.1)]' : 'border-kanvas-border-subtle hover:border-kanvas-border-default'
                   }`}
                 >
-                  <div className="aspect-video bg-gradient-to-br from-zinc-800 to-zinc-900 flex items-center justify-center">
-                    <Camera className={`h-6 w-6 ${isActive ? 'text-[#f97316]' : 'text-zinc-600'}`} />
+                  <div className="aspect-video bg-gradient-to-br from-kanvas-surface-3 to-kanvas-surface-1 flex items-center justify-center">
+                    <Camera className={`h-6 w-6 ${isActive ? 'text-kanvas-accent' : 'text-kanvas-text-faint'}`} />
                   </div>
-                  <div className="bg-[#131313] px-3 py-2">
-                    <p className={`text-[10px] font-bold ${isActive ? 'text-white' : 'text-zinc-400'}`}>{preset.label}</p>
-                    <p className="text-[9px] text-zinc-600">{preset.desc}</p>
+                  <div className="bg-kanvas-surface-1 px-3 py-2">
+                    <p className={`text-[10px] font-bold ${isActive ? 'text-kanvas-text-primary' : 'text-kanvas-text-secondary'}`}>{preset.label}</p>
+                    <p className="text-[9px] text-kanvas-text-faint">{preset.desc}</p>
                   </div>
                 </button>
               );
@@ -410,42 +410,42 @@ export default function CinemaStudioSection({
           </div>
 
           {/* Director Panel */}
-          <p className="text-[9px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-4">Director Panel</p>
-          <div className="bg-[#131313] border border-white/[0.06] rounded-lg p-6">
+          <p className="text-[9px] uppercase tracking-[0.2em] text-kanvas-text-muted font-bold mb-4">Director Panel</p>
+          <div className="bg-kanvas-surface-1 border border-kanvas-border-subtle rounded-kanvas-sm p-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-zinc-500 mb-3">Characters</p>
+                <p className="text-[9px] uppercase tracking-widest text-kanvas-text-muted mb-3">Characters</p>
                 <div className="flex gap-2">
                   {avatars.slice(0, 2).map((a, i) => (
-                    <div key={i} className="w-10 h-10 rounded-full overflow-hidden border border-white/10">
+                    <div key={i} className="w-10 h-10 rounded-full overflow-hidden border border-kanvas-border-default">
                       {a.src ? (
                         <img src={a.src} alt={a.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                          <Users className="h-4 w-4 text-zinc-600" />
+                        <div className="w-full h-full bg-kanvas-surface-3 flex items-center justify-center">
+                          <Users className="h-4 w-4 text-kanvas-text-faint" />
                         </div>
                       )}
                     </div>
                   ))}
-                  <button className="w-10 h-10 rounded-full border border-dashed border-white/10 flex items-center justify-center text-zinc-600">
+                  <button className="w-10 h-10 rounded-full border border-dashed border-kanvas-border-default flex items-center justify-center text-kanvas-text-faint">
                     <Plus className="h-3 w-3" />
                   </button>
                 </div>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-zinc-500 mb-3">Movement</p>
-                <div className="bg-[#1a1a1a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white">Auto</div>
+                <p className="text-[9px] uppercase tracking-widest text-kanvas-text-muted mb-3">Movement</p>
+                <div className="bg-kanvas-surface-2 border border-kanvas-border-subtle rounded-kanvas-sm px-3 py-2 text-xs text-kanvas-text-primary">Auto</div>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-zinc-500 mb-3">Speed Ramp</p>
-                <div className="bg-[#1a1a1a] border border-white/[0.06] rounded-lg px-3 py-2 text-xs text-white">Auto</div>
+                <p className="text-[9px] uppercase tracking-widest text-kanvas-text-muted mb-3">Speed Ramp</p>
+                <div className="bg-kanvas-surface-2 border border-kanvas-border-subtle rounded-kanvas-sm px-3 py-2 text-xs text-kanvas-text-primary">Auto</div>
               </div>
               <div>
-                <p className="text-[9px] uppercase tracking-widest text-zinc-500 mb-3">Duration</p>
+                <p className="text-[9px] uppercase tracking-widest text-kanvas-text-muted mb-3">Duration</p>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setDuration(Math.max(5, duration - 1))} className="text-zinc-500 hover:text-white"><ChevronLeft className="h-3 w-3" /></button>
-                  <span className="text-sm font-bold text-white">{duration}s</span>
-                  <button onClick={() => setDuration(Math.min(30, duration + 1))} className="text-zinc-500 hover:text-white"><ChevronRight className="h-3 w-3" /></button>
+                  <button onClick={() => setDuration(Math.max(5, duration - 1))} className="text-kanvas-text-muted hover:text-kanvas-text-primary"><ChevronLeft className="h-3 w-3" /></button>
+                  <span className="text-sm font-bold text-kanvas-text-primary">{duration}s</span>
+                  <button onClick={() => setDuration(Math.min(30, duration + 1))} className="text-kanvas-text-muted hover:text-kanvas-text-primary"><ChevronRight className="h-3 w-3" /></button>
                 </div>
               </div>
             </div>
@@ -472,26 +472,26 @@ export default function CinemaStudioSection({
             {avatars.slice(0, 4).map((a, i) => (
               <div
                 key={i}
-                className="w-20 h-20 rounded-full border-2 border-white/10 overflow-hidden shadow-[0_0_30px_rgba(255,51,153,0.1)]"
+                className="w-20 h-20 rounded-full border-2 border-kanvas-border-default overflow-hidden shadow-[0_0_30px_hsl(var(--kanvas-accent)/0.1)]"
                 style={{ transform: `translateY(${i % 2 === 0 ? -10 : 10}px)` }}
                 title={a.name}
               >
                 {a.src ? (
                   <img src={a.src} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
                 ) : (
-                  <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                    <Users className="h-6 w-6 text-zinc-600" />
+                  <div className="w-full h-full bg-kanvas-surface-3 flex items-center justify-center">
+                    <Users className="h-6 w-6 text-kanvas-text-faint" />
                   </div>
                 )}
               </div>
             ))}
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-black tracking-tight leading-[1.1] text-center mb-3 text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h1 className="text-4xl md:text-5xl font-black font-kanvas-display tracking-tight leading-[1.1] text-center mb-3 text-kanvas-text-primary">
             Craft Your Dream Movie Cast
           </h1>
 
-          <p className="text-zinc-500 text-sm max-w-lg text-center mb-10">
+          <p className="text-kanvas-text-muted text-sm max-w-lg text-center mb-10">
             Select options of your cast to generate
           </p>
 
@@ -505,8 +505,8 @@ export default function CinemaStudioSection({
                   onClick={() => setActiveFilter(pill.id)}
                   className={`px-6 py-2.5 rounded-full text-[10px] uppercase tracking-[0.15em] font-bold transition-all ${
                     isActive
-                      ? 'bg-[#f97316] text-black'
-                      : 'border border-white/10 text-zinc-400 hover:bg-white/[0.03] hover:text-white'
+                      ? 'bg-kanvas-accent text-kanvas-accent-contrast'
+                      : 'border border-kanvas-border-default text-kanvas-text-secondary hover:bg-kanvas-surface-2 hover:text-kanvas-text-primary'
                   }`}
                 >
                   {pill.label}
@@ -516,13 +516,13 @@ export default function CinemaStudioSection({
           </div>
 
           {/* Genre Carousel */}
-          <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 font-bold mb-4 self-start max-w-[1400px] w-full mx-auto">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-kanvas-text-muted font-bold mb-4 self-start max-w-[1400px] w-full mx-auto">
             Select the genre of your movie
           </p>
           <div className="w-full max-w-[1400px] relative">
             <button
               onClick={() => scrollCarousel('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 rounded-full bg-[#1a1a1a] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 rounded-full bg-kanvas-surface-2 border border-kanvas-border-subtle flex items-center justify-center text-kanvas-text-secondary hover:text-kanvas-text-primary transition-colors"
             >
               <ChevronLeft className="h-5 w-5" />
             </button>
@@ -535,7 +535,7 @@ export default function CinemaStudioSection({
                 {GENRE_CARDS.map((card) => (
                   <div
                     key={card.title}
-                    className="flex-none w-[200px] h-[280px] rounded-lg bg-[#131313] relative overflow-hidden group cursor-pointer border border-white/[0.06]"
+                    className="flex-none w-[200px] h-[280px] rounded-kanvas-sm bg-kanvas-surface-1 relative overflow-hidden group cursor-pointer border border-kanvas-border-subtle"
                   >
                     <img
                       src={card.image}
@@ -546,10 +546,10 @@ export default function CinemaStudioSection({
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                     <div className="absolute bottom-4 left-4 right-4">
-                      <p className="text-2xl text-white font-bold tracking-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                      <p className="text-2xl text-kanvas-text-primary font-bold font-kanvas-display tracking-tight">
                         {card.title}
                       </p>
-                      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-zinc-300">
+                      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.16em] text-kanvas-text-secondary">
                         {card.style}
                       </p>
                     </div>
@@ -563,7 +563,7 @@ export default function CinemaStudioSection({
 
             <button
               onClick={() => scrollCarousel('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 rounded-full bg-[#1a1a1a] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+              className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 rounded-full bg-kanvas-surface-2 border border-kanvas-border-subtle flex items-center justify-center text-kanvas-text-secondary hover:text-kanvas-text-primary transition-colors"
             >
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -571,15 +571,15 @@ export default function CinemaStudioSection({
 
           {/* Bottom controls */}
           <div className="flex items-center gap-4 mt-10">
-            <button className="w-12 h-12 rounded-full bg-[#1a1a1a] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+            <button className="w-12 h-12 rounded-full bg-kanvas-surface-2 border border-kanvas-border-subtle flex items-center justify-center text-kanvas-text-secondary hover:text-kanvas-text-primary transition-colors">
               <Shuffle className="h-5 w-5" />
             </button>
             <button
               onClick={onGenerate}
               disabled={submitting}
-              className="bg-[#f97316] text-black font-bold uppercase tracking-widest text-[11px] px-10 py-3.5 rounded-full flex items-center gap-2 hover:shadow-[0_0_25px_rgba(249,115,22,0.3)] transition-all disabled:opacity-40"
+              className="bg-kanvas-accent text-kanvas-accent-contrast font-bold uppercase tracking-widest text-[11px] px-10 py-3.5 rounded-full flex items-center gap-2 hover:shadow-[0_0_25px_hsl(var(--kanvas-accent)/0.3)] transition-all disabled:opacity-40"
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {submitting ? <KanvasSpinner className="text-kanvas-accent-contrast" /> : <Sparkles className="h-4 w-4" />}
               Generate ✦
             </button>
           </div>
@@ -589,14 +589,14 @@ export default function CinemaStudioSection({
   }
 
   return (
-    <div className="fixed inset-0 top-[68px] bg-[#090909] z-20 overflow-hidden flex flex-col pb-16 md:pb-0" style={{ scrollbarWidth: 'none' }}>
+    <div className="fixed inset-0 top-[68px] bg-kanvas-bg z-20 overflow-hidden flex flex-col pb-16 md:pb-0" style={{ scrollbarWidth: 'none' }}>
       <style>{`::-webkit-scrollbar { display: none; }`}</style>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-full relative">
         {/* Tab Nav — Centered Pill Slider */}
         <div className="flex items-center justify-center px-4 md:px-6 pt-3 md:pt-4 pb-2 flex-shrink-0">
-          <div className="inline-flex bg-[#1A1A1A] rounded-full p-1 border border-white/[0.06] overflow-x-auto scrollbar-hide">
+          <div className="inline-flex bg-kanvas-surface-2 rounded-full p-1 border border-kanvas-border-subtle overflow-x-auto scrollbar-hide">
             {TAB_LIST.map(({ id, label, Icon }) => {
               const isActive = activeTab === id;
               return (
@@ -605,8 +605,8 @@ export default function CinemaStudioSection({
                   onClick={() => setActiveTab(id)}
                   className={`flex items-center gap-1.5 px-3 md:px-5 py-2 rounded-full text-xs md:text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                     isActive
-                      ? 'bg-white/10 text-[#f97316] shadow-[inset_0_0_12px_rgba(249,115,22,0.06)]'
-                      : 'text-zinc-500 hover:text-zinc-300'
+                      ? 'bg-white/10 text-kanvas-accent shadow-[inset_0_0_12px_hsl(var(--kanvas-accent)/0.06)]'
+                      : 'text-kanvas-text-muted hover:text-kanvas-text-secondary'
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -622,8 +622,7 @@ export default function CinemaStudioSection({
               <select
                 value={currentModel?.id ?? ''}
                 onChange={(e) => onModelChange(e.target.value)}
-                className="bg-[#1a1a1a] border border-white/[0.06] rounded-full px-3 py-1.5 text-[10px] text-white focus:outline-none appearance-none cursor-pointer"
-                style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                className="bg-kanvas-surface-2 border border-kanvas-border-subtle rounded-full px-3 py-1.5 text-[10px] text-kanvas-text-primary focus:outline-none appearance-none cursor-pointer font-kanvas-display"
               >
                 {sortModelsForTier(models, tier).map((m) => {
                   const isGMI = m.id.toLowerCase().startsWith("gmi/");
@@ -649,23 +648,23 @@ export default function CinemaStudioSection({
       </div>
 
       {/* Right Icon Rail */}
-      <div className="w-[56px] flex-shrink-0 h-full bg-[#0a0a0a] border-l border-white/[0.06] flex flex-col items-center py-4 gap-3">
-        <button className="w-10 h-10 rounded-xl bg-[#1a1a1a] flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+      <div className="w-[56px] flex-shrink-0 h-full bg-kanvas-bg border-l border-kanvas-border-subtle flex flex-col items-center py-4 gap-3">
+        <button className="w-10 h-10 rounded-kanvas-md bg-kanvas-surface-2 flex items-center justify-center text-kanvas-text-muted hover:text-kanvas-text-primary transition-colors">
           <Search className="h-4 w-4" />
         </button>
-        <div className="h-px w-6 bg-white/[0.06]" />
+        <div className="h-px w-6 bg-kanvas-surface-3" />
         {avatars.slice(0, 3).map((a, i) => (
-          <div key={i} className="w-9 h-9 rounded-full overflow-hidden border border-white/10 hover:border-[#f97316]/40 transition-colors cursor-pointer" title={a.name}>
+          <div key={i} className="w-9 h-9 rounded-full overflow-hidden border border-kanvas-border-default hover:border-kanvas-accent-edge transition-colors cursor-pointer" title={a.name}>
             {a.src ? (
               <img src={a.src} alt={a.name} className="w-full h-full object-cover" loading="lazy" />
             ) : (
-              <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                <Users className="h-3.5 w-3.5 text-zinc-600" />
+              <div className="w-full h-full bg-kanvas-surface-3 flex items-center justify-center">
+                <Users className="h-3.5 w-3.5 text-kanvas-text-faint" />
               </div>
             )}
           </div>
         ))}
-        <button className="w-9 h-9 rounded-full border border-dashed border-white/10 flex items-center justify-center text-zinc-600 hover:border-[#f97316]/30 transition-colors">
+        <button className="w-9 h-9 rounded-full border border-dashed border-kanvas-border-default flex items-center justify-center text-kanvas-text-faint hover:border-kanvas-accent-edge transition-colors">
           <Plus className="h-3 w-3" />
         </button>
 
@@ -675,8 +674,8 @@ export default function CinemaStudioSection({
         <div className="flex flex-col items-center gap-1.5 mb-2">
           <button
             onClick={() => setGenMode('image')}
-            className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
-              genMode === 'image' ? 'bg-[#f97316] text-black' : 'bg-[#1a1a1a] text-zinc-500 hover:text-white'
+            className={`w-10 h-10 rounded-kanvas-md flex flex-col items-center justify-center gap-0.5 transition-all ${
+              genMode === 'image' ? 'bg-kanvas-accent text-kanvas-accent-contrast' : 'bg-kanvas-surface-2 text-kanvas-text-muted hover:text-kanvas-text-primary'
             }`}
           >
             <ImageIcon className="h-3.5 w-3.5" />
@@ -684,8 +683,8 @@ export default function CinemaStudioSection({
           </button>
           <button
             onClick={() => setGenMode('video')}
-            className={`w-10 h-10 rounded-xl flex flex-col items-center justify-center gap-0.5 transition-all ${
-              genMode === 'video' ? 'bg-[#f97316] text-black' : 'bg-[#1a1a1a] text-zinc-500 hover:text-white'
+            className={`w-10 h-10 rounded-kanvas-md flex flex-col items-center justify-center gap-0.5 transition-all ${
+              genMode === 'video' ? 'bg-kanvas-accent text-kanvas-accent-contrast' : 'bg-kanvas-surface-2 text-kanvas-text-muted hover:text-kanvas-text-primary'
             }`}
           >
             <Video className="h-3.5 w-3.5" />

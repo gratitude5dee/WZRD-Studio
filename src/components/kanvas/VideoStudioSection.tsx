@@ -9,7 +9,6 @@ import {
   ImagePlus,
   Info,
   Lightbulb,
-  Loader2,
   Play,
   Plus,
   SlidersHorizontal,
@@ -18,7 +17,12 @@ import {
   Video,
   Zap,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import {
+  KanvasButton,
+  KanvasChip,
+  KanvasProgress,
+  KanvasSpinner,
+} from "@/components/kanvas/primitives";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
@@ -74,14 +78,14 @@ function Dropzone({
   const ref = useRef<HTMLInputElement>(null);
   return (
     <div className="space-y-2">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">{label}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-kanvas-text-muted">{label}</p>
       <button
         type="button"
         onClick={() => ref.current?.click()}
         className={cn(
-          "group relative flex w-full flex-col items-center justify-center overflow-hidden rounded-xl border-2 border-dashed transition-colors",
+          "group relative flex w-full flex-col items-center justify-center overflow-hidden rounded-kanvas-md border-2 border-dashed transition-colors",
           aspectClass ?? "aspect-square",
-          previewUrl ? "border-[#f97316]/30 bg-black/40" : "border-zinc-800 bg-black/30 hover:border-[#f97316]/50"
+          previewUrl ? "border-kanvas-accent-edge bg-black/40" : "border-kanvas-border-default bg-black/30 hover:border-kanvas-accent-edge"
         )}
       >
         {previewUrl && previewType === "video" ? (
@@ -95,11 +99,11 @@ function Dropzone({
         ) : previewUrl ? (
           <img src={previewUrl} alt={label} className="absolute inset-0 h-full w-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" decoding="async" />
         ) : uploading ? (
-          <Loader2 className="h-6 w-6 animate-spin text-[#f97316]" />
+          <KanvasSpinner className="h-6 w-6 text-kanvas-accent" />
         ) : (
           <>
-            <Icon className="mb-2 h-6 w-6 text-zinc-600 group-hover:text-[#f97316] transition-colors" />
-            <span className="text-[10px] uppercase tracking-widest text-zinc-600 group-hover:text-zinc-400 transition-colors">{hint}</span>
+            <Icon className="mb-2 h-6 w-6 text-kanvas-text-faint group-hover:text-kanvas-accent transition-colors" />
+            <span className="text-[10px] uppercase tracking-widest text-kanvas-text-faint group-hover:text-kanvas-text-secondary transition-colors">{hint}</span>
           </>
         )}
       </button>
@@ -110,16 +114,13 @@ function Dropzone({
 
 function Pill({ value, active, onClick }: { value: string; active: boolean; onClick: () => void }) {
   return (
-    <button
-      type="button"
+    <KanvasChip
+      active={active}
       onClick={onClick}
-      className={cn(
-        "rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all",
-        active ? "bg-[#f97316] text-black shadow-[0_0_20px_rgba(249,115,22,0.2)]" : "bg-zinc-800/80 text-zinc-500 hover:bg-zinc-700/80 hover:text-zinc-300"
-      )}
+      className={cn(active && "shadow-[0_0_20px_rgba(249,115,22,0.2)]")}
     >
       {value}
-    </button>
+    </KanvasChip>
   );
 }
 
@@ -139,7 +140,7 @@ function FeatureCard({
   const color = accent === "accent" ? accentText : "text-kanvas-text-primary";
   const bg = accent === "accent" ? cn(accentSoft, accentEdge) : "bg-white/10 border-kanvas-border-strong";
   return (
-    <div className="group relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-2xl bg-[#1a1919] p-6 transition-all hover:bg-[#222]">
+    <div className="group relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-kanvas-lg bg-kanvas-surface-2 p-6 transition-all hover:bg-kanvas-surface-3">
       <img
         src={asset.src}
         alt={asset.alt}
@@ -154,7 +155,7 @@ function FeatureCard({
         </div>
         <div>
           <p className={cn("text-sm font-bold uppercase tracking-widest", color)}>{title}</p>
-          <p className="mt-1 text-xs text-zinc-500">{description}</p>
+          <p className="mt-1 text-xs text-kanvas-text-muted">{description}</p>
         </div>
       </div>
     </div>
@@ -241,7 +242,7 @@ export function VideoStudioSection({
   const subNav = (
     <div className="space-y-3">
       <div className="flex justify-center">
-        <div className="inline-flex items-center bg-[#1A1A1A] rounded-full p-1 border border-white/[0.06]">
+        <div className="inline-flex items-center bg-kanvas-surface-2 rounded-full p-1 border border-kanvas-border-subtle">
           {(["create", "edit", "motion"] as const).map((tab) => (
             <button
               key={tab}
@@ -249,8 +250,8 @@ export function VideoStudioSection({
               className={cn(
                 "px-5 py-2 rounded-full text-sm font-medium transition-all duration-200",
                 activeTab === tab
-                  ? "bg-white/10 text-[#f97316] shadow-[inset_0_0_12px_rgba(249,115,22,0.06)]"
-                  : "text-zinc-500 hover:text-zinc-300"
+                  ? "bg-kanvas-surface-3 text-kanvas-accent shadow-[inset_0_0_12px_rgba(249,115,22,0.06)]"
+                  : "text-kanvas-text-muted hover:text-kanvas-text-secondary"
               )}
             >
               {tab === "create" ? "Create Video" : tab === "edit" ? "Edit Video" : "Motion Control"}
@@ -258,11 +259,11 @@ export function VideoStudioSection({
           ))}
         </div>
       </div>
-      <div className="flex items-center gap-4 text-[11px] text-zinc-600">
-        <button className="flex items-center gap-1.5 hover:text-zinc-400 transition-colors">
+      <div className="flex items-center gap-4 text-[11px] text-kanvas-text-faint">
+        <button className="flex items-center gap-1.5 hover:text-kanvas-text-secondary transition-colors">
           <History className="h-3 w-3" /> History
         </button>
-        <button className="flex items-center gap-1.5 hover:text-zinc-400 transition-colors">
+        <button className="flex items-center gap-1.5 hover:text-kanvas-text-secondary transition-colors">
           <Info className="h-3 w-3" /> How it works
         </button>
       </div>
@@ -270,12 +271,12 @@ export function VideoStudioSection({
   );
 
   const wzrdTip = (tip: string) => (
-    <div className="rounded-xl border-l-2 border-l-[#f97316] bg-[#1a1919] p-5">
+    <div className="rounded-kanvas-md border-l-2 border-l-kanvas-accent bg-kanvas-surface-2 p-5">
       <div className="flex items-start gap-3">
-        <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-[#f97316]" />
+        <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-kanvas-accent" />
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-[#f97316]">WZRD Tip</p>
-          <p className="mt-1 text-xs leading-relaxed text-zinc-500">{tip}</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-kanvas-accent">WZRD Tip</p>
+          <p className="mt-1 text-xs leading-relaxed text-kanvas-text-muted">{tip}</p>
         </div>
       </div>
     </div>
@@ -289,7 +290,7 @@ export function VideoStudioSection({
       {/* Left Sidebar ~280px */}
       <div className="w-full md:w-[280px] md:shrink-0 space-y-5">
         {/* Preset thumbnail */}
-        <div className="relative rounded-2xl overflow-hidden bg-[#1a1919] aspect-video">
+        <div className="relative rounded-kanvas-lg overflow-hidden bg-kanvas-surface-2 aspect-video">
           <img
             src={musicPolishAssets.cinema.neonStreet.src}
             alt={musicPolishAssets.cinema.neonStreet.alt}
@@ -299,8 +300,8 @@ export function VideoStudioSection({
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
           <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Active Preset</span>
-            <button className="px-2 py-1 rounded-full bg-white/10 text-[9px] font-bold text-white hover:bg-white/20 transition-colors">Change</button>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-kanvas-text-secondary">Active Preset</span>
+            <button className="px-2 py-1 rounded-full bg-kanvas-surface-3 text-[9px] font-bold text-kanvas-text-primary hover:bg-kanvas-surface-3/80 transition-colors">Change</button>
           </div>
         </div>
 
@@ -325,12 +326,12 @@ export function VideoStudioSection({
         </div>
 
         {/* Multi-shot */}
-        <div className="flex items-center justify-between rounded-xl bg-[#1a1919] px-4 py-2.5">
+        <div className="flex items-center justify-between rounded-kanvas-md bg-kanvas-surface-2 px-4 py-2.5">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-zinc-400">Multi-shot</span>
-            <Info className="h-3 w-3 text-zinc-600" />
+            <span className="text-xs font-semibold text-kanvas-text-secondary">Multi-shot</span>
+            <Info className="h-3 w-3 text-kanvas-text-faint" />
           </div>
-          <Switch checked={multiShot} onCheckedChange={setMultiShot} className="data-[state=checked]:bg-[#f97316]" />
+          <Switch checked={multiShot} onCheckedChange={setMultiShot} className="data-[state=checked]:bg-kanvas-accent" />
         </div>
 
         {/* Prompt */}
@@ -346,7 +347,7 @@ export function VideoStudioSection({
             onChange={(e) => handlePromptInput(e.currentTarget.value)}
             onBlur={() => window.setTimeout(() => onCloseMentions?.(), 150)}
             placeholder="Describe the motion, camera movement, or scene... Use @ to add saved blueprints."
-            className="min-h-[100px] resize-none rounded-xl border-white/10 bg-[#1a1919] px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus-visible:ring-[#f97316]/30"
+            className="min-h-[100px] resize-none rounded-kanvas-md border-kanvas-border-default bg-kanvas-surface-2 px-4 py-3 text-sm text-kanvas-text-primary placeholder:text-kanvas-text-faint focus-visible:ring-kanvas-accent-edge"
           />
         </div>
 
@@ -354,7 +355,7 @@ export function VideoStudioSection({
         <div className="flex gap-2">
           <Pill value={`Enhance ${enhanceOn ? "on" : "off"}`} active={enhanceOn} onClick={() => setEnhanceOn(!enhanceOn)} />
           <Pill value={`Sound ${soundOn ? "on" : "off"}`} active={soundOn} onClick={() => { setSoundOn(!soundOn); onSettingsChange("generate_audio", !soundOn); }} />
-          <button className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-zinc-800/80 text-zinc-500 hover:text-zinc-300 transition-colors">
+          <button className="rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest bg-kanvas-surface-3 text-kanvas-text-muted hover:text-kanvas-text-secondary transition-colors">
             Elements
           </button>
         </div>
@@ -363,32 +364,32 @@ export function VideoStudioSection({
         <div className="relative">
           <button
             onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-            className="w-full flex items-center justify-between rounded-xl bg-[#1a1919] px-4 py-3 transition-colors hover:bg-[#222]"
+            className="w-full flex items-center justify-between rounded-kanvas-md bg-kanvas-surface-2 px-4 py-3 transition-colors hover:bg-kanvas-surface-3"
           >
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Model</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-kanvas-text-muted">Model</span>
             <span className="flex items-center gap-2">
-              <span className="text-xs font-bold text-[#f97316]">{currentModel?.name ?? "Loading…"}</span>
-              <ChevronDown className="h-3 w-3 text-zinc-500" />
+              <span className="text-xs font-bold text-kanvas-accent">{currentModel?.name ?? "Loading…"}</span>
+              <ChevronDown className="h-3 w-3 text-kanvas-text-muted" />
             </span>
           </button>
           {modelDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 max-h-[300px] overflow-y-auto rounded-xl bg-[#131313] border border-white/10 shadow-2xl z-50" style={{ scrollbarWidth: "none" }}>
+            <div className="absolute top-full left-0 right-0 mt-1 max-h-[300px] overflow-y-auto rounded-kanvas-md bg-kanvas-surface-1 border border-kanvas-border-default shadow-2xl z-50" style={{ scrollbarWidth: "none" }}>
               {sortModelsForTier(models, tier).map((m) => (
                 <button
                   key={m.id}
                   onClick={() => { onModelChange(m.id); setModelDropdownOpen(false); }}
                   className={cn(
                     "w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors",
-                    m.id === currentModel?.id ? "bg-[#f97316]/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                    m.id === currentModel?.id ? "bg-kanvas-accent-soft text-kanvas-text-primary" : "text-kanvas-text-secondary hover:bg-white/5 hover:text-kanvas-text-primary"
                   )}
                 >
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{m.name}</span>
                     {m.id.startsWith("gmi/") && isFree && (
-                      <span className="px-2 py-0.5 rounded-full bg-[#f97316]/20 text-[9px] font-bold text-[#f97316] uppercase">GMI</span>
+                      <span className="px-2 py-0.5 rounded-full bg-kanvas-accent-soft text-[9px] font-bold text-kanvas-accent uppercase">GMI</span>
                     )}
                   </div>
-                  <span className="text-[10px] text-zinc-600">✦ {m.credits}</span>
+                  <span className="text-[10px] text-kanvas-text-faint">✦ {m.credits}</span>
                 </button>
               ))}
             </div>
@@ -407,23 +408,24 @@ export function VideoStudioSection({
         </div>
 
         {/* Generate */}
-        <Button
+        <KanvasButton
           onClick={onGenerate}
-          disabled={submitting}
-          className="w-full rounded-full bg-[#f97316] py-5 text-sm font-extrabold uppercase tracking-widest text-black shadow-[0_0_30px_rgba(249,115,22,0.3)] hover:bg-[#fb923c] hover:shadow-[0_0_40px_rgba(249,115,22,0.4)] disabled:opacity-50"
+          busy={submitting}
+          fullWidth
+          icon={<Zap className="h-4 w-4" />}
+          className="py-5 text-sm font-extrabold shadow-[0_0_30px_rgba(249,115,22,0.3)] hover:shadow-[0_0_40px_rgba(249,115,22,0.4)]"
         >
-          {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
           {submitting ? "Generating…" : `Generate ✦ ${currentModel?.credits ?? 20}`}
-        </Button>
+        </KanvasButton>
       </div>
 
       {/* Main Content */}
       <div className="min-w-0 flex-1 space-y-10">
         <div>
-          <h1 className="text-3xl md:text-5xl font-bold tracking-tighter text-white lg:text-6xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            MAKE VIDEOS IN <em className="not-italic text-[#f97316]">ONE CLICK</em>
+          <h1 className="font-kanvas-display text-3xl md:text-5xl font-bold tracking-tighter text-kanvas-text-primary lg:text-6xl">
+            MAKE VIDEOS IN <em className="not-italic text-kanvas-accent">ONE CLICK</em>
           </h1>
-          <p className="mt-4 max-w-2xl text-base text-zinc-400">
+          <p className="mt-4 max-w-2xl text-base text-kanvas-text-secondary">
             250+ presets for camera control, framing, and high-quality VFX
           </p>
         </div>
@@ -437,21 +439,21 @@ export function VideoStudioSection({
 
         {/* Active job */}
         {selectedJob && (
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+          <div className="overflow-hidden rounded-kanvas-lg border border-kanvas-border-default bg-black/40">
             {previewUrl && selectedJob.resultPayload?.mediaType === "video" ? (
               <video src={previewUrl} controls autoPlay loop muted playsInline preload="metadata" poster={selectedJob.resultPayload?.thumbnailUrl ?? undefined} className="aspect-video w-full bg-black object-cover" />
             ) : previewUrl ? (
               <img src={previewUrl} alt="Output" className="aspect-video w-full object-cover" decoding="async" />
             ) : isJobActive(selectedJob) ? (
               <div className="flex aspect-video flex-col items-center justify-center gap-4">
-                <Loader2 className="h-10 w-10 animate-spin text-[#f97316]" />
-                <p className="text-sm font-semibold text-white">Generating…</p>
-                <p className="text-xs text-zinc-500">{selectedJob.progress ?? 0}% complete</p>
+                <KanvasSpinner className="h-10 w-10 text-kanvas-accent" />
+                <p className="text-sm font-semibold text-kanvas-text-primary">Generating…</p>
+                <p className="text-xs text-kanvas-text-muted">{selectedJob.progress ?? 0}% complete</p>
               </div>
             ) : selectedJob.status === "failed" ? (
               <div className="flex aspect-video flex-col items-center justify-center gap-3">
                 <p className="text-lg font-semibold text-rose-300">Generation Failed</p>
-                <p className="max-w-md text-center text-sm text-zinc-500">{selectedJob.errorMessage}</p>
+                <p className="max-w-md text-center text-sm text-kanvas-text-muted">{selectedJob.errorMessage}</p>
               </div>
             ) : null}
           </div>
@@ -459,7 +461,7 @@ export function VideoStudioSection({
 
         {/* Preset Gallery */}
         <div className="space-y-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-500">Preset Gallery</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-kanvas-text-muted">Preset Gallery</p>
           {/* Model tabs scrollbar */}
           <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
             {MODEL_TABS.map((tab) => (
@@ -469,8 +471,8 @@ export function VideoStudioSection({
                 className={cn(
                   "shrink-0 rounded-full px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap",
                   activeModelTab === tab
-                    ? "bg-[#f97316] text-black"
-                    : "bg-[#1a1919] text-zinc-500 hover:text-zinc-300"
+                    ? "bg-kanvas-accent text-kanvas-accent-contrast"
+                    : "bg-kanvas-surface-2 text-kanvas-text-muted hover:text-kanvas-text-secondary"
                 )}
               >
                 {tab}
@@ -486,8 +488,8 @@ export function VideoStudioSection({
                 className={cn(
                   "rounded-full px-3 py-1 text-[9px] font-bold uppercase tracking-widest transition-all",
                   activeFilter === f
-                    ? "bg-white/10 text-white border border-white/20"
-                    : "text-zinc-600 hover:text-zinc-400"
+                    ? "border border-kanvas-border-strong bg-kanvas-surface-3 text-kanvas-text-primary"
+                    : "text-kanvas-text-faint hover:text-kanvas-text-secondary"
                 )}
               >
                 {f}
@@ -496,7 +498,7 @@ export function VideoStudioSection({
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {PRESET_GALLERY.map((preset, i) => (
-              <div key={preset.title} className="group relative aspect-video rounded-xl bg-[#1a1919] overflow-hidden cursor-pointer border border-white/5 hover:border-[#f97316]/30 transition-colors">
+              <div key={preset.title} className="group relative aspect-video rounded-kanvas-md bg-kanvas-surface-2 overflow-hidden cursor-pointer border border-kanvas-border-subtle hover:border-kanvas-accent-edge transition-colors">
                 <img
                   src={preset.asset.src}
                   alt={preset.asset.alt}
@@ -507,12 +509,12 @@ export function VideoStudioSection({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 {i === 0 && (
                   <div className="absolute top-2 left-2">
-                    <span className="px-2 py-0.5 rounded-full bg-[#f97316] text-[8px] font-bold text-black uppercase">Top Choice</span>
+                    <span className="px-2 py-0.5 rounded-full bg-kanvas-accent text-[8px] font-bold text-kanvas-accent-contrast uppercase">Top Choice</span>
                   </div>
                 )}
                 <div className="absolute bottom-2 left-2">
-                  <p className="text-[8px] font-bold uppercase tracking-widest text-[#f97316]">{preset.category}</p>
-                  <p className="text-[9px] font-bold text-zinc-300 uppercase">{preset.title}</p>
+                  <p className="text-[8px] font-bold uppercase tracking-widest text-kanvas-accent">{preset.category}</p>
+                  <p className="text-[9px] font-bold text-kanvas-text-secondary uppercase">{preset.title}</p>
                 </div>
               </div>
             ))}
@@ -523,15 +525,15 @@ export function VideoStudioSection({
         {recentResults.length > 0 && (
           <div className="space-y-4">
             <div className="flex items-end justify-between">
-              <p className="text-sm font-semibold text-white">Recent Creations</p>
-              <button className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-[#f97316] transition-colors">View All →</button>
+              <p className="text-sm font-semibold text-kanvas-text-primary">Recent Creations</p>
+              <button className="text-[10px] font-bold uppercase tracking-widest text-kanvas-text-muted hover:text-kanvas-accent transition-colors">View All →</button>
             </div>
             <div className="grid grid-cols-4 gap-4">
               {recentResults.map((job) => {
                 const url = getJobPrimaryUrl(job);
                 if (!url) return null;
                 return (
-                  <div key={job.id} className="group relative aspect-[9/16] overflow-hidden rounded-xl bg-[#1a1919]">
+                  <div key={job.id} className="group relative aspect-[9/16] overflow-hidden rounded-kanvas-md bg-kanvas-surface-2">
                     {job.resultPayload?.mediaType === "video" ? (
                       <video src={url} muted playsInline preload="metadata" poster={job.resultPayload?.thumbnailUrl ?? undefined} className="h-full w-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" />
                     ) : (
@@ -540,7 +542,7 @@ export function VideoStudioSection({
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                     <div className="absolute right-2 top-2">
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm">
-                        <Play className="h-3 w-3 text-[#f97316]" />
+                        <Play className="h-3 w-3 text-kanvas-accent" />
                       </div>
                     </div>
                   </div>
@@ -562,20 +564,20 @@ export function VideoStudioSection({
     <div className="flex gap-8">
       <div className="w-[300px] shrink-0 space-y-5">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+          <h2 className="font-kanvas-display text-2xl font-bold tracking-tight text-kanvas-text-primary">
             Edit Video
           </h2>
-          <p className="mt-1 text-xs text-zinc-500">Refine and manipulate cinematic shots with AI.</p>
+          <p className="mt-1 text-xs text-kanvas-text-muted">Refine and manipulate cinematic shots with AI.</p>
         </div>
 
         <Dropzone label="Primary Video Source" hint="Upload MP4, MOV (3-10s)" icon={Upload} uploading={uploading} onUpload={(f) => void onUpload(f, "image")} accept="video/*,image/*" aspectClass="aspect-video" />
 
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Images & Elements (up to 4)</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-kanvas-text-muted">Images & Elements (up to 4)</p>
           <div className="flex gap-3">
             {[0, 1, 2, 3].map((i) => (
-              <button key={i} className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-zinc-800 bg-black/30 hover:border-[#f97316]/50 transition-colors">
-                <Plus className="h-4 w-4 text-zinc-600" />
+              <button key={i} className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-kanvas-border-default bg-black/30 hover:border-kanvas-accent-edge transition-colors">
+                <Plus className="h-4 w-4 text-kanvas-text-faint" />
               </button>
             ))}
           </div>
@@ -593,55 +595,62 @@ export function VideoStudioSection({
             onChange={(e) => handlePromptInput(e.currentTarget.value)}
             onBlur={() => window.setTimeout(() => onCloseMentions?.(), 150)}
             placeholder="Describe the change you want... Use @ to add saved blueprints."
-            className="min-h-[100px] resize-none rounded-xl border-white/10 bg-[#1a1919] px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus-visible:ring-[#f97316]/30"
+            className="min-h-[100px] resize-none rounded-kanvas-md border-kanvas-border-default bg-kanvas-surface-2 px-4 py-3 text-sm text-kanvas-text-primary placeholder:text-kanvas-text-faint focus-visible:ring-kanvas-accent-edge"
           />
         </div>
 
-        <div className="flex items-center justify-between rounded-xl bg-[#1a1919] px-4 py-2.5">
-          <span className="text-xs font-semibold text-zinc-400">Auto Settings</span>
-          <Switch checked={editAutoSettings} onCheckedChange={setEditAutoSettings} className="data-[state=checked]:bg-[#f97316]" />
+        <div className="flex items-center justify-between rounded-kanvas-md bg-kanvas-surface-2 px-4 py-2.5">
+          <span className="text-xs font-semibold text-kanvas-text-secondary">Auto Settings</span>
+          <Switch checked={editAutoSettings} onCheckedChange={setEditAutoSettings} className="data-[state=checked]:bg-kanvas-accent" />
         </div>
 
-        <div className="space-y-2 rounded-xl bg-[#131313] p-4">
+        <div className="space-y-2 rounded-kanvas-md bg-kanvas-surface-1 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Model</span>
-            <span className="text-xs font-bold text-[#f97316]">Kling O1 Edit</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-kanvas-text-muted">Model</span>
+            <span className="text-xs font-bold text-kanvas-accent">Kling O1 Edit</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Quality</span>
-            <span className="text-xs font-bold text-zinc-300">720p</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-kanvas-text-muted">Quality</span>
+            <span className="text-xs font-bold text-kanvas-text-secondary">720p</span>
           </div>
         </div>
 
-        <Button onClick={onGenerate} disabled={submitting} className="w-full rounded-full bg-[#f97316] py-5 text-sm font-extrabold uppercase tracking-widest text-black shadow-[0_0_30px_rgba(249,115,22,0.3)] hover:bg-[#fb923c] disabled:opacity-50">
-          {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+        <KanvasButton
+          onClick={onGenerate}
+          busy={submitting}
+          fullWidth
+          icon={<Zap className="h-4 w-4" />}
+          className="py-5 text-sm font-extrabold shadow-[0_0_30px_rgba(249,115,22,0.3)]"
+        >
           {submitting ? "Processing…" : "Generate ✦ 28"}
-        </Button>
+        </KanvasButton>
       </div>
 
       <div className="min-w-0 flex-1 space-y-8">
-        <div className="overflow-hidden rounded-2xl border border-white/5 bg-black/40">
+        <div className="overflow-hidden rounded-kanvas-lg border border-kanvas-border-subtle bg-black/40">
           {previewUrl ? (
             <video src={previewUrl} controls autoPlay loop muted playsInline preload="metadata" className="aspect-video w-full bg-black object-cover" />
           ) : (
             <div className="flex aspect-video flex-col items-center justify-center gap-4">
-              <Eye className="h-12 w-12 text-zinc-800" />
-              <p className="text-4xl font-bold tracking-tighter text-zinc-800/50" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>PREVIEW MODE</p>
-              <p className="text-xs text-zinc-700">Upload a video source and describe your edit</p>
+              <Eye className="h-12 w-12 text-kanvas-text-faint" />
+              <p className="font-kanvas-display text-4xl font-bold tracking-tighter text-kanvas-text-faint/50">PREVIEW MODE</p>
+              <p className="text-xs text-kanvas-text-faint">Upload a video source and describe your edit</p>
             </div>
           )}
         </div>
         {selectedJob && isJobActive(selectedJob) && (
-          <div className="rounded-2xl border border-white/5 bg-[#131313] p-6">
+          <div className="rounded-kanvas-lg border border-kanvas-border-subtle bg-kanvas-surface-1 p-6">
             <div className="flex items-center gap-4">
-              <Loader2 className="h-6 w-6 animate-spin text-[#f97316]" />
+              <KanvasSpinner className="h-6 w-6 text-kanvas-accent" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-white">Processing edit…</p>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
-                  <div className="h-full rounded-full bg-[#f97316] transition-all duration-500" style={{ width: `${selectedJob.progress ?? 0}%` }} />
-                </div>
+                <p className="text-sm font-semibold text-kanvas-text-primary">Processing edit…</p>
+                <KanvasProgress
+                  className="mt-2 h-1.5"
+                  label="Job progress"
+                  value={selectedJob.progress ?? 0}
+                />
               </div>
-              <span className="text-xs font-bold text-zinc-500">{selectedJob.progress ?? 0}%</span>
+              <span className="text-xs font-bold text-kanvas-text-muted">{selectedJob.progress ?? 0}%</span>
             </div>
           </div>
         )}
@@ -657,23 +666,23 @@ export function VideoStudioSection({
     <div className="flex gap-8">
       <div className="min-w-0 flex-1 space-y-10">
         <div>
-          <h1 className="text-5xl font-bold tracking-tighter text-white lg:text-6xl" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            RECREATE ANY <em className="not-italic text-[#f97316]">MOTION</em><br />WITH YOUR IMAGE
+          <h1 className="font-kanvas-display text-5xl font-bold tracking-tighter text-kanvas-text-primary lg:text-6xl">
+            RECREATE ANY <em className="not-italic text-kanvas-accent">MOTION</em><br />WITH YOUR IMAGE
           </h1>
-          <p className="mt-4 max-w-2xl text-sm text-zinc-500">Our neural animation engine analyzes reference motion and re-creates it with your character or scene.</p>
+          <p className="mt-4 max-w-2xl text-sm text-kanvas-text-muted">Our neural animation engine analyzes reference motion and re-creates it with your character or scene.</p>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-end justify-between">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-zinc-500">Motion Library</p>
-              <div className="mt-2 h-1 w-24 bg-[#f97316]" />
+              <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-kanvas-text-muted">Motion Library</p>
+              <div className="mt-2 h-1 w-24 bg-kanvas-accent" />
             </div>
-            <button className="text-[10px] font-bold uppercase tracking-widest text-[#f97316] hover:opacity-80 transition-opacity">View All →</button>
+            <button className="text-[10px] font-bold uppercase tracking-widest text-kanvas-accent hover:opacity-80 transition-opacity">View All →</button>
           </div>
           <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
             {MOTION_LIBRARY.map((item) => (
-              <div key={item.id} className="group relative aspect-[9/16] w-40 shrink-0 cursor-pointer overflow-hidden rounded-xl bg-[#1a1919] hover:ring-2 hover:ring-[#f97316]/30 transition-all">
+              <div key={item.id} className="group relative aspect-[9/16] w-40 shrink-0 cursor-pointer overflow-hidden rounded-kanvas-md bg-kanvas-surface-2 hover:ring-2 hover:ring-kanvas-accent-edge transition-all">
                 <img
                   src={item.asset.src}
                   alt={item.asset.alt}
@@ -683,11 +692,11 @@ export function VideoStudioSection({
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
                 <div className="absolute bottom-3 left-3 right-3 space-y-1">
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-600">{item.category}</p>
-                  <p className="text-xs font-bold text-[#f97316]">{item.title}</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-kanvas-text-faint">{item.category}</p>
+                  <p className="text-xs font-bold text-kanvas-accent">{item.title}</p>
                 </div>
                 <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="flex h-7 w-14 items-center justify-center gap-1 rounded-full bg-[#f97316] text-black">
+                  <div className="flex h-7 w-14 items-center justify-center gap-1 rounded-full bg-kanvas-accent text-kanvas-accent-contrast">
                     <Play className="h-3 w-3" />
                     <span className="text-[8px] font-extrabold uppercase">Play</span>
                   </div>
@@ -698,14 +707,16 @@ export function VideoStudioSection({
         </div>
 
         {selectedJob && isJobActive(selectedJob) && (
-          <div className="rounded-2xl border border-white/5 bg-[#131313] p-6">
+          <div className="rounded-kanvas-lg border border-kanvas-border-subtle bg-kanvas-surface-1 p-6">
             <div className="flex items-center gap-4">
-              <Loader2 className="h-6 w-6 animate-spin text-[#f97316]" />
+              <KanvasSpinner className="h-6 w-6 text-kanvas-accent" />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-white">Generating motion…</p>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-zinc-800">
-                  <div className="h-full rounded-full bg-[#f97316] transition-all duration-500" style={{ width: `${selectedJob.progress ?? 0}%` }} />
-                </div>
+                <p className="text-sm font-semibold text-kanvas-text-primary">Generating motion…</p>
+                <KanvasProgress
+                  className="mt-2 h-1.5"
+                  label="Job progress"
+                  value={selectedJob.progress ?? 0}
+                />
               </div>
             </div>
           </div>
@@ -717,13 +728,13 @@ export function VideoStudioSection({
         <Dropzone label="Add Motion to Copy" hint="Drop reference video (3-30s)" icon={Video} uploading={uploading} onUpload={(f) => void onUpload(f, "image")} accept="video/*,image/*" aspectClass="aspect-video" />
         <Dropzone label="Add Your Character" hint="Drop character image" icon={ImagePlus} uploading={false} onUpload={(f) => void onUpload(f, "image")} aspectClass="aspect-square" />
 
-        <div className="space-y-3 rounded-xl bg-[#131313] p-4">
+        <div className="space-y-3 rounded-kanvas-md bg-kanvas-surface-1 p-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Model</span>
-            <span className="text-xs font-bold text-[#f97316]">Kling 3.0 Motion</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-kanvas-text-muted">Model</span>
+            <span className="text-xs font-bold text-kanvas-accent">Kling 3.0 Motion</span>
           </div>
           <div className="space-y-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Quality</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-kanvas-text-muted">Quality</span>
             <div className="flex gap-2">
               {(["720p", "1080p"] as const).map((q) => (
                 <Pill key={q} value={q} active={motionQuality === q} onClick={() => setMotionQuality(q)} />
@@ -731,11 +742,11 @@ export function VideoStudioSection({
             </div>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Scene Control</span>
-            <Switch checked={motionSceneControl} onCheckedChange={setMotionSceneControl} className="data-[state=checked]:bg-[#f97316]" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-kanvas-text-muted">Scene Control</span>
+            <Switch checked={motionSceneControl} onCheckedChange={setMotionSceneControl} className="data-[state=checked]:bg-kanvas-accent" />
           </div>
           <div className="space-y-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-zinc-500">Input Type</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-kanvas-text-muted">Input Type</span>
             <div className="flex gap-2">
               {(["video", "image"] as const).map((t) => (
                 <Pill key={t} value={t.toUpperCase()} active={motionInputType === t} onClick={() => setMotionInputType(t)} />
@@ -744,10 +755,15 @@ export function VideoStudioSection({
           </div>
         </div>
 
-        <Button onClick={onGenerate} disabled={submitting} className="w-full rounded-full bg-[#f97316] py-5 text-sm font-extrabold uppercase tracking-widest text-black shadow-[0_0_30px_rgba(249,115,22,0.3)] hover:bg-[#fb923c] disabled:opacity-50">
-          {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+        <KanvasButton
+          onClick={onGenerate}
+          busy={submitting}
+          fullWidth
+          icon={<Zap className="h-4 w-4" />}
+          className="py-5 text-sm font-extrabold shadow-[0_0_30px_rgba(249,115,22,0.3)]"
+        >
           {submitting ? "Generating…" : `Generate ✦ ${currentModel?.credits ?? 30}`}
-        </Button>
+        </KanvasButton>
       </div>
     </div>
   );
@@ -756,7 +772,7 @@ export function VideoStudioSection({
   /*  Render                                                           */
   /* ================================================================ */
   return (
-    <div className="fixed inset-0 top-[68px] bg-[#0a0a0a] z-20 overflow-y-auto px-4 py-4 md:p-8 pb-20 md:pb-8" style={{ scrollbarWidth: "none" }}>
+    <div className="fixed inset-0 top-[68px] bg-kanvas-bg z-20 overflow-y-auto px-4 py-4 md:p-8 pb-20 md:pb-8" style={{ scrollbarWidth: "none" }}>
       {subNav}
       <div className="mt-4 md:mt-6">
         {activeTab === "edit" ? renderEditTab() : activeTab === "motion" ? renderMotionTab() : renderCreateTab()}

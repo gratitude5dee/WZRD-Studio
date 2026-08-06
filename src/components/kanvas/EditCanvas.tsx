@@ -269,7 +269,7 @@ const EditCanvas = forwardRef<EditCanvasHandle, EditCanvasProps>(({ imageUrl, cl
   return (
     <div className={`w-full h-full edit-canvas-container ${className ?? ''}`}>
       <style>{`
-        .edit-canvas-container .tl-background { background: #0e0e0e !important; }
+        .edit-canvas-container .tl-background { background: hsl(var(--kanvas-surface-1)) !important; }
         .edit-canvas-container .tlui-layout { background: transparent !important; }
         .edit-canvas-container .tlui-layout__top,
         .edit-canvas-container .tlui-navigation-zone,
