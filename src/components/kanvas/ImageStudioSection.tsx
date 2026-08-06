@@ -6,15 +6,22 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  Loader2,
-  Minus,
   Pencil,
   Plus,
   Sparkles,
   Star,
-  Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { accentSoft, accentText, kanvasDisplay, panelSurface } from "@/lib/kanvasTheme";
+import {
+  KanvasBadge,
+  KanvasButton,
+  KanvasEmptyState,
+  KanvasIconButton,
+  KanvasSectionHeader,
+  KanvasStepper,
+  KanvasTabs,
+} from "@/components/kanvas/primitives";
 import type { KanvasAsset, KanvasAssetType, KanvasJob, KanvasModel } from "@/features/kanvas/types";
 import { getJobPrimaryUrl } from "@/features/kanvas/helpers";
 import { getKanvasModelProvider } from "@/features/kanvas/modelProvider";
@@ -182,38 +189,27 @@ export default function ImageStudioSection({
 
   /* ---- Sub-nav ---- */
   const renderSubNav = () => (
-    <div role="tablist" aria-label="Image studio view" className="flex items-center gap-4 md:gap-6 px-4 md:px-12 pt-4 md:pt-6">
-      {(["explore", "history"] as const).map((tab) => (
-        <button
-          key={tab}
-          role="tab"
-          aria-selected={activeTab === tab}
-          onClick={() => setActiveTab(tab)}
-          className={cn(
-            "text-sm font-semibold capitalize transition-colors pb-2 border-b-2",
-            activeTab === tab
-              ? "text-white border-[#f97316]"
-              : "text-zinc-500 border-transparent hover:text-zinc-300"
-          )}
-        >
-          {tab}
-        </button>
-      ))}
-    </div>
+    <KanvasTabs
+      label="Image gallery view"
+      className="gap-4 px-4 pt-4 md:gap-6 md:px-12 md:pt-6"
+      value={activeTab}
+      onChange={setActiveTab}
+      items={[
+        { value: "explore", label: "Explore" },
+        { value: "history", label: "History" },
+      ]}
+    />
   );
 
   /* ---- Hero Section ---- */
   const renderHero = () => (
     <div className="text-center pt-8 md:pt-16 pb-6 md:pb-8 px-4 md:px-0">
-      <h1
-        className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tighter leading-[0.9] uppercase"
-        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-      >
+      <h1 className={cn(kanvasDisplay, "text-4xl font-black leading-[0.9] md:text-6xl lg:text-7xl")}>
         <span className="sr-only">TURN IDEAS</span>
-        <span className="text-white">TURN TRACKS</span>
+        <span>TURN TRACKS</span>
         <br />
-        <span className="text-white">INTO </span>
-        <span className="text-[#f97316]">VISUALS</span>
+        <span>INTO </span>
+        <span className={accentText}>VISUALS</span>
       </h1>
     </div>
   );
@@ -223,19 +219,20 @@ export default function ImageStudioSection({
     <>
       <div className="relative max-w-[1280px] mx-auto px-4 md:px-12 hidden md:block">
         <div className="flex items-center gap-4">
-          <button
+          <KanvasIconButton
             onClick={() => setCarouselIndex(Math.max(0, carouselIndex - 1))}
-            aria-label="Previous visual example"
+            label="Previous visual example"
             disabled={carouselIndex === 0}
-            className="shrink-0 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft className="h-4 w-4 text-zinc-400" />
-          </button>
+            icon={<ChevronLeft className="h-4 w-4" />}
+          />
           <div className="flex gap-6 overflow-hidden flex-1">
             {USE_CASE_CARDS.map((card, i) => (
               <div
                 key={card.label}
-                className="min-w-[300px] flex-1 aspect-[4/5] rounded-lg relative overflow-hidden group cursor-pointer border border-white/10 bg-[#101014]"
+                className={cn(
+                  "group relative aspect-[4/5] min-w-[300px] flex-1 cursor-pointer",
+                  panelSurface({ surface: "raised", radius: "md", border: "default" }),
+                )}
                 style={{
                   transform: `perspective(800px) rotateY(${i === 1 ? 0 : i === 0 ? 3 : -3}deg)`,
                 }}
@@ -248,40 +245,42 @@ export default function ImageStudioSection({
                   decoding="async"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-black/45 to-black/5" />
-                <div className="absolute left-4 top-4 rounded-full border border-white/15 bg-black/45 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-200 backdrop-blur">
+                <KanvasBadge tone="glass" size="md" className="absolute left-4 top-4">
                   {card.style}
-                </div>
+                </KanvasBadge>
                 <div className="absolute bottom-0 left-0 right-0 p-6 space-y-2">
-                  <h3 className="text-lg font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                  <h3 className="font-kanvas-display text-lg font-bold text-kanvas-text-primary">
                     {card.label}
                   </h3>
-                  <p className="text-xs leading-relaxed text-zinc-300">{card.subtitle}</p>
+                  <p className="text-xs leading-relaxed text-kanvas-text-secondary">{card.subtitle}</p>
                 </div>
                 <div className="absolute inset-0 bg-white/0 group-hover:bg-white/[0.03] transition-colors duration-500" />
               </div>
             ))}
           </div>
-          <button
+          <KanvasIconButton
             onClick={() => setCarouselIndex(Math.min(USE_CASE_CARDS.length - 1, carouselIndex + 1))}
-            aria-label="Next visual example"
+            label="Next visual example"
             disabled={carouselIndex === USE_CASE_CARDS.length - 1}
-            className="shrink-0 w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            <ChevronRight className="h-4 w-4 text-zinc-400" />
-          </button>
+            icon={<ChevronRight className="h-4 w-4" />}
+          />
         </div>
         {/* Try this pill */}
         <div className="flex justify-center mt-6">
-          <button className="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-semibold text-zinc-400 hover:text-white hover:bg-white/10 transition-colors">
-            Try this →
-          </button>
+          <KanvasButton variant="outline">Try this →</KanvasButton>
         </div>
       </div>
 
       <div className="md:hidden px-4 pb-36">
         <div className="grid gap-3">
           {USE_CASE_CARDS.map((card) => (
-            <div key={card.label} className="relative aspect-[16/9] overflow-hidden rounded-lg border border-white/10 bg-[#101014]">
+            <div
+              key={card.label}
+              className={cn(
+                "relative aspect-[16/9]",
+                panelSurface({ surface: "raised", radius: "md", border: "default" }),
+              )}
+            >
               <img
                 src={card.image}
                 alt={card.alt}
@@ -290,12 +289,14 @@ export default function ImageStudioSection({
                 decoding="async"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/35 to-transparent" />
-              <div className="absolute left-3 top-3 rounded-full border border-white/15 bg-black/45 px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-zinc-200 backdrop-blur">
+              <KanvasBadge tone="glass" className="absolute left-3 top-3">
                 {card.style}
-              </div>
+              </KanvasBadge>
               <div className="absolute bottom-3 left-3 right-8">
-                <h3 className="text-sm font-bold text-white">{card.label}</h3>
-                <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-zinc-300">{card.subtitle}</p>
+                <h3 className="text-sm font-bold text-kanvas-text-primary">{card.label}</h3>
+                <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-kanvas-text-secondary">
+                  {card.subtitle}
+                </p>
               </div>
             </div>
           ))}
@@ -310,11 +311,12 @@ export default function ImageStudioSection({
     const displayJobs = completedJobs.slice(0, 20);
     if (displayJobs.length === 0) {
       return (
-        <div className="text-center py-20">
-          <p className="text-zinc-600 text-sm">
-            No generations yet. Create your first image!
-          </p>
-        </div>
+        <KanvasEmptyState
+          bare
+          className="py-20"
+          title="No generations yet"
+          description="Create your first image with the prompt bar below."
+        />
       );
     }
     return (
@@ -325,7 +327,7 @@ export default function ImageStudioSection({
             if (!url) return null;
             return (
               <div key={job.id} className="break-inside-avoid group cursor-pointer">
-                <div className="relative rounded-xl overflow-hidden border border-white/5 bg-white/5">
+                <div className="relative overflow-hidden rounded-kanvas-lg border border-kanvas-border-subtle bg-kanvas-surface-2">
                   <img
                     src={url}
                     alt="Generated"
@@ -335,7 +337,7 @@ export default function ImageStudioSection({
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="absolute bottom-2 left-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <p className="text-[10px] text-zinc-300 truncate">{job.modelId}</p>
+                    <p className="truncate text-[10px] text-kanvas-text-secondary">{job.modelId}</p>
                   </div>
                 </div>
               </div>
@@ -350,16 +352,28 @@ export default function ImageStudioSection({
   const renderModelDropdown = () => {
     if (!modelDropdownOpen) return null;
     return (
-      <div className="absolute bottom-full left-0 right-0 mb-2 max-h-[400px] overflow-y-auto rounded-2xl bg-[#131313] border border-white/10 shadow-[0_-20px_60px_rgba(0,0,0,0.8)] z-[60]"
+      <div
+        className={cn(
+          "absolute bottom-full left-0 right-0 z-[60] mb-2 max-h-[400px] overflow-y-auto shadow-[0_-20px_60px_rgba(0,0,0,0.8)]",
+          panelSurface({ surface: "raised", radius: "xl", border: "default" }),
+        )}
         style={{ scrollbarWidth: "none" }}
       >
         {groupedModels.map((group) => (
           <div key={group.label}>
-            <div className="px-4 py-2 flex items-center gap-2 border-b border-white/5">
-              <div className="w-5 h-5 rounded-full bg-[#f97316]/20 flex items-center justify-center text-[9px] font-bold text-[#f97316]">
+            <div className="flex items-center gap-2 border-b border-kanvas-border-subtle px-4 py-2">
+              <div
+                className={cn(
+                  "flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold",
+                  accentSoft,
+                  accentText,
+                )}
+              >
                 {group.icon}
               </div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-500">{group.label}</span>
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-kanvas-text-muted">
+                {group.label}
+              </span>
             </div>
             {group.models.map((m) => {
               const isActive = currentModel?.id === m.id;
@@ -371,30 +385,28 @@ export default function ImageStudioSection({
                   key={m.id}
                   onClick={() => { onModelChange(m.id); setModelDropdownOpen(false); }}
                   className={cn(
-                    "w-full flex items-center justify-between px-4 py-2.5 text-sm transition-colors text-left",
-                    isActive ? "bg-[#f97316]/10 text-white" : "text-zinc-400 hover:bg-white/5 hover:text-white"
+                    "flex min-h-[44px] w-full items-center justify-between px-4 py-2.5 text-left text-sm transition-colors",
+                    isActive
+                      ? cn(accentSoft, "text-kanvas-text-primary")
+                      : "text-kanvas-text-secondary hover:bg-kanvas-surface-3 hover:text-kanvas-text-primary",
                   )}
                 >
                   <span className="flex items-center gap-2">
-                    {isActive && <Check className="h-3 w-3 text-[#f97316]" />}
+                    {isActive && <Check className={cn("h-3 w-3", accentText)} />}
                     <span className="font-medium">{m.name}</span>
                     {isGmi && (
-                      <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-emerald-500/20 text-emerald-400">
+                      <span className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[8px] font-bold uppercase text-emerald-400">
                         GMI
                       </span>
                     )}
-                    {isFeatured && (
-                      <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-[#f97316]/20 text-[#f97316]">
-                        Top Choice
-                      </span>
-                    )}
+                    {isFeatured && <KanvasBadge tone="accent">Top Choice</KanvasBadge>}
                     {isNew && (
-                      <span className="px-1.5 py-0.5 rounded text-[8px] font-bold uppercase bg-blue-500/20 text-blue-400">
+                      <span className="rounded bg-blue-500/20 px-1.5 py-0.5 text-[8px] font-bold uppercase text-blue-400">
                         New
                       </span>
                     )}
                   </span>
-                  <span className="flex items-center gap-1 text-[10px] text-zinc-600">
+                  <span className="flex items-center gap-1 text-[10px] text-kanvas-text-faint">
                     <Star className="h-2.5 w-2.5" />
                     {m.credits}
                   </span>
@@ -410,111 +422,135 @@ export default function ImageStudioSection({
   /* ---- Bottom Prompt Bar ---- */
   const renderPromptBar = () => (
     <div className="fixed bottom-16 left-3 right-3 md:bottom-8 md:left-8 md:right-8 flex justify-center z-50">
-      <div className="relative bg-[#131313]/95 backdrop-blur-2xl border border-white/10 rounded-[28px] p-2.5 shadow-[0_20px_60px_rgba(0,0,0,0.9)] w-full max-w-[1100px]">
+      <div
+        className={cn(
+          "relative w-full max-w-[1100px] p-2.5 shadow-[0_20px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl",
+          panelSurface({ surface: "raised", radius: "xl", border: "default" }),
+        )}
+      >
         {renderModelDropdown()}
 
         {/* Mobile: 2-row layout */}
         <div className="flex flex-col gap-2 md:hidden">
           {/* Row 1: Upload + Input + Generate */}
           <div className="flex items-center gap-2">
-            <button
+            <KanvasIconButton
+              size="sm"
+              label="Upload reference image"
+              busy={uploading}
               onClick={() => uploadRef.current?.click()}
-              className="shrink-0 w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors"
-            >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin text-[#f97316]" /> : <Plus className="h-4 w-4 text-zinc-400" />}
-            </button>
+              icon={<Plus className="h-4 w-4" />}
+            />
             <input
               type="text"
+              aria-label="Prompt"
               value={prompt}
               onChange={(e) => handlePromptInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && prompt.trim()) onGenerate(); }}
               onBlur={() => window.setTimeout(() => onCloseMentions?.(), 150)}
               placeholder="Describe the scene..."
-              className="flex-1 min-w-0 bg-transparent border-none focus:ring-0 focus:outline-none text-white placeholder-zinc-600 font-medium text-sm px-2"
+              className="min-w-0 flex-1 border-none bg-transparent px-2 text-sm font-medium text-kanvas-text-primary placeholder-kanvas-text-faint focus:outline-none focus:ring-0"
             />
-            <button
+            <KanvasIconButton
+              tone="accent"
+              label="Generate"
+              busy={submitting}
+              disabled={!prompt.trim()}
               onClick={onGenerate}
-              disabled={submitting || !prompt.trim()}
-              className={cn(
-                "shrink-0 flex items-center gap-1.5 px-4 h-10 rounded-full font-bold text-sm transition-all",
-                "bg-[#f97316] text-black hover:shadow-[0_0_25px_rgba(249,115,22,0.4)]",
-                "disabled:opacity-40 disabled:cursor-not-allowed"
-              )}
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            </button>
+              icon={<Sparkles className="h-3.5 w-3.5" />}
+              className="hover:shadow-[0_0_25px_rgba(249,115,22,0.4)]"
+            />
           </div>
           {/* Row 2: Model + Aspect + Count (scrollable) */}
           <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide">
             <button
               onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-              className="shrink-0 flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-1.5 hover:bg-white/10 transition-colors"
+              aria-expanded={modelDropdownOpen}
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-kanvas-border-default bg-white/5 px-3 py-1.5 transition-colors hover:bg-white/10"
             >
-              <span className="text-[10px] font-bold text-white whitespace-nowrap max-w-[100px] truncate">
+              <span className="max-w-[100px] truncate whitespace-nowrap text-[10px] font-bold text-kanvas-text-primary">
                 {currentModel?.name ?? "Model"}
               </span>
-              <ChevronDown className="h-3 w-3 text-zinc-500" />
+              <ChevronDown className="h-3 w-3 text-kanvas-text-muted" />
             </button>
-            <button className="shrink-0 flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-2.5 py-1.5">
-              <span className="text-[10px] font-bold text-white">{selectedAspect}</span>
-            </button>
-            <div className="shrink-0 flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-2 py-1">
-              <button onClick={() => setImageCount(Math.max(1, imageCount - 1))} className="p-0.5 text-zinc-500"><Minus className="h-3 w-3" /></button>
-              <span className="text-[10px] font-bold text-white w-5 text-center">{imageCount}</span>
-              <button onClick={() => setImageCount(Math.min(4, imageCount + 1))} className="p-0.5 text-zinc-500"><Plus className="h-3 w-3" /></button>
-            </div>
+            <span className="shrink-0 rounded-full border border-kanvas-border-default bg-white/5 px-2.5 py-1.5 text-[10px] font-bold text-kanvas-text-primary">
+              {selectedAspect}
+            </span>
+            <KanvasStepper
+              label="Number of images"
+              value={imageCount}
+              min={1}
+              max={4}
+              onChange={setImageCount}
+              className="shrink-0 rounded-full border border-kanvas-border-default bg-white/5 px-1"
+            />
           </div>
         </div>
 
         {/* Desktop: single-row layout */}
         <div className="hidden md:flex items-center gap-2">
         {/* Plus (upload) */}
-        <button
+        <KanvasIconButton
+          label="Upload reference image"
+          busy={uploading}
           onClick={() => uploadRef.current?.click()}
-          className="shrink-0 w-11 h-11 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-colors"
-        >
-          {uploading ? <Loader2 className="h-4 w-4 animate-spin text-[#f97316]" /> : <Plus className="h-4 w-4 text-zinc-400" />}
-        </button>
+          icon={<Plus className="h-4 w-4" />}
+        />
 
         {/* Prompt input */}
         <input
           ref={inputRef}
           type="text"
+          aria-label="Prompt"
           value={prompt}
           onChange={(e) => handlePromptInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && prompt.trim()) onGenerate(); }}
           onBlur={() => window.setTimeout(() => onCloseMentions?.(), 150)}
           placeholder="Describe the scene you imagine"
-          className="flex-1 min-w-0 bg-transparent border-none focus:ring-0 focus:outline-none text-white placeholder-zinc-600 font-medium text-sm px-3"
+          className="min-w-0 flex-1 border-none bg-transparent px-3 text-sm font-medium text-kanvas-text-primary placeholder-kanvas-text-faint focus:outline-none focus:ring-0"
         />
 
         {/* Model selector pill */}
         <button
           onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
-          className="shrink-0 flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-3.5 py-2 hover:bg-white/10 transition-colors"
+          aria-expanded={modelDropdownOpen}
+          className="flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border border-kanvas-border-default bg-white/5 px-3.5 py-2 transition-colors hover:bg-white/10"
         >
-          <div className="w-4 h-4 rounded-full bg-[#f97316]/20 flex items-center justify-center text-[8px] font-bold text-[#f97316]">
+          <div
+            className={cn(
+              "flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-bold",
+              accentSoft,
+              accentText,
+            )}
+          >
             {getModelProvider(currentModel ?? models[0])?.charAt(0)?.toUpperCase() ?? "G"}
           </div>
-          <span className="text-[11px] font-bold text-white whitespace-nowrap max-w-[120px] truncate">
+          <span className="max-w-[120px] truncate whitespace-nowrap text-[11px] font-bold text-kanvas-text-primary">
             {currentModel?.name ?? "Select Model"}
           </span>
-          <ChevronDown className="h-3 w-3 text-zinc-500" />
+          <ChevronDown className="h-3 w-3 text-kanvas-text-muted" />
         </button>
 
         {/* Aspect ratio pill */}
-        <div className="shrink-0 relative group">
-          <button className="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-2 hover:bg-white/10 transition-colors">
-            <span className="text-[11px] font-bold text-white">{selectedAspect}</span>
+        <div className="group relative shrink-0">
+          <button className="flex min-h-[44px] items-center gap-1.5 rounded-full border border-kanvas-border-default bg-white/5 px-3 py-2 transition-colors hover:bg-white/10">
+            <span className="text-[11px] font-bold text-kanvas-text-primary">{selectedAspect}</span>
           </button>
-          <div className="absolute bottom-full right-0 mb-2 hidden group-hover:flex flex-col bg-[#1a1a1a] border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+          <div
+            className={cn(
+              "absolute bottom-full right-0 mb-2 hidden flex-col shadow-2xl group-hover:flex group-focus-within:flex",
+              panelSurface({ surface: "panel", radius: "lg", border: "default" }),
+            )}
+          >
             {ASPECT_RATIOS.map((ar) => (
               <button
                 key={ar}
                 onClick={() => { setSelectedAspect(ar); onSettingsChange("aspect_ratio", ar); }}
                 className={cn(
-                  "px-4 py-2 text-[11px] font-bold text-left transition-colors",
-                  selectedAspect === ar ? "text-[#f97316] bg-[#f97316]/10" : "text-zinc-400 hover:text-white hover:bg-white/5"
+                  "min-h-[44px] px-4 py-2 text-left text-[11px] font-bold transition-colors",
+                  selectedAspect === ar
+                    ? cn(accentText, accentSoft)
+                    : "text-kanvas-text-secondary hover:bg-kanvas-surface-3 hover:text-kanvas-text-primary",
                 )}
               >
                 {ar}
@@ -524,57 +560,51 @@ export default function ImageStudioSection({
         </div>
 
         {/* Image count */}
-        <div className="shrink-0 flex items-center gap-1 bg-white/5 border border-white/10 rounded-full px-2 py-1">
-          <button onClick={() => setImageCount(Math.max(1, imageCount - 1))} className="p-1 text-zinc-500 hover:text-white transition-colors">
-            <Minus className="h-3 w-3" />
-          </button>
-          <span className="text-[11px] font-bold text-white w-6 text-center">{imageCount}/4</span>
-          <button onClick={() => setImageCount(Math.min(4, imageCount + 1))} className="p-1 text-zinc-500 hover:text-white transition-colors">
-            <Plus className="h-3 w-3" />
-          </button>
-        </div>
+        <KanvasStepper
+          label="Number of images"
+          value={imageCount}
+          min={1}
+          max={4}
+          onChange={setImageCount}
+          className="shrink-0 rounded-full border border-kanvas-border-default bg-white/5 px-1"
+        />
 
         {/* @ mention */}
-        <button
-          type="button"
+        <KanvasIconButton
+          size="sm"
+          tone="ghost"
+          label="Mention a character"
           onClick={() => {
             inputRef.current?.focus();
             if (!/@[\w-]*$/.test(prompt)) {
               handlePromptInput(`${prompt}${prompt.trim() ? " " : ""}@`);
             }
           }}
-          className="shrink-0 w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors"
-        >
-          <AtSign className="h-3.5 w-3.5 text-zinc-500" />
-        </button>
+          icon={<AtSign className="h-3.5 w-3.5" />}
+          className="bg-white/5 hover:bg-white/10"
+        />
 
         {/* Draw */}
-        <button className="shrink-0 flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-2 hover:bg-white/10 transition-colors">
-          <Pencil className="h-3 w-3 text-zinc-400" />
-          <span className="text-[10px] font-bold text-zinc-400">Draw</span>
+        <button className="flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border border-kanvas-border-default bg-white/5 px-3 py-2 transition-colors hover:bg-white/10">
+          <Pencil className="h-3 w-3 text-kanvas-text-secondary" />
+          <span className="text-[10px] font-bold text-kanvas-text-secondary">Draw</span>
         </button>
 
         {/* Generate button */}
-        <button
+        <KanvasButton
           onClick={onGenerate}
-          disabled={submitting || !prompt.trim()}
-          className={cn(
-            "shrink-0 flex items-center gap-2 px-6 h-11 rounded-full font-bold text-sm transition-all",
-            "bg-[#f97316] text-black hover:shadow-[0_0_25px_rgba(249,115,22,0.4)]",
-            "disabled:opacity-40 disabled:cursor-not-allowed"
-          )}
-          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+          busy={submitting}
+          disabled={!prompt.trim()}
+          icon={<Sparkles className="h-3.5 w-3.5" />}
+          className="shrink-0 px-6 tracking-normal normal-case hover:shadow-[0_0_25px_rgba(249,115,22,0.4)]"
         >
-          {submitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
+          {!submitting && (
             <>
-              <Sparkles className="h-3.5 w-3.5" />
               Generate
               <span className="text-[10px] opacity-70">✦ {currentModel?.credits ?? 5}</span>
             </>
           )}
-        </button>
+        </KanvasButton>
         </div>
         <MentionDropdown
           suggestions={mentionSuggestions}
@@ -601,7 +631,7 @@ export default function ImageStudioSection({
   /* ---- Render ---- */
   return (
     <div
-      className="fixed inset-0 top-[68px] bg-[#0a0a0a] z-20 overflow-y-auto"
+      className="fixed inset-0 top-[68px] z-20 overflow-y-auto bg-kanvas-bg"
       style={{ scrollbarWidth: "none" }}
       onClick={() => modelDropdownOpen && setModelDropdownOpen(false)}
     >
@@ -613,27 +643,24 @@ export default function ImageStudioSection({
           {/* Recent creations masonry */}
           {completedJobs.length > 0 && (
             <div className="px-4 md:px-12 py-16">
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-zinc-600 mb-1">Gallery</p>
-                  <h2 className="text-xl font-bold text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-                    Recent Creations
-                  </h2>
-                </div>
-                <button
-                  onClick={() => setActiveTab("history")}
-                  className="text-[11px] font-bold uppercase tracking-[0.15em] text-zinc-500 hover:text-[#f97316] transition-colors"
-                >
-                  View All →
-                </button>
-              </div>
-              <div className="columns-2 gap-4 space-y-4 md:columns-4 lg:columns-5">
+              <KanvasSectionHeader
+                className="mb-6"
+                eyebrow="Gallery"
+                title="Recent Creations"
+                level={2}
+                action={
+                  <KanvasButton variant="ghost" onClick={() => setActiveTab("history")}>
+                    View All →
+                  </KanvasButton>
+                }
+              />
+              <div className="columns-2 md:columns-4 lg:columns-5 gap-4 space-y-4">
                 {completedJobs.slice(0, 10).map((job) => {
                   const url = getJobPrimaryUrl(job);
                   if (!url) return null;
                   return (
                     <div key={job.id} className="break-inside-avoid group cursor-pointer">
-                      <div className="relative rounded-xl overflow-hidden border border-white/5 bg-white/5">
+                      <div className="relative overflow-hidden rounded-kanvas-lg border border-kanvas-border-subtle bg-kanvas-surface-2">
                         <img
                           src={url}
                           alt="Generated"
@@ -642,7 +669,7 @@ export default function ImageStudioSection({
                           decoding="async"
                         />
                         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/30">
-                          <Eye className="h-5 w-5 text-[#f97316]" />
+                          <Eye className={cn("h-5 w-5", accentText)} />
                         </div>
                       </div>
                     </div>

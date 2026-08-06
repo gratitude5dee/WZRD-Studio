@@ -337,6 +337,31 @@
     --mog-coral-light: 14 100% 75%;   /* Lighter coral for highlights */
     --mog-text: 0 0% 98%;             /* Near white text */
     --mog-text-muted: 0 0% 60%;       /* Muted gray text */
+
+    /* Kanvas design system tokens (studio surfaces, text, accent policy) */
+    --kanvas-bg: 0 0% 4%;              /* #0a0a0a page canvas */
+    --kanvas-surface-1: 0 0% 7%;       /* #131313 raised panel */
+    --kanvas-surface-2: 0 2% 10%;      /* #1a1919 card / rail row */
+    --kanvas-surface-3: 0 0% 13%;      /* #222222 hover */
+    --kanvas-border-subtle: 0 0% 100% / 0.06;
+    --kanvas-border-default: 0 0% 100% / 0.1;
+    --kanvas-border-strong: 0 0% 100% / 0.2;
+    --kanvas-text-primary: 0 0% 100%;
+    --kanvas-text-secondary: 240 5% 65%;
+    --kanvas-text-muted: 240 4% 46%;
+    --kanvas-text-faint: 240 5% 34%;
+    --kanvas-accent: 25 95% 53%;
+    --kanvas-accent-hover: 27 96% 61%;
+    --kanvas-accent-soft: 25 95% 53% / 0.1;
+    --kanvas-accent-edge: 25 95% 53% / 0.3;
+    --kanvas-accent-contrast: 0 0% 0%;
+    --kanvas-radius-sm: 0.5rem;
+    --kanvas-radius-md: 0.75rem;
+    --kanvas-radius-lg: 1rem;
+    --kanvas-radius-xl: 1.5rem;
+    --kanvas-rail-width: 336px;
+    --kanvas-rail-width-compact: 300px;
+    --kanvas-font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   }
 
   .dark {
@@ -422,6 +447,31 @@
     --mog-coral-light: 14 100% 75%;
     --mog-text: 0 0% 98%;
     --mog-text-muted: 0 0% 60%;
+
+    /* Kanvas design system tokens (studio surfaces, text, accent policy) */
+    --kanvas-bg: 0 0% 4%;              /* #0a0a0a page canvas */
+    --kanvas-surface-1: 0 0% 7%;       /* #131313 raised panel */
+    --kanvas-surface-2: 0 2% 10%;      /* #1a1919 card / rail row */
+    --kanvas-surface-3: 0 0% 13%;      /* #222222 hover */
+    --kanvas-border-subtle: 0 0% 100% / 0.06;
+    --kanvas-border-default: 0 0% 100% / 0.1;
+    --kanvas-border-strong: 0 0% 100% / 0.2;
+    --kanvas-text-primary: 0 0% 100%;
+    --kanvas-text-secondary: 240 5% 65%;
+    --kanvas-text-muted: 240 4% 46%;
+    --kanvas-text-faint: 240 5% 34%;
+    --kanvas-accent: 25 95% 53%;
+    --kanvas-accent-hover: 27 96% 61%;
+    --kanvas-accent-soft: 25 95% 53% / 0.1;
+    --kanvas-accent-edge: 25 95% 53% / 0.3;
+    --kanvas-accent-contrast: 0 0% 0%;
+    --kanvas-radius-sm: 0.5rem;
+    --kanvas-radius-md: 0.75rem;
+    --kanvas-radius-lg: 1rem;
+    --kanvas-radius-xl: 1.5rem;
+    --kanvas-rail-width: 336px;
+    --kanvas-rail-width-compact: 300px;
+    --kanvas-font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   }
 }
 
