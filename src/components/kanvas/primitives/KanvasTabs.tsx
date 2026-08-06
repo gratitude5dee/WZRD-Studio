@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import type { HTMLAttributes, ReactNode } from "react";
+import type { HTMLAttributes, KeyboardEvent, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export interface KanvasTabItem<T extends string = string> {
@@ -26,12 +26,52 @@ function KanvasTabsInner<T extends string>(
   { className, items, value, onChange, label, ...props }: KanvasTabsProps<T>,
   ref: React.Ref<HTMLDivElement>,
 ) {
+  const enabled = items.filter((item) => !item.disabled);
+  const focusValue = enabled.some((item) => item.value === value)
+    ? value
+    : enabled[0]?.value;
+
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (enabled.length === 0) return;
+    const current = Math.max(
+      0,
+      enabled.findIndex((item) => item.value === focusValue),
+    );
+    let next: number;
+    switch (event.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        next = (current + 1) % enabled.length;
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        next = (current - 1 + enabled.length) % enabled.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = enabled.length - 1;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    const item = enabled[next];
+    onChange(item.value);
+    const tab = event.currentTarget.querySelector<HTMLButtonElement>(
+      `[data-value="${item.value}"]`,
+    );
+    tab?.focus();
+  }
+
   return (
     <div
       ref={ref}
       role="tablist"
       aria-label={label}
       className={cn("flex items-center gap-1", className)}
+      onKeyDown={handleKeyDown}
       {...props}
     >
       {items.map((item) => {
@@ -42,7 +82,8 @@ function KanvasTabsInner<T extends string>(
             type="button"
             role="tab"
             aria-selected={active}
-            tabIndex={active ? 0 : -1}
+            tabIndex={item.value === focusValue ? 0 : -1}
+            data-value={item.value}
             disabled={item.disabled}
             onClick={() => onChange(item.value)}
             className={cn(
