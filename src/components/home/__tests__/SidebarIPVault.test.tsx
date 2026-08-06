@@ -64,25 +64,28 @@ function renderMobileDrawer() {
   );
 }
 
-const PRIMARY_NAV_LABELS = [
-  'All Projects',
-  'Shared with me',
-  'Community',
-  'Favorites',
-  'Aura',
+const TOP_LEVEL_NAV_LABELS = [
+  'Studio',
   'Kanvas',
-  'Asset Store',
-  'WTR',
+  'IP Management',
   'Clip Studio',
   'Postz',
   'Settings',
 ];
 
-function getPrimaryNavLabels() {
+const STUDIO_CHILD_LABELS = [
+  'All Projects',
+  'Shared with me',
+  'Community',
+  'Favorites',
+  'Aura',
+];
+
+function getNavLabels(labels: string[]) {
   return screen
     .getAllByRole('button')
     .map((button) => button.getAttribute('aria-label') ?? button.textContent?.trim() ?? '')
-    .filter((label) => PRIMARY_NAV_LABELS.includes(label));
+    .filter((label) => labels.includes(label));
 }
 
 describe('home navigation structure', () => {
@@ -107,7 +110,9 @@ describe('home navigation structure', () => {
   it('renders the grouped desktop sidebar structure and navigates from its entries', () => {
     renderDesktopSidebar();
 
-    expect(getPrimaryNavLabels()).toEqual(PRIMARY_NAV_LABELS);
+    expect(getNavLabels(TOP_LEVEL_NAV_LABELS)).toEqual(TOP_LEVEL_NAV_LABELS);
+    // Studio owns the active 'all' view, so its subtabs are expanded by default.
+    expect(getNavLabels(STUDIO_CHILD_LABELS)).toEqual(STUDIO_CHILD_LABELS);
 
     // Kanvas children are only rendered once the group is expanded.
     expect(screen.queryByRole('button', { name: 'Cinema Studio' })).toBeNull();
@@ -122,6 +127,9 @@ describe('home navigation structure', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Postz' }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/postz');
 
+    // IP Management children are only rendered once the group is expanded.
+    expect(screen.queryByRole('button', { name: 'WTR' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'IP Management' }));
     fireEvent.click(screen.getByRole('button', { name: 'WTR' }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/ip-vault');
 
@@ -129,14 +137,15 @@ describe('home navigation structure', () => {
     expect(screen.getByTestId('location-path')).toHaveTextContent('/settings/billing');
   });
 
-  it('keeps Favorites expanded by default with its empty state', () => {
+  it('collapses and re-expands the Studio group', () => {
     renderDesktopSidebar();
 
-    expect(screen.getByText('No favorites yet')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Favorites' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Studio' })).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Studio' }));
+    expect(screen.getByRole('button', { name: 'Studio' })).toHaveAttribute('aria-expanded', 'false');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Favorites' }));
-    expect(screen.getByRole('button', { name: 'Favorites' })).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(screen.getByRole('button', { name: 'Studio' }));
+    expect(screen.getByRole('button', { name: 'Favorites' })).toBeInTheDocument();
   });
 
   it('expands the group owning the active view so the active child stays visible', () => {
@@ -151,6 +160,7 @@ describe('home navigation structure', () => {
     expect(screen.getByRole('button', { name: 'Clip Studio' })).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('button', { name: 'Sourcify' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Kanvas' })).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByRole('button', { name: 'Studio' })).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('preserves Clip Studio and Postz nav nodes when active view changes', () => {
@@ -192,7 +202,7 @@ describe('home navigation structure', () => {
   it('mirrors the grouped structure in the mobile drawer and navigates from it', () => {
     const firstRender = renderMobileDrawer();
 
-    expect(getPrimaryNavLabels()).toEqual(PRIMARY_NAV_LABELS);
+    expect(getNavLabels(TOP_LEVEL_NAV_LABELS)).toEqual(TOP_LEVEL_NAV_LABELS);
 
     fireEvent.click(screen.getByRole('button', { name: 'Clip Studio' }));
     fireEvent.click(screen.getByRole('button', { name: 'Sourcify' }));
@@ -205,6 +215,7 @@ describe('home navigation structure', () => {
     secondRender.unmount();
 
     const thirdRender = renderMobileDrawer();
+    fireEvent.click(screen.getByRole('button', { name: 'IP Management' }));
     fireEvent.click(screen.getByRole('button', { name: 'WTR' }));
     expect(screen.getByTestId('location-path')).toHaveTextContent('/ip-vault');
     thirdRender.unmount();

@@ -86,45 +86,38 @@ const CLIP_STUDIO_GROUP: SidebarNavGroup = {
   ],
 };
 
-export const FAVORITES_GROUP: SidebarNavGroup = {
-  id: 'favorites',
-  label: 'Favorites',
-  icon: Star,
+const STUDIO_GROUP: SidebarNavGroup = {
+  id: 'studio',
+  label: 'Studio',
+  icon: Sparkles,
   collapsible: true,
-  children: [],
-  emptyLabel: 'No favorites yet',
+  children: [
+    { id: 'all', label: 'All Projects', icon: FolderKanban },
+    { id: 'shared', label: 'Shared with me', icon: Users },
+    { id: 'community', label: 'Community', icon: Globe },
+    { id: 'favorites', label: 'Favorites', icon: Star },
+    { id: 'aura', label: 'Aura', icon: Sparkles },
+  ],
+};
+
+const IP_MANAGEMENT_GROUP: SidebarNavGroup = {
+  id: 'ip-management',
+  label: 'IP Management',
+  icon: ShieldCheck,
+  collapsible: true,
+  children: [
+    { id: 'asset-store', label: 'Asset Store', icon: Images },
+    { id: 'ip-vault', label: 'WTR', icon: ShieldCheck, isRoute: true, path: appRoutes.ipVault },
+  ],
 };
 
 export const SIDEBAR_SECTIONS: SidebarNavSection[] = [
   {
-    id: 'studio',
-    label: 'Studio',
-    labelIcon: Sparkles,
-    accent: true,
+    id: 'main',
     items: [
-      { id: 'all', label: 'All Projects', icon: FolderKanban },
-      { id: 'shared', label: 'Shared with me', icon: Users },
-      { id: 'community', label: 'Community', icon: Globe },
-      FAVORITES_GROUP,
-      { id: 'aura', label: 'Aura', icon: Sparkles },
-    ],
-  },
-  {
-    id: 'kanvas',
-    items: [KANVAS_GROUP],
-  },
-  {
-    id: 'ip-management',
-    label: 'IP Management',
-    labelIcon: ShieldCheck,
-    items: [
-      { id: 'asset-store', label: 'Asset Store', icon: Images },
-      { id: 'ip-vault', label: 'WTR', icon: ShieldCheck, isRoute: true, path: appRoutes.ipVault },
-    ],
-  },
-  {
-    id: 'production',
-    items: [
+      STUDIO_GROUP,
+      KANVAS_GROUP,
+      IP_MANAGEMENT_GROUP,
       CLIP_STUDIO_GROUP,
       { id: 'postz', label: 'Postz', icon: CalendarDays, isRoute: true, path: appRoutes.postz },
       { id: 'settings', label: 'Settings', icon: Settings, isRoute: true, path: appRoutes.settings.billing },
@@ -146,8 +139,8 @@ export function getGroupIdForView(view: string): string | undefined {
 }
 
 /**
- * Open/closed state for collapsible groups. Favorites and the group owning the
- * active view are open unless the user explicitly collapsed them.
+ * Open/closed state for collapsible groups. The group owning the active view
+ * is open unless the user explicitly collapsed it.
  */
 export function useNavGroupState(activeView: string) {
   const activeGroupId = getGroupIdForView(activeView);
@@ -163,7 +156,7 @@ export function useNavGroupState(activeView: string) {
   }, [activeGroupId]);
 
   const isGroupOpen = useCallback(
-    (groupId: string) => overrides[groupId] ?? (groupId === FAVORITES_GROUP.id || groupId === activeGroupId),
+    (groupId: string) => overrides[groupId] ?? groupId === activeGroupId,
     [overrides, activeGroupId]
   );
 
@@ -171,7 +164,7 @@ export function useNavGroupState(activeView: string) {
     (groupId: string) => {
       setOverrides((current) => ({
         ...current,
-        [groupId]: !(current[groupId] ?? (groupId === FAVORITES_GROUP.id || groupId === activeGroupId)),
+        [groupId]: !(current[groupId] ?? groupId === activeGroupId),
       }));
     },
     [activeGroupId]

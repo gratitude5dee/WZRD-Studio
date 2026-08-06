@@ -164,7 +164,7 @@ const ChildNavItem = memo(function ChildNavItem({
   );
 });
 
-const FloatingNavButton = memo(function FloatingNavButton({
+export const FloatingNavButton = memo(function FloatingNavButton({
   item,
   isActive,
   isChild = false,

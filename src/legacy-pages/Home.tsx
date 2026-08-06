@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Loader2, UserPlus, Plus, FolderKanban, Activity, Image, Sparkles, Settings, HelpCircle, ChevronDown, ChevronRight, User, LogOut, Palette, Coins, Search } from 'lucide-react';
+import { Loader2, UserPlus, Plus, FolderKanban, Activity, Image, Sparkles, Settings, HelpCircle, ChevronDown, ChevronRight, User, LogOut, Palette, Coins, Search, Star } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import wzrdLogo from '@/assets/wzrd-logo.png';
 import { ProjectList } from '@/components/home/ProjectList';
@@ -46,7 +46,7 @@ import { DitherGradient } from '@/components/dither-kit';
 import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
 
 type ViewMode = 'grid' | 'list';
-const HOME_NAV_VIEW_IDS = new Set(['all', 'aura', 'asset-store', 'ip-vault', 'shared', 'community']);
+const HOME_NAV_VIEW_IDS = new Set(['all', 'aura', 'asset-store', 'ip-vault', 'shared', 'community', 'favorites']);
 
 export default function Home() {
   const navigate = useNavigate();
@@ -542,6 +542,18 @@ export default function Home() {
               <AuraProjectList projects={projects} />
             ) : activeView === 'asset-store' ? (
               <AuraAssetStore projects={projects} />
+            ) : activeView === 'favorites' ? (
+              <div className="flex flex-col items-center justify-center py-12 md:py-20">
+                <div className="text-center max-w-md px-4">
+                  <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/15 flex items-center justify-center">
+                    <Star className="w-8 h-8 md:w-10 md:h-10 text-primary" />
+                  </div>
+                  <h3 className="text-lg md:text-xl font-semibold text-text-primary dark:text-foreground mb-2">No favorites yet</h3>
+                  <p className="text-xs md:text-sm text-text-tertiary dark:text-muted-foreground">
+                    Projects you favorite will show up here for quick access
+                  </p>
+                </div>
+              </div>
             ) : isLoading ? (
               <div className="flex flex-col items-center justify-center py-12 md:py-20">
                 <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/15 flex items-center justify-center mb-4">
