@@ -5,8 +5,10 @@ import HeroSection from '@/components/landing/HeroSection';
 import { LazySection } from '@/components/landing/LazySection';
 import { DitherGradient } from '@/components/dither-kit';
 import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
+import { shouldShowVideoIntro } from '@/components/landing/VideoIntroOverlay';
 
 const CinematicIntro = lazy(() => import('@/components/landing/CinematicIntro'));
+const VideoIntroOverlay = lazy(() => import('@/components/landing/VideoIntroOverlay'));
 
 // Below-fold sections — eagerly imported but rendered via LazySection
 import FeatureGrid from '@/components/landing/FeatureGrid';
@@ -42,6 +44,11 @@ const Landing = () => {
     return sessionStorage.getItem('mog-intro-seen') === 'true';
   });
   const [introReady, setIntroReady] = useState(false);
+  const [videoIntroActive, setVideoIntroActive] = useState(() => shouldShowVideoIntro());
+
+  const handleVideoIntroComplete = useCallback(() => {
+    setVideoIntroActive(false);
+  }, []);
 
   const handleIntroComplete = useCallback(() => {
     sessionStorage.setItem('mog-intro-seen', 'true');
@@ -119,6 +126,14 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen w-full relative bg-black">
+      <AnimatePresence>
+        {videoIntroActive && (
+          <Suspense fallback={<div className="fixed inset-0 z-[99999] bg-black" />}>
+            <VideoIntroOverlay src="/introani.mp4" onComplete={handleVideoIntroComplete} />
+          </Suspense>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {!introComplete && introReady && (
           <Suspense fallback={<div className="fixed inset-0 z-[99999] bg-black" />}>
