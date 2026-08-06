@@ -28,6 +28,7 @@ import { useUserTier, sortModelsForTier } from "@/hooks/useUserTier";
 import { MentionDropdown } from "@/components/character-creation/MentionDropdown";
 import type { CharacterMention } from "@/types/character-creation";
 import { musicPolishAssets } from "@/lib/musicPolishAssets";
+import { accentEdge, accentSoft, accentText } from "@/lib/kanvasTheme";
 import type { MusicPolishAsset } from "@/lib/musicPolishAssets";
 
 /* ------------------------------------------------------------------ */
@@ -127,16 +128,16 @@ function FeatureCard({
   description,
   icon: Icon,
   asset,
-  accent = "lime",
+  accent = "accent",
 }: {
   title: string;
   description: string;
   icon: typeof ImagePlus;
   asset: MusicPolishAsset;
-  accent?: "lime" | "pink" | "white";
+  accent?: "accent" | "neutral";
 }) {
-  const color = accent === "lime" ? "text-[#f97316]" : accent === "pink" ? "text-[#ff3399]" : "text-white";
-  const bg = accent === "lime" ? "bg-[#f97316]/10 border-[#f97316]/20" : accent === "pink" ? "bg-[#ff3399]/10 border-[#ff3399]/20" : "bg-white/10 border-white/20";
+  const color = accent === "accent" ? accentText : "text-kanvas-text-primary";
+  const bg = accent === "accent" ? cn(accentSoft, accentEdge) : "bg-white/10 border-kanvas-border-strong";
   return (
     <div className="group relative flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-2xl bg-[#1a1919] p-6 transition-all hover:bg-[#222]">
       <img
@@ -429,9 +430,9 @@ export function VideoStudioSection({
 
         {/* 3-step flow */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <FeatureCard title="Add Image" description="Upload a start frame or reference" icon={ImagePlus} asset={musicPolishAssets.kanvas.aiVisualWall} accent="lime" />
-          <FeatureCard title="Choose Preset" description="Pick from 250+ motion presets and styles" icon={SlidersHorizontal} asset={musicPolishAssets.cinema.soundstage} accent="white" />
-          <FeatureCard title="Get Video" description="AI generates cinematic video in seconds" icon={Film} asset={musicPolishAssets.cinema.performanceCloseup} accent="pink" />
+          <FeatureCard title="Add Image" description="Upload a start frame or reference" icon={ImagePlus} asset={musicPolishAssets.kanvas.aiVisualWall} accent="accent" />
+          <FeatureCard title="Choose Preset" description="Pick from 250+ motion presets and styles" icon={SlidersHorizontal} asset={musicPolishAssets.cinema.soundstage} accent="neutral" />
+          <FeatureCard title="Get Video" description="AI generates cinematic video in seconds" icon={Film} asset={musicPolishAssets.cinema.performanceCloseup} accent="accent" />
         </div>
 
         {/* Active job */}

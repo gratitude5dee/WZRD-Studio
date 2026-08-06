@@ -138,6 +138,25 @@ export default {
 					'accent-purple': 'hsl(var(--accent-purple))',
 					'connector-default': 'hsl(var(--connector-default))',
 					'connector-active': 'hsl(var(--connector-active))'
+				},
+				// Kanvas design system palette
+				kanvas: {
+					bg: 'hsl(var(--kanvas-bg))',
+					'surface-1': 'hsl(var(--kanvas-surface-1))',
+					'surface-2': 'hsl(var(--kanvas-surface-2))',
+					'surface-3': 'hsl(var(--kanvas-surface-3))',
+					'border-subtle': 'hsl(var(--kanvas-border-subtle))',
+					'border-default': 'hsl(var(--kanvas-border-default))',
+					'border-strong': 'hsl(var(--kanvas-border-strong))',
+					'text-primary': 'hsl(var(--kanvas-text-primary))',
+					'text-secondary': 'hsl(var(--kanvas-text-secondary))',
+					'text-muted': 'hsl(var(--kanvas-text-muted))',
+					'text-faint': 'hsl(var(--kanvas-text-faint))',
+					accent: 'hsl(var(--kanvas-accent))',
+					'accent-hover': 'hsl(var(--kanvas-accent-hover))',
+					'accent-soft': 'hsl(var(--kanvas-accent-soft))',
+					'accent-edge': 'hsl(var(--kanvas-accent-edge))',
+					'accent-contrast': 'hsl(var(--kanvas-accent-contrast))'
 				}
 			},
 			fontFamily: {
@@ -152,7 +171,12 @@ export default {
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				// Kanvas design system radii
+				'kanvas-sm': 'var(--kanvas-radius-sm)',
+				'kanvas-md': 'var(--kanvas-radius-md)',
+				'kanvas-lg': 'var(--kanvas-radius-lg)',
+				'kanvas-xl': 'var(--kanvas-radius-xl)'
 			},
 			boxShadow: {
 				'glow-purple-sm': '0 0 8px rgba(255, 107, 74, 0.4), 0 0 15px rgba(255, 107, 74, 0.15)',
