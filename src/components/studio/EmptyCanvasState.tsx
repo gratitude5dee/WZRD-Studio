@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { ShimmerButton } from '@/components/ui/shimmer-button';
 import { TextAnimate } from '@/components/ui/text-animate';
 import { ShineBorder } from '@/components/ui/shine-border';
+import { DitherGradient } from '@/components/dither-kit';
+import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
 
 interface EmptyCanvasStateProps {
   onAddBlock: (type: 'text' | 'image' | 'video') => void;
@@ -96,6 +98,13 @@ const EmptyCanvasState = ({ onAddBlock, onExploreFlows, onDismiss, onStartFloraE
 
   return (
     <div className="absolute inset-0 flex items-center justify-center pointer-events-none animate-in fade-in-0 duration-500">
+      <DitherGradient
+        from={ditherColors.primary}
+        direction="up"
+        bloom={ditherBloom.perf}
+        opacity={0.12}
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3"
+      />
       <motion.div 
         className="text-center pointer-events-auto space-y-8 max-w-5xl px-6"
         initial={{ opacity: 0, y: 20 }}
