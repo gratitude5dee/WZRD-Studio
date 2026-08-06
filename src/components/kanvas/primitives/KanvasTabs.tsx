@@ -11,9 +11,9 @@ export interface KanvasTabItem<T extends string = string> {
 
 export interface KanvasTabsProps<T extends string = string>
   extends Omit<HTMLAttributes<HTMLDivElement>, "onChange"> {
-  items: ReadonlyArray<KanvasTabItem<T>>;
+  items: ReadonlyArray<KanvasTabItem<NoInfer<T>>>;
   value: T;
-  onChange: (value: T) => void;
+  onChange: (value: NoInfer<T>) => void;
   /** Accessible name of the tab strip. */
   label: string;
 }
