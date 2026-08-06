@@ -426,6 +426,7 @@ export default function ImageStudioSection({
         className={cn(
           "relative w-full max-w-[1100px] p-2.5 shadow-[0_20px_60px_rgba(0,0,0,0.9)] backdrop-blur-2xl",
           panelSurface({ surface: "raised", radius: "xl", border: "default" }),
+          "overflow-visible",
         )}
       >
         {renderModelDropdown()}
