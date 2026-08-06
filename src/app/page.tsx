@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import CanonicalCreatorOSLanding from "@/components/creator-os/CanonicalCreatorOSLanding";
+import FirstVisitIntroGate from "@/components/landing/FirstVisitIntroGate";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://wzrd.tech"),
@@ -37,5 +38,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <CanonicalCreatorOSLanding />;
+  return (
+    <>
+      <FirstVisitIntroGate />
+      <CanonicalCreatorOSLanding />
+    </>
+  );
 }
