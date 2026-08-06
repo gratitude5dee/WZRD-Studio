@@ -103,7 +103,7 @@ const EmptyCanvasState = ({ onAddBlock, onExploreFlows, onDismiss, onStartFloraE
         direction="up"
         bloom={ditherBloom.perf}
         opacity={0.12}
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3"
+        className="pointer-events-none absolute inset-x-0 top-auto bottom-0 h-2/3"
       />
       <motion.div 
         className="text-center pointer-events-auto space-y-8 max-w-5xl px-6"

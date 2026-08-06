@@ -62,7 +62,7 @@ export function HeroSection({
         direction="up"
         bloom={ditherBloom.marketing}
         opacity={0.35}
-        className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-1/2"
+        className="pointer-events-none absolute inset-x-0 top-auto bottom-0 -z-10 h-1/2"
       />
 
       <div className="relative z-10 container mx-auto px-4">
