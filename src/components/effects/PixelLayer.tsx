@@ -48,6 +48,7 @@ export function PixelLayer({ variant = "wzrd", className, disabled = false }: Pi
     const { colors, gap } = VARIANT_COLORS[variant];
     let pixels: Pixel[] = [];
     let initialized = false;
+    let hovered = false;
     let width = 0;
     let height = 0;
 
@@ -108,11 +109,13 @@ export function PixelLayer({ variant = "wzrd", className, disabled = false }: Pi
     const unregister = registerRenderer(renderer);
 
     const handleEnter = () => {
+      hovered = true;
       if (!initialized) initField();
       setPhase("in");
       wakeEngine();
     };
     const handleLeave = () => {
+      hovered = false;
       if (!initialized) return;
       setPhase("out");
       wakeEngine();
@@ -121,7 +124,7 @@ export function PixelLayer({ variant = "wzrd", className, disabled = false }: Pi
     const handleResize = debounce(() => {
       if (!initialized) return;
       initField();
-      setPhase("in");
+      setPhase(hovered ? "in" : "out");
       wakeEngine();
     }, 150);
 
