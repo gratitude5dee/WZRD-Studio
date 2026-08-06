@@ -1,3 +1,5 @@
+"use client"
+
 import { useMemo } from "react"
 import { Area } from "./area"
 import { AreaChart } from "./area-chart"

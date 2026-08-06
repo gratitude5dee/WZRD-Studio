@@ -1,3 +1,5 @@
+"use client"
+
 import { type RefObject, useEffect, useMemo, useRef } from "react"
 import { type ChartContextValue, useChart } from "./chart-context"
 import {
