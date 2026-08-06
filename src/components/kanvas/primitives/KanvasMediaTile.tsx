@@ -63,6 +63,7 @@ export const KanvasMediaTile = forwardRef<HTMLElement, KanvasMediaTileProps>(
           ref={ref as React.Ref<HTMLButtonElement>}
           type="button"
           onClick={onClick}
+          aria-label={alt || undefined}
           aria-pressed={selected ?? undefined}
           className={classes}
           {...(props as unknown as ButtonHTMLAttributes<HTMLButtonElement>)}
