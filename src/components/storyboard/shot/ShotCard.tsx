@@ -167,7 +167,7 @@ export const ShotCard: React.FC<ShotCardProps> = ({
       ref={setNodeRef}
       data-voice-shot-id={shot.id}
       className={cn(
-        "relative flex flex-col rounded-2xl backdrop-blur-xl w-[280px] min-h-[320px] group",
+        "relative isolate flex flex-col rounded-2xl backdrop-blur-xl w-[280px] min-h-[320px] group",
         "shot-card-glass transition-all duration-300",
         isSelected
           ? 'border-2 border-[#f97316]/60 ring-2 ring-[#f97316]/45 shadow-[0_0_0_4px_rgba(249,115,22,0.12),0_0_34px_rgba(249,115,22,0.24),0_8px_32px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.04)]'
