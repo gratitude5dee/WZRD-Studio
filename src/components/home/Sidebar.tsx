@@ -321,7 +321,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
 
         <aside
           className={cn(
-            'fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 flex flex-col items-center py-3 rounded-2xl',
+            'fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 flex max-h-[calc(100vh-100px)] flex-col items-center py-3 rounded-2xl',
             'bg-[#0A0A0A]/90 backdrop-blur-xl',
             'shadow-[0_0_15px_rgba(249,115,22,0.15),0_0_30px_rgba(249,115,22,0.05),0_8px_32px_rgba(0,0,0,0.5)]',
             'transition-all duration-300 ease-out',
@@ -346,7 +346,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
                 type="button"
                 onClick={() => setIsCollapsed(false)}
                 aria-label="Expand sidebar"
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
               >
                 <ChevronLeft className="h-[18px] w-[18px] rotate-180" />
               </button>
@@ -355,13 +355,13 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
           </Tooltip>
 
           {/* Divider */}
-          <div className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />
+          <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
 
           {/* Nav items */}
-          <nav className="flex flex-1 flex-col items-center gap-1">
+          <nav className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto scrollbar-none">
             {FLOATING_NAV_ITEMS.map((entry) => {
               if (entry.kind === 'divider') {
-                return <div key={entry.id} className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />;
+                return <div key={entry.id} className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />;
               }
 
               const node = entry.node;
@@ -390,7 +390,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
           </nav>
 
           {/* Divider */}
-          <div className="mx-auto my-2 h-px w-6 bg-white/[0.06]" />
+          <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
 
           {/* Logout */}
           <Tooltip>
@@ -399,7 +399,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
                 type="button"
                 onClick={handleLogout}
                 aria-label="Logout"
-                className="flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
               >
                 <LogOut className="h-[18px] w-[18px]" />
               </button>
@@ -408,7 +408,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
           </Tooltip>
 
           {/* Brand dot */}
-          <div className="mt-1 flex h-6 w-6 items-center justify-center">
+          <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center">
             <div className="h-2 w-2 rounded-full bg-[#f97316]/60 shadow-[0_0_6px_rgba(249,115,22,0.3)]" />
           </div>
         </aside>
