@@ -1014,9 +1014,9 @@ const StoryboardPage = () => {
         <ResizablePanelGroup orientation="horizontal" className="flex-grow">
           <ResizablePanel
             panelRef={sidebarPanelRef}
-            defaultSize={20}
-            minSize={15}
-            maxSize={30}
+            defaultSize="20%"
+            minSize="15%"
+            maxSize="30%"
             collapsible
             collapsedSize={0}
             onResize={(size) => setIsSidebarCollapsed(size.asPercentage === 0)}
@@ -1025,7 +1025,7 @@ const StoryboardPage = () => {
             <div className="h-full overflow-hidden">{sidebarNode}</div>
           </ResizablePanel>
           <ResizableHandle className="bg-white/[0.06] hover:bg-[rgba(249,115,22,0.35)] transition-colors" />
-          <ResizablePanel defaultSize={80}>{mainContent}</ResizablePanel>
+          <ResizablePanel defaultSize="80%">{mainContent}</ResizablePanel>
         </ResizablePanelGroup>
       )}
       

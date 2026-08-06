@@ -38,13 +38,13 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
   return (
     <TooltipProvider delayDuration={200}>
       {/* Invisible hover trigger zone — desktop only */}
-      <div className="hidden md:block fixed left-0 top-[68px] bottom-0 w-[80px] z-[49]" />
+      <div className="hidden md:block fixed left-0 top-[68px] bottom-0 w-[80px] z-[49] pointer-events-none" />
 
       <aside
         className={cn(
           'hidden md:flex fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 flex-col items-center py-3 rounded-2xl',
-          'bg-[#0A0A0A]/90 backdrop-blur-xl border border-white/[0.06]',
-          'shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.03)]',
+          'bg-[#0A0A0A]/90 backdrop-blur-xl',
+          'shadow-[0_0_15px_rgba(249,115,22,0.15),0_0_30px_rgba(249,115,22,0.05),0_8px_32px_rgba(0,0,0,0.5)]',
           'transition-all duration-300 ease-out',
           isVisible
             ? 'w-14 opacity-100 translate-x-0'
@@ -53,15 +53,15 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
         onMouseEnter={() => setIsVisible(true)}
         onMouseLeave={() => setIsVisible(false)}
       >
-        {/* Lime glow border */}
+        {/* Animated orange glow border (matches the home floating pill) */}
         <ShineBorder
-          shineColor={['#f97316', '#86efac', '#f97316']}
+          shineColor={['#f97316', '#d4a574']}
           borderWidth={1}
           duration={8}
         />
 
-        {/* Faint lime gradient top-highlight */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-[#f97316]/[0.04] via-transparent to-transparent pointer-events-none" />
+        {/* Faint orange top-highlight */}
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-orange-500/5 to-transparent pointer-events-none" />
 
         {/* Home button */}
         <Tooltip>
@@ -79,7 +79,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
         </Tooltip>
 
         {/* Divider */}
-        <div className="mx-auto my-3 h-px w-6 bg-white/[0.06]" />
+        <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
 
         {/* Studio icons */}
         <nav className="flex flex-1 flex-col items-center gap-1">
@@ -129,12 +129,9 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
           </Tooltip>
         </nav>
 
-        {/* Bottom WZRD mark + brand dot */}
-        <div className="mt-auto pt-3 flex flex-col items-center gap-2">
-          <div className="flex h-12 w-12 items-center justify-center">
-            <img src="/lovable-uploads/wzrdtechlogo.png" alt="WZRD" className="h-10 w-10 object-contain" />
-          </div>
-          <div className="h-1.5 w-1.5 rounded-full bg-[#f97316] shadow-[0_0_6px_rgba(249,115,22,0.5)]" />
+        {/* Brand dot (matches the home floating pill) */}
+        <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center">
+          <div className="h-2 w-2 rounded-full bg-[#f97316]/60 shadow-[0_0_6px_rgba(249,115,22,0.3)]" />
         </div>
       </aside>
     </TooltipProvider>
