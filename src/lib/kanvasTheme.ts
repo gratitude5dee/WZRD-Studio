@@ -136,7 +136,7 @@ export const mediaTile = cva(
         xl: "rounded-kanvas-xl",
       },
       interactive: {
-        true: "cursor-pointer transition-colors hover:border-kanvas-accent-edge",
+        true: "cursor-pointer border border-kanvas-border-subtle transition-colors hover:border-kanvas-accent-edge",
         false: "",
       },
     },
