@@ -33,6 +33,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { musicPolishAssets } from '@/lib/musicPolishAssets';
+import { PixelLayer } from '@/components/effects/PixelLayer';
 
 export interface Project {
   id: string;
@@ -202,6 +203,7 @@ export const ProjectCard = ({ project, onOpen, onDelete, onRename }: ProjectCard
         onMouseLeave={() => setIsHovered(false)}
         onClick={() => !isEditing && onOpen(project.id)}
       >
+        <PixelLayer variant="wzrd" />
         {/* Shine Border on hover */}
         <ShineBorder
           shineColor={["#FF6B4A", "#ea580c"]}

@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { PixelLayer } from '@/components/effects/PixelLayer';
 
 interface TestimonialCardProps {
   quote: string;
@@ -49,7 +50,8 @@ export const TestimonialCard = ({ quote, author, handle, featured = false, delay
       variants={fadeInUp}
       className={featured ? 'md:row-span-1' : ''}
     >
-      <div className="bg-white/[0.02] border border-white/10 p-6 rounded-xl shadow-lg flex flex-col h-full hover:bg-white/[0.04] transition-all duration-300">
+      <div className="relative overflow-hidden bg-white/[0.02] border border-white/10 p-6 rounded-xl shadow-lg flex flex-col h-full hover:bg-white/[0.04] transition-all duration-300">
+        <PixelLayer variant="wzrd" />
         {/* User info */}
         <div className="flex items-center gap-3 mb-4">
           <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${avatarColors[colorIndex]} flex items-center justify-center text-white font-bold`}>
