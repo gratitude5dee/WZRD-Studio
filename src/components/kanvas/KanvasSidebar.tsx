@@ -43,7 +43,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
       <aside
         className={cn(
           'hidden md:flex fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 flex-col items-center py-3 rounded-2xl',
-          'bg-[#0A0A0A]/90 backdrop-blur-xl border border-white/[0.06]',
+          'bg-kanvas-bg/90 backdrop-blur-xl border border-white/[0.06]',
           'shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.03)]',
           'transition-all duration-300 ease-out',
           isVisible
@@ -55,13 +55,13 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
       >
         {/* Lime glow border */}
         <ShineBorder
-          shineColor={['#f97316', '#86efac', '#f97316']}
+          shineColor={['hsl(25 95% 53%)', '#86efac', 'hsl(25 95% 53%)']}
           borderWidth={1}
           duration={8}
         />
 
         {/* Faint lime gradient top-highlight */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-[#f97316]/[0.04] via-transparent to-transparent pointer-events-none" />
+        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-kanvas-accent/[0.04] via-transparent to-transparent pointer-events-none" />
 
         {/* Home button */}
         <Tooltip>
@@ -70,7 +70,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
               type="button"
               onClick={() => navigate(appRoutes.home)}
               aria-label="Home"
-              className="relative flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
+              className="relative flex h-10 w-10 items-center justify-center rounded-lg text-kanvas-text-muted transition-all duration-200 hover:bg-white/[0.04] hover:text-kanvas-text-secondary"
             >
               <Home className="h-[18px] w-[18px]" />
             </button>
@@ -98,12 +98,12 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
                     className={cn(
                       'relative flex h-10 w-10 items-center justify-center rounded-lg transition-all duration-200',
                       isActive
-                        ? 'bg-white/10 text-[#f97316]'
-                        : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300',
+                        ? 'bg-white/10 text-kanvas-accent'
+                        : 'text-kanvas-text-muted hover:bg-white/[0.04] hover:text-kanvas-text-secondary',
                     )}
                   >
                     {isActive && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full bg-[#f97316] shadow-[0_0_6px_rgba(249,115,22,0.4)]" />
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full bg-kanvas-accent shadow-[0_0_6px_hsl(var(--kanvas-accent)/0.4)]" />
                     )}
                     <Icon className="h-[18px] w-[18px]" />
                   </button>
@@ -120,7 +120,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
                 type="button"
                 onClick={() => navigate(appRoutes.kanvasLyrics)}
                 aria-label="Lyrics"
-                className="relative flex h-10 w-10 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
+                className="relative flex h-10 w-10 items-center justify-center rounded-lg text-kanvas-text-muted transition-all duration-200 hover:bg-white/[0.04] hover:text-kanvas-text-secondary"
               >
                 <Music2 className="h-[18px] w-[18px]" />
               </button>
@@ -134,7 +134,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
           <div className="flex h-12 w-12 items-center justify-center">
             <img src="/lovable-uploads/wzrdtechlogo.png" alt="WZRD" className="h-10 w-10 object-contain" />
           </div>
-          <div className="h-1.5 w-1.5 rounded-full bg-[#f97316] shadow-[0_0_6px_rgba(249,115,22,0.5)]" />
+          <div className="h-1.5 w-1.5 rounded-full bg-kanvas-accent shadow-[0_0_6px_hsl(var(--kanvas-accent)/0.5)]" />
         </div>
       </aside>
     </TooltipProvider>
