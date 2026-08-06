@@ -15,6 +15,7 @@ import {
   FLOATING_NAV_ITEMS,
   SIDEBAR_SECTIONS,
   isNavGroup,
+  useNavGroupState,
   type SidebarNavGroup,
   type SidebarNavItem,
   type SidebarNavNode,
@@ -263,7 +264,7 @@ const NavGroupBlock = memo(function NavGroupBlock({
 });
 
 export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: SidebarProps) {
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ favorites: true });
+  const { isGroupOpen, toggleGroup } = useNavGroupState(activeView);
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const navigate = useNavigate();
   const [isFloatingVisible, setIsFloatingVisible] = useState(false);
@@ -302,10 +303,6 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
       onViewChange(item.id);
     }
   }, [navigate, onViewChange]);
-
-  const toggleGroup = useCallback((groupId: string) => {
-    setOpenGroups((current) => ({ ...current, [groupId]: !current[groupId] }));
-  }, []);
 
   const handleFloatingNavClick = useCallback((node: SidebarNavNode) => {
     if (isNavGroup(node)) {
@@ -369,7 +366,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
 
               const node = entry.node;
               const group = isNavGroup(node) ? node : null;
-              const isOpen = group ? Boolean(openGroups[group.id]) : false;
+              const isOpen = group ? isGroupOpen(group.id) : false;
 
               return (
                 <div key={node.id} className="flex flex-col items-center gap-1">
@@ -476,7 +473,7 @@ export const Sidebar = memo(function Sidebar({ activeView, onViewChange }: Sideb
                       key={node.id}
                       group={node}
                       activeView={activeView}
-                      isOpen={Boolean(openGroups[node.id])}
+                      isOpen={isGroupOpen(node.id)}
                       onToggle={toggleGroup}
                       onChildClick={handlePrimaryNavClick}
                     />

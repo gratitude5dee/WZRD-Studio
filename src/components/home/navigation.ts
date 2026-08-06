@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useState } from 'react';
 import {
   CalendarDays,
   Clapperboard,
@@ -130,6 +131,54 @@ export const SIDEBAR_SECTIONS: SidebarNavSection[] = [
     ],
   },
 ];
+
+const GROUP_ID_BY_CHILD_ID: Record<string, string> = Object.fromEntries(
+  SIDEBAR_SECTIONS.flatMap((section) =>
+    section.items.flatMap((node) =>
+      isNavGroup(node) ? node.children.map((child) => [child.id, node.id] as const) : []
+    )
+  )
+);
+
+/** The group that should be expanded so the active view stays visible. */
+export function getGroupIdForView(view: string): string | undefined {
+  return GROUP_ID_BY_CHILD_ID[view];
+}
+
+/**
+ * Open/closed state for collapsible groups. Favorites and the group owning the
+ * active view are open unless the user explicitly collapsed them.
+ */
+export function useNavGroupState(activeView: string) {
+  const activeGroupId = getGroupIdForView(activeView);
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!activeGroupId) return;
+    setOverrides((current) => {
+      if (!(activeGroupId in current)) return current;
+      const { [activeGroupId]: _removed, ...rest } = current;
+      return rest;
+    });
+  }, [activeGroupId]);
+
+  const isGroupOpen = useCallback(
+    (groupId: string) => overrides[groupId] ?? (groupId === FAVORITES_GROUP.id || groupId === activeGroupId),
+    [overrides, activeGroupId]
+  );
+
+  const toggleGroup = useCallback(
+    (groupId: string) => {
+      setOverrides((current) => ({
+        ...current,
+        [groupId]: !(current[groupId] ?? (groupId === FAVORITES_GROUP.id || groupId === activeGroupId)),
+      }));
+    },
+    [activeGroupId]
+  );
+
+  return { isGroupOpen, toggleGroup };
+}
 
 export type FloatingNavEntry =
   | { kind: 'divider'; id: string }

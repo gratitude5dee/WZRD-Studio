@@ -1,5 +1,4 @@
 import { X, ChevronLeft, Settings, HelpCircle, LogOut } from 'lucide-react';
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -8,7 +7,7 @@ import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import CreditsDisplay from '../CreditsDisplay';
 import { Badge } from '@/components/ui/badge';
 import { appRoutes } from '@/lib/routes';
-import { SIDEBAR_SECTIONS, isNavGroup, type SidebarNavItem } from './navigation';
+import { SIDEBAR_SECTIONS, isNavGroup, useNavGroupState, type SidebarNavItem } from './navigation';
 
 interface MobileSidebarDrawerProps {
   isOpen: boolean;
@@ -19,11 +18,7 @@ interface MobileSidebarDrawerProps {
 
 export const MobileSidebarDrawer = ({ isOpen, onClose, activeView, onViewChange }: MobileSidebarDrawerProps) => {
   const navigate = useNavigate();
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ favorites: true });
-
-  const toggleGroup = (groupId: string) => {
-    setOpenGroups((current) => ({ ...current, [groupId]: !current[groupId] }));
-  };
+  const { isGroupOpen, toggleGroup } = useNavGroupState(activeView);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -90,7 +85,7 @@ export const MobileSidebarDrawer = ({ isOpen, onClose, activeView, onViewChange 
               <div className="space-y-1">
                 {section.items.map((node) => {
                   const group = isNavGroup(node) ? node : null;
-                  const isGroupOpen = group ? Boolean(openGroups[group.id]) : false;
+                  const isExpanded = group ? isGroupOpen(group.id) : false;
                   const Icon = node.icon;
                   const isActive = activeView === node.id;
 
@@ -99,7 +94,7 @@ export const MobileSidebarDrawer = ({ isOpen, onClose, activeView, onViewChange 
                       <button
                         onClick={() => (group ? toggleGroup(group.id) : handleNavClick(node))}
                         aria-label={node.label}
-                        aria-expanded={group ? isGroupOpen : undefined}
+                        aria-expanded={group ? isExpanded : undefined}
                         className={cn(
                           "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all",
                           isActive
@@ -122,12 +117,12 @@ export const MobileSidebarDrawer = ({ isOpen, onClose, activeView, onViewChange 
                         {group && (
                           <ChevronLeft className={cn(
                             "w-4 h-4 transition-transform duration-200",
-                            isGroupOpen ? "-rotate-90" : "rotate-0"
+                            isExpanded ? "-rotate-90" : "rotate-0"
                           )} />
                         )}
                       </button>
 
-                      {group && isGroupOpen && (
+                      {group && isExpanded && (
                         <div className="mt-1 ml-6 pl-3 border-l border-border/60 space-y-0.5">
                           {group.children.length === 0 ? (
                             <p className="text-xs text-muted-foreground/50 py-2 italic">{group.emptyLabel}</p>

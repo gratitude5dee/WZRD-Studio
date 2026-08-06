@@ -139,6 +139,20 @@ describe('home navigation structure', () => {
     expect(screen.getByRole('button', { name: 'Favorites' })).toHaveAttribute('aria-expanded', 'false');
   });
 
+  it('expands the group owning the active view so the active child stays visible', () => {
+    render(
+      <MemoryRouter initialEntries={['/sourcify']}>
+        <SidebarProvider>
+          <Sidebar activeView="sourcify" onViewChange={vi.fn()} />
+        </SidebarProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Clip Studio' })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('button', { name: 'Sourcify' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Kanvas' })).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('preserves Clip Studio and Postz nav nodes when active view changes', () => {
     const onViewChange = vi.fn();
     const { rerender } = render(
