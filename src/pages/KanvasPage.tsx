@@ -281,13 +281,13 @@ function StudioNavButton({
       className={cn(
         "group flex items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all",
         active
-          ? "border-orange-400/40 bg-orange-400/10 text-white shadow-[0_0_40px_rgba(249,115,22,0.08)]"
-          : "border-white/10 bg-white/[0.03] text-zinc-400 hover:border-white/20 hover:bg-white/[0.06] hover:text-white",
+          ? "border-kanvas-accent-edge bg-kanvas-accent-soft text-white shadow-[0_0_40px_hsl(var(--kanvas-accent)/0.08)]"
+          : "border-white/10 bg-white/[0.03] text-kanvas-text-secondary hover:border-white/20 hover:bg-white/[0.06] hover:text-white",
         compact && "justify-center px-0"
       )}
       aria-pressed={active}
     >
-      <Icon className={cn("h-4 w-4", active ? "text-orange-400" : "text-zinc-500")} />
+      <Icon className={cn("h-4 w-4", active ? "text-kanvas-accent" : "text-kanvas-text-muted")} />
       {!compact && <span>{label}</span>}
     </button>
   );
@@ -323,7 +323,7 @@ function ModelControls({
                   variant="outline"
                   className={cn(
                     "border-white/10 bg-white/[0.03] text-xs",
-                    enabled ? "text-orange-400" : "text-zinc-400"
+                    enabled ? "text-kanvas-accent" : "text-kanvas-text-secondary"
                   )}
                 >
                   {enabled ? "On" : "Off"}
@@ -335,7 +335,7 @@ function ModelControls({
                 size="sm"
                 className={cn(
                   "w-full justify-between border-white/10 bg-white/[0.03]",
-                  enabled && "border-orange-400/40 bg-orange-400/10 text-white"
+                  enabled && "border-kanvas-accent-edge bg-kanvas-accent-soft text-white"
                 )}
                 onClick={() => onChange(control.key, !enabled)}
               >
@@ -421,17 +421,17 @@ function AssetSelector({
   const recentAssets = assets.filter((asset) => asset.asset_type === assetType).slice(0, 6);
 
   return (
-    <Card className="rounded-[28px] border-white/10 bg-[#0c0c0f]/80 p-4 text-white shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
+    <Card className="rounded-kanvas-xl border-white/10 bg-kanvas-surface-1/80 p-4 text-white shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-white">{title}</p>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-kanvas-text-muted">
             {optional ? "Optional for some models" : multi ? "Choose one or more references" : "Choose one asset"}
           </p>
         </div>
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 && (
-            <Badge variant="outline" className="border-orange-400/30 bg-orange-400/10 text-orange-300">
+            <Badge variant="outline" className="border-kanvas-accent-edge bg-kanvas-accent-soft text-kanvas-accent">
               {selectedIds.length} selected
             </Badge>
           )}
@@ -463,7 +463,7 @@ function AssetSelector({
       </div>
 
       {recentAssets.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-black/30 p-5 text-sm text-zinc-500">
+        <div className="rounded-2xl border border-dashed border-white/10 bg-black/30 p-5 text-sm text-kanvas-text-muted">
           No {assetType} assets yet.
         </div>
       ) : (
@@ -479,7 +479,7 @@ function AssetSelector({
                 className={cn(
                   "overflow-hidden rounded-2xl border text-left transition-all",
                   selected
-                    ? "border-orange-400/40 bg-orange-400/10 shadow-[0_0_30px_rgba(249,115,22,0.08)]"
+                    ? "border-kanvas-accent-edge bg-kanvas-accent-soft shadow-[0_0_30px_hsl(var(--kanvas-accent)/0.08)]"
                     : "border-white/10 bg-black/30 hover:border-white/20 hover:bg-white/[0.04]"
                 )}
               >
@@ -500,9 +500,9 @@ function AssetSelector({
                         className="h-full w-full object-cover"
                       />
                     ) : asset.asset_type === "audio" ? (
-                      <AudioLines className="h-6 w-6 text-orange-400" />
+                      <AudioLines className="h-6 w-6 text-kanvas-accent" />
                     ) : (
-                      <Film className="h-6 w-6 text-zinc-500" />
+                      <Film className="h-6 w-6 text-kanvas-text-muted" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -510,10 +510,10 @@ function AssetSelector({
                       <p className="truncate text-sm font-semibold text-white">
                         {getAssetTitle(asset)}
                       </p>
-                      {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-orange-400" />}
+                      {selected && <CheckCircle2 className="h-4 w-4 shrink-0 text-kanvas-accent" />}
                     </div>
-                    <p className="truncate text-xs text-zinc-500">{asset.asset_type.toUpperCase()}</p>
-                    <p className="mt-2 truncate text-xs text-zinc-600">
+                    <p className="truncate text-xs text-kanvas-text-muted">{asset.asset_type.toUpperCase()}</p>
+                    <p className="mt-2 truncate text-xs text-kanvas-text-faint">
                       {safeTimeAgo(asset.created_at)}
                     </p>
                   </div>
@@ -537,13 +537,13 @@ function HistoryRail({
   onSelect: (jobId: string) => void;
 }) {
   return (
-    <Card className="rounded-[28px] border-white/10 bg-[#09090b]/90 p-0 text-white shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
+    <Card className="rounded-kanvas-xl border-white/10 bg-kanvas-bg/90 p-0 text-white shadow-[0_20px_80px_rgba(0,0,0,0.35)]">
       <div className="flex items-center justify-between px-5 py-4">
         <div>
           <p className="text-sm font-semibold text-white">Recent Jobs</p>
-          <p className="text-xs text-zinc-500">Server-backed generation history</p>
+          <p className="text-xs text-kanvas-text-muted">Server-backed generation history</p>
         </div>
-        <Badge variant="outline" className="border-white/10 bg-white/[0.03] text-zinc-300">
+        <Badge variant="outline" className="border-white/10 bg-white/[0.03] text-kanvas-text-secondary">
           {jobs.length}
         </Badge>
       </div>
@@ -551,7 +551,7 @@ function HistoryRail({
       <ScrollArea className="h-[420px]">
         <div className="space-y-3 p-4">
           {jobs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-white/10 bg-black/30 p-5 text-sm text-zinc-500">
+            <div className="rounded-2xl border border-dashed border-white/10 bg-black/30 p-5 text-sm text-kanvas-text-muted">
               No generations yet.
             </div>
           ) : (
@@ -567,7 +567,7 @@ function HistoryRail({
                   className={cn(
                     "w-full overflow-hidden rounded-2xl border text-left transition-all",
                     selected
-                      ? "border-orange-400/40 bg-orange-400/10"
+                      ? "border-kanvas-accent-edge bg-kanvas-accent-soft"
                       : "border-white/10 bg-black/30 hover:border-white/20 hover:bg-white/[0.04]"
                   )}
                 >
@@ -584,9 +584,9 @@ function HistoryRail({
                       ) : job.resultPayload?.mediaType === "video" && previewUrl ? (
                         <video src={previewUrl} muted className="h-full w-full object-cover" />
                       ) : isJobActive(job) ? (
-                        <Loader2 className="h-5 w-5 animate-spin text-orange-400" />
+                        <Loader2 className="h-5 w-5 animate-spin text-kanvas-accent" />
                       ) : (
-                        <Icon className="h-5 w-5 text-zinc-500" />
+                        <Icon className="h-5 w-5 text-kanvas-text-muted" />
                       )}
                     </div>
                     <div className="min-w-0 flex-1">
@@ -598,7 +598,7 @@ function HistoryRail({
                           variant="outline"
                           className={cn(
                             "border-white/10 text-[10px] uppercase tracking-[0.18em]",
-                            job.status === "completed" && "text-orange-400",
+                            job.status === "completed" && "text-kanvas-accent",
                             job.status === "failed" && "text-rose-300",
                             isJobActive(job) && "text-amber-200"
                           )}
@@ -606,8 +606,8 @@ function HistoryRail({
                           {job.status}
                         </Badge>
                       </div>
-                      <p className="truncate text-xs text-zinc-500">{job.modelId ?? "Unknown model"}</p>
-                      <p className="mt-2 text-xs text-zinc-600">
+                      <p className="truncate text-xs text-kanvas-text-muted">{job.modelId ?? "Unknown model"}</p>
+                      <p className="mt-2 text-xs text-kanvas-text-faint">
                         {safeTimeAgo(job.createdAt)}
                       </p>
                     </div>
@@ -649,22 +649,22 @@ function PreviewStage({
   const Icon = STUDIO_ICONS[studio];
 
   return (
-    <Card className="relative overflow-hidden rounded-[36px] border-white/10 bg-[radial-gradient(circle_at_top,#1f2917,transparent_35%),linear-gradient(180deg,#0f1014,#08080a)] p-6 text-white shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.15),transparent_35%)]" />
+    <Card className="relative overflow-hidden rounded-kanvas-xl border-kanvas-border-default bg-[radial-gradient(circle_at_top,hsl(var(--kanvas-surface-2)),transparent_35%),linear-gradient(180deg,hsl(var(--kanvas-surface-1)),hsl(var(--kanvas-bg)))] p-6 text-white shadow-[0_30px_120px_rgba(0,0,0,0.45)]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,hsl(var(--kanvas-accent)/0.15),transparent_35%)]" />
       <div className="relative space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-kanvas-text-muted">
               {meta.label}
             </p>
             <h1 className="text-3xl font-black tracking-tight text-white md:text-5xl">
               {meta.headline}
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-zinc-400">{meta.description}</p>
+            <p className="mt-2 max-w-2xl text-sm text-kanvas-text-secondary">{meta.description}</p>
           </div>
           <div className="flex items-center gap-2">
             {currentModel && (
-              <Badge className="bg-orange-400 text-black hover:bg-orange-400">
+              <Badge className="bg-kanvas-accent text-kanvas-accent-contrast hover:bg-kanvas-accent-hover">
                 {currentModel.credits} credits
               </Badge>
             )}
@@ -673,7 +673,7 @@ function PreviewStage({
                 variant="outline"
                 className={cn(
                   "border-white/10 bg-white/[0.03]",
-                  selectedJob.status === "completed" && "text-orange-400",
+                  selectedJob.status === "completed" && "text-kanvas-accent",
                   selectedJob.status === "failed" && "text-rose-300",
                   isJobActive(selectedJob) && "text-amber-200"
                 )}
@@ -684,7 +684,7 @@ function PreviewStage({
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-[30px] border border-white/10 bg-black/40">
+        <div className="overflow-hidden rounded-kanvas-lg border border-white/10 bg-black/40">
           {previewUrl && selectedJob?.resultPayload?.mediaType === "image" ? (
             <img
               src={previewUrl}
@@ -704,12 +704,12 @@ function PreviewStage({
             />
           ) : selectedJob?.status === "failed" ? (
             <div className="flex aspect-[16/9] flex-col items-center justify-center gap-4 px-6 text-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-[28px] border border-rose-500/30 bg-rose-500/10">
+              <div className="flex h-20 w-20 items-center justify-center rounded-kanvas-xl border border-rose-500/30 bg-rose-500/10">
                 <Icon className="h-10 w-10 text-rose-400" />
               </div>
               <div>
                 <p className="text-xl font-semibold text-rose-300">Generation Failed</p>
-                <p className="mt-2 max-w-md text-sm text-zinc-500">
+                <p className="mt-2 max-w-md text-sm text-kanvas-text-muted">
                   {selectedJob.errorMessage ?? 'An unexpected error occurred.'}
                 </p>
               </div>
@@ -727,11 +727,11 @@ function PreviewStage({
             </div>
           ) : (
             <div className="flex aspect-[16/9] flex-col items-center justify-center gap-4 px-6 text-center">
-              <div className="flex h-20 w-20 items-center justify-center rounded-[28px] border border-orange-400/30 bg-orange-400/10">
+              <div className="flex h-20 w-20 items-center justify-center rounded-kanvas-xl border border-kanvas-accent-edge bg-kanvas-accent-soft">
                 {selectedJob && isJobActive(selectedJob) ? (
-                  <Loader2 className="h-10 w-10 animate-spin text-orange-400" />
+                  <Loader2 className="h-10 w-10 animate-spin text-kanvas-accent" />
                 ) : (
-                  <Icon className="h-10 w-10 text-orange-400" />
+                  <Icon className="h-10 w-10 text-kanvas-accent" />
                 )}
               </div>
               <div>
@@ -740,7 +740,7 @@ function PreviewStage({
                     ? "Generation in progress"
                     : "Ready to generate"}
                 </p>
-                <p className="mt-2 text-sm text-zinc-500">
+                <p className="mt-2 text-sm text-kanvas-text-muted">
                   {selectedJob && isJobActive(selectedJob)
                     ? getJobProgressLabel(selectedJob)
                     : currentModel
@@ -751,7 +751,7 @@ function PreviewStage({
               {selectedJob && isJobActive(selectedJob) && (
                 <div className="w-full max-w-md space-y-2">
                   <Progress value={selectedJob.progress ?? 12} className="bg-white/10" />
-                  <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">
+                  <p className="text-xs uppercase tracking-[0.2em] text-kanvas-text-muted">
                     {selectedJob.progress ?? 12}% complete
                   </p>
                 </div>
@@ -763,19 +763,19 @@ function PreviewStage({
         {selectedJob && (
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Model</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-kanvas-text-muted">Model</p>
               <p className="mt-2 truncate text-sm font-semibold text-white">
                 {selectedJob.modelId ?? "Unknown model"}
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Queued</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-kanvas-text-muted">Queued</p>
               <p className="mt-2 text-sm font-semibold text-white">
                 {safeTimeAgo(selectedJob.createdAt)}
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-              <p className="text-xs uppercase tracking-[0.2em] text-zinc-500">Output</p>
+              <p className="text-xs uppercase tracking-[0.2em] text-kanvas-text-muted">Output</p>
               <p className="mt-2 text-sm font-semibold text-white">
                 {selectedJob.resultPayload?.mediaType === "video" ? "Video" : "Image"}
               </p>
@@ -1463,25 +1463,25 @@ export default function KanvasPage() {
   }, [blueprintList, getMentionListFn]);
 
   return (
-    <div className="relative h-screen bg-[#050506] text-white overflow-hidden">
+    <div className="relative h-screen bg-kanvas-bg text-white overflow-hidden">
       {/* Floating sidebar nav (fixed overlay) */}
       <KanvasSidebar activeStudio={studio} onStudioChange={setStudio} />
 
       {/* Main content area — full width */}
       <div className="relative w-full h-full overflow-auto">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(249,115,22,0.08),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.05),transparent_24%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,hsl(var(--kanvas-accent)/0.08),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(249,115,22,0.05),transparent_24%)] pointer-events-none" />
         <div className="relative">
           {/* Slim status header */}
-           <header className="sticky top-0 z-40 bg-[#0A0A0A]/80 backdrop-blur-xl border-b border-transparent" style={{ borderImage: 'linear-gradient(to right, rgba(249,115,22,0.15), transparent 60%) 1' }}>
+           <header className="sticky top-0 z-40 bg-kanvas-bg/80 backdrop-blur-xl border-b border-transparent" style={{ borderImage: 'linear-gradient(to right, hsl(var(--kanvas-accent)/0.15), transparent 60%) 1' }}>
             <div className="flex items-center justify-between px-5 py-1.5">
               {/* Left: WZRD logo + badge */}
               <div className="flex items-center gap-2 md:gap-3 min-w-0 md:min-w-[140px]">
                 <img src="/lovable-uploads/wzrdtechlogo.png" alt="WZRD STUDIO Logo" className="h-10 md:h-14 object-contain cursor-pointer" onClick={() => navigate(appRoutes.home)} />
-                <span className="hidden sm:inline text-[10px] text-[#f97316] bg-[#f97316]/10 px-2 py-0.5 rounded-full border border-[#f97316]/20 font-medium">ALPHA</span>
+                <span className="hidden sm:inline text-[10px] text-kanvas-accent bg-kanvas-accent-soft px-2 py-0.5 rounded-full border border-kanvas-accent-edge font-medium">ALPHA</span>
               </div>
 
               {/* Center: Pill-slider studio nav — hidden on mobile (bottom nav replaces it) */}
-              <div className="hidden md:inline-flex items-center bg-[#111] rounded-full p-1 border border-white/[0.06] gap-0.5">
+              <div className="hidden md:inline-flex items-center bg-kanvas-surface-1 rounded-full p-1 border border-white/[0.06] gap-0.5">
                 {KANVAS_STUDIO_ORDER.map((s) => {
                   const Icon = {
                     image: ImageIcon,
@@ -1501,8 +1501,8 @@ export default function KanvasPage() {
                       className={cn(
                         'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200',
                         isActive
-                          ? 'bg-white/10 text-[#f97316] shadow-[inset_0_0_12px_rgba(249,115,22,0.06)]'
-                          : 'text-zinc-500 hover:text-zinc-300',
+                          ? 'bg-white/10 text-kanvas-accent shadow-[inset_0_0_12px_hsl(var(--kanvas-accent)/0.06)]'
+                          : 'text-kanvas-text-muted hover:text-kanvas-text-secondary',
                       )}
                     >
                       <Icon className="h-3.5 w-3.5" />
@@ -1516,7 +1516,7 @@ export default function KanvasPage() {
                   onClick={() => navigate(appRoutes.kanvasLyrics)}
                   className={cn(
                     'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200',
-                    'text-zinc-500 hover:text-zinc-300'
+                    'text-kanvas-text-muted hover:text-kanvas-text-secondary'
                   )}
                   aria-label="Open Lyrics wizard"
                 >
@@ -1533,7 +1533,7 @@ export default function KanvasPage() {
                       <button
                         type="button"
                         onClick={() => navigate(appRoutes.home)}
-                        className="hidden md:flex h-9 w-9 rounded-full bg-white/[0.04] border border-white/[0.06] items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08] transition-all duration-200"
+                        className="hidden md:flex h-9 w-9 rounded-full bg-white/[0.04] border border-white/[0.06] items-center justify-center text-kanvas-text-secondary hover:text-kanvas-text-primary hover:bg-white/[0.08] transition-all duration-200"
                         aria-label="Home"
                       >
                         <Home className="h-4 w-4" />
@@ -1557,7 +1557,7 @@ export default function KanvasPage() {
                         <DropdownMenuTrigger asChild>
                           <button
                             type="button"
-                            className="h-9 w-9 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.08] transition-all duration-200"
+                            className="h-9 w-9 rounded-full bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-kanvas-text-secondary hover:text-kanvas-text-primary hover:bg-white/[0.08] transition-all duration-200"
                             aria-label="Settings"
                           >
                             <Settings className="h-4 w-4" />
@@ -1566,23 +1566,23 @@ export default function KanvasPage() {
                       </TooltipTrigger>
                       <TooltipContent side="bottom" sideOffset={8} className="z-[60]">Settings</TooltipContent>
                     </Tooltip>
-                    <DropdownMenuContent align="end" sideOffset={8} className="w-52 bg-[#141414] border-white/[0.08] text-zinc-300">
+                    <DropdownMenuContent align="end" sideOffset={8} className="w-52 bg-kanvas-surface-2 border-white/[0.08] text-kanvas-text-secondary">
                       <DropdownMenuItem onClick={() => navigate(appRoutes.home)} className="gap-2 hover:bg-white/[0.06] focus:bg-white/[0.06] cursor-pointer">
-                        <Home className="h-4 w-4 text-zinc-500" />
+                        <Home className="h-4 w-4 text-kanvas-text-muted" />
                         <span>Home</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="bg-white/[0.06]" />
                       <DropdownMenuItem className="gap-2 hover:bg-white/[0.06] focus:bg-white/[0.06] cursor-pointer">
-                        <SlidersHorizontal className="h-4 w-4 text-zinc-500" />
+                        <SlidersHorizontal className="h-4 w-4 text-kanvas-text-muted" />
                         <span>Preferences</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem className="gap-2 hover:bg-white/[0.06] focus:bg-white/[0.06] cursor-pointer">
-                        <Keyboard className="h-4 w-4 text-zinc-500" />
+                        <Keyboard className="h-4 w-4 text-kanvas-text-muted" />
                         <span>Keyboard Shortcuts</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="bg-white/[0.06]" />
                       <DropdownMenuItem className="gap-2 hover:bg-white/[0.06] focus:bg-white/[0.06] cursor-pointer">
-                        <Info className="h-4 w-4 text-zinc-500" />
+                        <Info className="h-4 w-4 text-kanvas-text-muted" />
                         <span>About</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem className="gap-2 hover:bg-rose-500/10 focus:bg-rose-500/10 text-rose-400 cursor-pointer">
@@ -1610,7 +1610,7 @@ export default function KanvasPage() {
               fallback={
                 <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.03]">
                   <div className="text-center">
-                    <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-orange-400" />
+                    <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-kanvas-accent" />
                     <p className="text-sm font-semibold text-white">Loading {KANVAS_STUDIO_META[studio].label}</p>
                   </div>
                 </div>
@@ -1773,10 +1773,10 @@ export default function KanvasPage() {
 
           {pageLoading && (
             <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-              <div className="rounded-[32px] border border-white/10 bg-[#09090b]/90 px-8 py-6 text-center text-white shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
-                <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-orange-400" />
+              <div className="rounded-kanvas-xl border border-white/10 bg-kanvas-bg/90 px-8 py-6 text-center text-white shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+                <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-kanvas-accent" />
                 <p className="text-sm font-semibold text-white">Loading Kanvas shell</p>
-                <p className="mt-1 text-xs text-zinc-500">Fetching models, assets, and history.</p>
+                <p className="mt-1 text-xs text-kanvas-text-muted">Fetching models, assets, and history.</p>
               </div>
             </div>
           )}
@@ -1792,20 +1792,20 @@ export default function KanvasPage() {
       </svg>
 
       {/* Bottom status bar */}
-      <div className="hidden md:flex fixed bottom-0 left-0 right-0 h-8 z-[55] bg-[#0A0A0A]/80 backdrop-blur-xl border-t border-white/[0.04] items-center justify-between px-4">
-        <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-medium">WZRD Studio</span>
+      <div className="hidden md:flex fixed bottom-0 left-0 right-0 h-8 z-[55] bg-kanvas-bg/80 backdrop-blur-xl border-t border-white/[0.04] items-center justify-between px-4">
+        <span className="text-[10px] text-kanvas-text-faint uppercase tracking-widest font-medium">WZRD Studio</span>
         <div className="flex items-center gap-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-[#f97316] shadow-[0_0_6px_rgba(249,115,22,0.5)] animate-pulse" />
-          <span className="text-[10px] text-zinc-400 font-medium capitalize">{KANVAS_STUDIO_META[studio].label}</span>
+          <div className="h-1.5 w-1.5 rounded-full bg-kanvas-accent shadow-[0_0_6px_hsl(var(--kanvas-accent)/0.5)] animate-pulse" />
+          <span className="text-[10px] text-kanvas-text-secondary font-medium capitalize">{KANVAS_STUDIO_META[studio].label}</span>
         </div>
         <div className="flex items-center gap-3">
           <CreditsDisplay showTooltip={false} />
-          <kbd className="text-[9px] text-zinc-500 bg-white/[0.04] border border-white/[0.06] rounded px-1.5 py-0.5 font-mono">⌘K</kbd>
+          <kbd className="text-[9px] text-kanvas-text-muted bg-white/[0.04] border border-white/[0.06] rounded px-1.5 py-0.5 font-mono">⌘K</kbd>
         </div>
       </div>
 
       {/* Mobile bottom nav */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[55] bg-[#0A0A0A]/95 backdrop-blur-xl border-t border-white/[0.06] pb-[env(safe-area-inset-bottom)]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[55] bg-kanvas-bg/95 backdrop-blur-xl border-t border-white/[0.06] pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center justify-around px-2 py-2">
           {KANVAS_STUDIO_ORDER.map((s) => {
             const Icon = STUDIO_ICONS[s];
@@ -1818,8 +1818,8 @@ export default function KanvasPage() {
                 className={cn(
                   'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-all',
                   isActive
-                    ? 'text-[#f97316]'
-                    : 'text-zinc-500 active:text-zinc-300',
+                    ? 'text-kanvas-accent'
+                    : 'text-kanvas-text-muted active:text-kanvas-text-secondary',
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -1831,10 +1831,10 @@ export default function KanvasPage() {
       </div>
 
       <AlertDialog open={creditsDialogOpen} onOpenChange={setCreditsDialogOpen}>
-        <AlertDialogContent className="border-white/10 bg-[#0c0c0f] text-white">
+        <AlertDialogContent className="border-white/10 bg-kanvas-surface-1 text-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Insufficient Credits</AlertDialogTitle>
-            <AlertDialogDescription className="text-zinc-400">
+            <AlertDialogDescription className="text-kanvas-text-secondary">
               This generation requires <span className="font-semibold text-white">{creditsInfo?.required ?? 0}</span> credits
               but you only have <span className="font-semibold text-white">{creditsInfo?.available ?? 0}</span> available.
             </AlertDialogDescription>
@@ -1844,7 +1844,7 @@ export default function KanvasPage() {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              className="bg-[#f97316] text-black hover:bg-[#fb923c]"
+              className="bg-kanvas-accent text-kanvas-accent-contrast hover:bg-kanvas-accent-hover"
               onClick={() => navigate(appRoutes.settings.billing)}
             >
               Get More Credits
