@@ -76,7 +76,7 @@ export const KanvasRailRow = forwardRef<HTMLElement, KanvasRailRowProps>(
           disabled={disabled}
           aria-pressed={active ?? undefined}
           className={classes}
-          {...(props as ButtonHTMLAttributes<HTMLButtonElement>)}
+          {...(props as unknown as ButtonHTMLAttributes<HTMLButtonElement>)}
         >
           {content}
         </button>

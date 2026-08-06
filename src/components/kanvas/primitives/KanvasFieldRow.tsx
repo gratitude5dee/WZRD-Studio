@@ -3,7 +3,8 @@ import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { kanvasEyebrow } from "@/lib/kanvasTheme";
 
-export interface KanvasFieldRowProps extends HTMLAttributes<HTMLDivElement> {
+export interface KanvasFieldRowProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   label: ReactNode;
   hint?: ReactNode;
   /** Lays the control out beneath the label instead of beside it. */

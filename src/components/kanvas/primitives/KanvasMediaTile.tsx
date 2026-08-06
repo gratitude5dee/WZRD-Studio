@@ -65,7 +65,7 @@ export const KanvasMediaTile = forwardRef<HTMLElement, KanvasMediaTileProps>(
           onClick={onClick}
           aria-pressed={selected ?? undefined}
           className={classes}
-          {...(props as ButtonHTMLAttributes<HTMLButtonElement>)}
+          {...(props as unknown as ButtonHTMLAttributes<HTMLButtonElement>)}
         >
           {content}
         </button>

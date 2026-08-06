@@ -189,7 +189,7 @@ export default function ImageStudioSection({
 
   /* ---- Sub-nav ---- */
   const renderSubNav = () => (
-    <KanvasTabs
+    <KanvasTabs<"explore" | "history">
       label="Image gallery view"
       className="gap-4 px-4 pt-4 md:gap-6 md:px-12 md:pt-6"
       value={activeTab}
