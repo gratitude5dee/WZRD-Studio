@@ -1,4 +1,5 @@
-import { X, FolderKanban, Layers, Users, Globe, Settings, HelpCircle, LogOut, Sparkles, Images, ShieldCheck, Scissors, DatabaseZap, CalendarDays } from 'lucide-react';
+import { X, ChevronLeft, Settings, HelpCircle, LogOut } from 'lucide-react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -7,6 +8,7 @@ import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import CreditsDisplay from '../CreditsDisplay';
 import { Badge } from '@/components/ui/badge';
 import { appRoutes } from '@/lib/routes';
+import { SIDEBAR_SECTIONS, isNavGroup, type SidebarNavItem } from './navigation';
 
 interface MobileSidebarDrawerProps {
   isOpen: boolean;
@@ -17,6 +19,11 @@ interface MobileSidebarDrawerProps {
 
 export const MobileSidebarDrawer = ({ isOpen, onClose, activeView, onViewChange }: MobileSidebarDrawerProps) => {
   const navigate = useNavigate();
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({ favorites: true });
+
+  const toggleGroup = (groupId: string) => {
+    setOpenGroups((current) => ({ ...current, [groupId]: !current[groupId] }));
+  };
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -29,23 +36,7 @@ export const MobileSidebarDrawer = ({ isOpen, onClose, activeView, onViewChange 
     onClose();
   };
 
-  const mainNavItems = [
-    { id: 'all', label: 'All Projects', icon: FolderKanban },
-    { id: 'kanvas', label: 'Kanvas', icon: Layers, isRoute: true, path: appRoutes.kanvas, showBadge: true },
-    { id: 'clipper', label: 'Clipper', icon: Scissors, isRoute: true, path: appRoutes.clipper, showBadge: true },
-    { id: 'sourcify', label: 'Sourcify', icon: DatabaseZap, isRoute: true, path: appRoutes.sourcify, showBadge: true },
-    { id: 'postz', label: 'Postz', icon: CalendarDays, isRoute: true, path: appRoutes.postz },
-    { id: 'aura', label: 'Aura', icon: Sparkles },
-    { id: 'asset-store', label: 'Asset Store', icon: Images },
-    { id: 'ip-vault', label: 'IP Vault', icon: ShieldCheck, isRoute: true, path: appRoutes.ipVault },
-  ];
-
-  const secondaryNavItems = [
-    { id: 'shared', label: 'Shared with me', icon: Users },
-    { id: 'community', label: 'Community', icon: Globe },
-  ];
-
-  const handleNavClick = (item: typeof mainNavItems[0]) => {
+  const handleNavClick = (item: SidebarNavItem) => {
     if (item.isRoute) {
       navigate(item.path ?? appRoutes.kanvas);
     } else {
@@ -88,82 +79,94 @@ export const MobileSidebarDrawer = ({ isOpen, onClose, activeView, onViewChange 
 
         {/* Navigation — scrollable */}
         <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
-          {/* Main Menu */}
-          <div>
-            <div className="flex items-center gap-2 px-3 mb-3">
-              <Sparkles className="w-3.5 h-3.5 text-primary" />
-              <span className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">Main Menu</span>
-            </div>
-            <div className="space-y-1">
-              {mainNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeView === item.id;
+          {SIDEBAR_SECTIONS.map((section) => (
+            <div key={section.id}>
+              {section.label && section.labelIcon && (
+                <div className="flex items-center gap-2 px-3 mb-3">
+                  <section.labelIcon className={cn("w-3.5 h-3.5", section.accent ? "text-primary" : "text-muted-foreground/50")} />
+                  <span className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">{section.label}</span>
+                </div>
+              )}
+              <div className="space-y-1">
+                {section.items.map((node) => {
+                  const group = isNavGroup(node) ? node : null;
+                  const isGroupOpen = group ? Boolean(openGroups[group.id]) : false;
+                  const Icon = node.icon;
+                  const isActive = activeView === node.id;
 
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleNavClick(item)}
-                    aria-label={item.label}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all",
-                      isActive
-                        ? "bg-primary/15 text-primary border border-primary/30"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-9 h-9 rounded-lg flex items-center justify-center",
-                      isActive ? "bg-primary/25" : "bg-muted/50"
-                    )}>
-                      <Icon className="w-4 h-4" />
+                  return (
+                    <div key={node.id}>
+                      <button
+                        onClick={() => (group ? toggleGroup(group.id) : handleNavClick(node))}
+                        aria-label={node.label}
+                        aria-expanded={group ? isGroupOpen : undefined}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all",
+                          isActive
+                            ? "bg-primary/15 text-primary border border-primary/30"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-9 h-9 rounded-lg flex items-center justify-center",
+                          isActive ? "bg-primary/25" : "bg-muted/50"
+                        )}>
+                          <Icon className="w-4 h-4" />
+                        </div>
+                        <span className="flex-1 text-left">{node.label}</span>
+                        {node.showBadge && (
+                          <Badge variant="secondary" className="text-[9px] bg-primary/20 text-primary border-primary/30">
+                            New
+                          </Badge>
+                        )}
+                        {group && (
+                          <ChevronLeft className={cn(
+                            "w-4 h-4 transition-transform duration-200",
+                            isGroupOpen ? "-rotate-90" : "rotate-0"
+                          )} />
+                        )}
+                      </button>
+
+                      {group && isGroupOpen && (
+                        <div className="mt-1 ml-6 pl-3 border-l border-border/60 space-y-0.5">
+                          {group.children.length === 0 ? (
+                            <p className="text-xs text-muted-foreground/50 py-2 italic">{group.emptyLabel}</p>
+                          ) : (
+                            group.children.map((child) => {
+                              const ChildIcon = child.icon;
+                              const isChildActive = activeView === child.id;
+
+                              return (
+                                <button
+                                  key={child.id}
+                                  onClick={() => handleNavClick(child)}
+                                  aria-label={child.label}
+                                  className={cn(
+                                    "w-full flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-sm transition-all",
+                                    isChildActive
+                                      ? "bg-primary/10 text-primary"
+                                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                  )}
+                                >
+                                  <ChildIcon className="w-4 h-4 flex-shrink-0" />
+                                  <span className="flex-1 text-left">{child.label}</span>
+                                  {child.showBadge && (
+                                    <Badge variant="secondary" className="text-[9px] bg-primary/20 text-primary border-primary/30">
+                                      New
+                                    </Badge>
+                                  )}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <span className="flex-1 text-left">{item.label}</span>
-                    {item.showBadge && (
-                      <Badge variant="secondary" className="text-[9px] bg-primary/20 text-primary border-primary/30">
-                        New
-                      </Badge>
-                    )}
-                  </button>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-
-          {/* Secondary Navigation */}
-          <div>
-            <div className="flex items-center gap-2 px-3 mb-3">
-              <Users className="w-3.5 h-3.5 text-muted-foreground/50" />
-              <span className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-[0.15em]">Collaborate</span>
-            </div>
-            <div className="space-y-1">
-              {secondaryNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = activeView === item.id;
-
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => { onViewChange(item.id); onClose(); }}
-                    aria-label={item.label}
-                    className={cn(
-                      "w-full flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all",
-                      isActive
-                        ? "bg-primary/15 text-primary border border-primary/30"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-9 h-9 rounded-lg flex items-center justify-center",
-                      isActive ? "bg-primary/25" : "bg-muted/50"
-                    )}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          ))}
         </nav>
 
         {/* Bottom Section — always visible */}

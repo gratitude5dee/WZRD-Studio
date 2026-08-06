@@ -1,20 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Clapperboard,
-  Globe2,
   Home,
-  Image as ImageIcon,
-  Mic2,
   Music2,
-  Pencil,
-  Sparkles,
-  Video,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { appRoutes } from '@/lib/routes';
 import type { KanvasStudio } from '@/features/kanvas/types';
 import { KANVAS_STUDIO_ORDER, KANVAS_STUDIO_META } from '@/features/kanvas/helpers';
+import { KANVAS_STUDIO_ICONS as STUDIO_ICONS } from '@/features/kanvas/studioIcons';
 import {
   Tooltip,
   TooltipContent,
@@ -22,16 +16,6 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { ShineBorder } from '@/components/ui/shine-border';
-
-const STUDIO_ICONS: Record<KanvasStudio, typeof ImageIcon> = {
-  image: ImageIcon,
-  video: Video,
-  edit: Pencil,
-  cinema: Clapperboard,
-  lipsync: Mic2,
-  worldview: Globe2,
-  'character-creation': Sparkles,
-};
 
 interface KanvasSidebarProps {
   activeStudio: KanvasStudio;
