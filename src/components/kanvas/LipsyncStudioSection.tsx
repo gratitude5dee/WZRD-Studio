@@ -581,7 +581,7 @@ function UGCTemplates({
                 <p className="text-3xl font-black text-kanvas-text-primary font-kanvas-display tracking-tight">
                   {tpl.title}
                 </p>
-                <p className="mt-2 text-xs italic leading-relaxed text-zinc-400 line-clamp-2">
+                <p className="mt-2 text-xs italic leading-relaxed text-kanvas-text-secondary line-clamp-2">
                   “{tpl.script}”
                 </p>
               </div>
