@@ -28,6 +28,7 @@ import {
 import { toast } from 'sonner';
 
 import { cn } from '@/lib/utils';
+import { KanvasEmptyState } from '@/components/kanvas/primitives';
 import { useWorldviewStore } from '@/lib/stores/worldview-store';
 import { useCanvasStore } from '@/lib/stores/canvas-store';
 import { worldLabsService } from '@/services/worldLabsService';
@@ -1859,10 +1860,8 @@ export function WorldviewSection() {
               />
             )
           ) : (
-            <motion.div key="empty" {...fadeIn} className="py-6 text-center">
-              <p className="text-sm text-zinc-500">
-                Create a new scene to get started
-              </p>
+            <motion.div key="empty" {...fadeIn}>
+              <KanvasEmptyState bare className="py-6" title="Create a new scene to get started" />
             </motion.div>
           )}
         </AnimatePresence>
