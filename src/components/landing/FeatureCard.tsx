@@ -2,6 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { TechHighlight } from './TechHighlight';
+import { PixelLayer } from '@/components/effects/PixelLayer';
 
 interface FeatureCardProps {
   icon: React.ReactNode;
@@ -32,7 +33,8 @@ export const FeatureCard = ({ icon, title, description, delay = 0, techBadge }: 
       variants={fadeInUp}
       className="perspective-1000"
     >
-      <div className="glass-card p-6 rounded-xl transform-style-3d hover:rotateX-3 hover:rotateY-3 hover:-translate-y-2 transition-all-std shadow-lg h-full">
+      <div className="relative overflow-hidden glass-card p-6 rounded-xl transform-style-3d hover:rotateX-3 hover:rotateY-3 hover:-translate-y-2 transition-all-std shadow-lg h-full">
+        <PixelLayer variant="wzrd" />
         <div className="mb-4">{icon}</div>
         <h3 className="text-xl font-bold mb-2 text-white">{title}</h3>
         <p className="text-zinc-400 mb-4">{description}</p>

@@ -14,6 +14,7 @@ import { useAudioGeneration } from './useAudioGeneration';
 import { Button } from '@/components/ui/button';
 import { Trash2, Move, Expand } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { PixelLayer } from '@/components/effects/PixelLayer';
 
 interface ShotCardProps {
   shot: ShotDetails;
@@ -108,7 +109,7 @@ export const ShotCard: React.FC<ShotCardProps> = ({
     setLocalAudioStatus
   });
 
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: shot.id,
   });
 
@@ -178,6 +179,7 @@ export const ShotCard: React.FC<ShotCardProps> = ({
         isExpanded && "min-h-[480px] w-[360px]"
       )}
     >
+      <PixelLayer variant="wzrd" disabled={isDragging} />
       {/* Connection Points - Glass style */}
       <div 
         className={cn(
