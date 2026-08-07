@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
@@ -6,11 +6,11 @@ import { cn } from '@/lib/utils';
 import { appRoutes } from '@/lib/routes';
 import { supabase } from '@/integrations/supabase/client';
 import type { KanvasStudio } from '@/features/kanvas/types';
-import { KANVAS_STUDIO_ORDER } from '@/features/kanvas/helpers';
 import { FloatingNavButton } from '@/components/home/Sidebar';
 import {
   FLOATING_NAV_ITEMS,
   isNavGroup,
+  kanvasStudioFromNavItem,
   useNavGroupState,
   type SidebarNavItem,
   type SidebarNavNode,
@@ -21,29 +21,20 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { ShineBorder } from '@/components/ui/shine-border';
+
+/** Shared focus treatment: visible ring on keyboard focus only. */
+const FOCUS_RING =
+  'outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-canvas';
 
 interface KanvasSidebarProps {
   activeStudio: KanvasStudio;
   onStudioChange: (studio: KanvasStudio) => void;
 }
 
-const KANVAS_STUDIO_PATH_PREFIX = `${appRoutes.kanvas}?studio=`;
-
 export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarProps) {
   const navigate = useNavigate();
-  const [isVisible, setIsVisible] = useState(false);
   const activeView = `kanvas-${activeStudio}`;
   const { isGroupOpen, toggleGroup } = useNavGroupState(activeView);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    setIsVisible(e.clientX <= 80);
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [handleMouseMove]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -56,12 +47,10 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
   };
 
   const handleItemClick = useCallback((item: SidebarNavItem) => {
-    if (item.path?.startsWith(KANVAS_STUDIO_PATH_PREFIX)) {
-      const studio = item.path.slice(KANVAS_STUDIO_PATH_PREFIX.length);
-      if ((KANVAS_STUDIO_ORDER as readonly string[]).includes(studio)) {
-        onStudioChange(studio as KanvasStudio);
-        return;
-      }
+    const studio = kanvasStudioFromNavItem(item);
+    if (studio) {
+      onStudioChange(studio as KanvasStudio);
+      return;
     }
     if (item.isRoute) {
       navigate(item.path ?? appRoutes.kanvas);
@@ -80,32 +69,13 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
 
   return (
     <TooltipProvider delayDuration={200}>
-      {/* Invisible hover trigger zone — desktop only */}
-      <div className="hidden md:block fixed left-0 top-[68px] bottom-0 w-[80px] z-[49] pointer-events-none" />
-
       <aside
+        aria-label="Kanvas navigation rail"
         className={cn(
-          'hidden md:flex fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 max-h-[calc(100vh-100px)] flex-col items-center py-3 rounded-2xl',
-          'bg-kanvas-bg/90 backdrop-blur-xl',
-          'shadow-[0_0_15px_hsl(var(--kanvas-accent)/0.15),0_0_30px_hsl(var(--kanvas-accent)/0.05),0_8px_32px_rgba(0,0,0,0.5)]',
-          'transition-all duration-300 ease-out',
-          isVisible
-            ? 'w-14 opacity-100 translate-x-0'
-            : 'w-3 opacity-0 -translate-x-2 pointer-events-none overflow-hidden',
+          'hidden md:flex fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 max-h-[calc(100vh-100px)] w-14 flex-col items-center py-3 rounded-wzrd-lg',
+          'bg-surface-raised border border-line-subtle shadow-lg',
         )}
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
       >
-        {/* Animated orange glow border (matches the home floating pill) */}
-        <ShineBorder
-          shineColor={['hsl(25 95% 53%)', '#d4a574']}
-          borderWidth={1}
-          duration={8}
-        />
-
-        {/* Faint orange top-highlight */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-orange-500/5 to-transparent pointer-events-none" />
-
         {/* Home button */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -113,7 +83,11 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
               type="button"
               onClick={() => navigate(appRoutes.home)}
               aria-label="Home"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-kanvas-text-muted transition-all duration-200 hover:bg-white/[0.04] hover:text-kanvas-text-secondary"
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-wzrd-sm text-text-secondary',
+                'transition-[background-color,color] duration-wzrd-control hover:bg-accent-air/8 hover:text-text-primary',
+                FOCUS_RING,
+              )}
             >
               <Home className="h-[18px] w-[18px]" />
             </button>
@@ -122,13 +96,13 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
         </Tooltip>
 
         {/* Divider */}
-        <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
+        <div className="mx-auto my-2 h-px w-6 shrink-0 bg-line-subtle" />
 
         {/* Nav items (same structure as the home sidebar) */}
         <nav className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto hide-scrollbar">
           {FLOATING_NAV_ITEMS.map((entry) => {
             if (entry.kind === 'divider') {
-              return <div key={entry.id} className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />;
+              return <div key={entry.id} className="mx-auto my-2 h-px w-6 shrink-0 bg-line-subtle" />;
             }
 
             const node = entry.node;
@@ -140,6 +114,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
                 <FloatingNavButton
                   item={node}
                   isActive={activeView === node.id}
+                  isExpanded={group ? isOpen : undefined}
                   onClick={() => handleNodeClick(node)}
                 />
                 {group && isOpen && group.children.map((child) => (
@@ -157,7 +132,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
         </nav>
 
         {/* Divider */}
-        <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
+        <div className="mx-auto my-2 h-px w-6 shrink-0 bg-line-subtle" />
 
         {/* Logout */}
         <Tooltip>
@@ -166,7 +141,11 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
               type="button"
               onClick={handleLogout}
               aria-label="Logout"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-kanvas-text-muted transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-wzrd-sm text-text-secondary',
+                'transition-[background-color,color] duration-wzrd-control hover:bg-status-danger/10 hover:text-status-danger',
+                FOCUS_RING,
+              )}
             >
               <LogOut className="h-[18px] w-[18px]" />
             </button>
@@ -176,7 +155,7 @@ export function KanvasSidebar({ activeStudio, onStudioChange }: KanvasSidebarPro
 
         {/* Brand dot */}
         <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center">
-          <div className="h-2 w-2 rounded-full bg-kanvas-accent/60 shadow-[0_0_6px_hsl(var(--kanvas-accent)/0.3)]" />
+          <div className="h-2 w-2 rounded-wzrd-chip bg-accent-ember/60" />
         </div>
       </aside>
     </TooltipProvider>

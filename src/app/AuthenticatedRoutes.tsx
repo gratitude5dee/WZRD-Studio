@@ -59,7 +59,6 @@ const KanvasRemixJobs = lazyWithRetry(() => import('@/legacy-pages/KanvasRemixJo
 const Clipper = lazyWithRetry(() => import('@/legacy-pages/Clipper'));
 const Sourcify = lazyWithRetry(() => import('@/legacy-pages/Sourcify'));
 const Postz = lazyWithRetry(() => import('@/legacy-pages/Postz'));
-const AssetsPage = lazyWithRetry(() => import('@/legacy-pages/AssetsPage'));
 const IPVault = lazyWithRetry(() => import('@/legacy-pages/IPVault'));
 const NotFound = lazyWithRetry(() => import('@/legacy-pages/NotFound'));
 
@@ -138,10 +137,8 @@ const AuthenticatedRoutes = () => {
                     path="/projects/:projectId/studio"
                     element={<ProtectedRoute><ProtectedProjectRoute><StudioPage /></ProtectedProjectRoute></ProtectedRoute>}
                   />
-                  <Route
-                    path={appRoutes.assets}
-                    element={<ProtectedRoute><AssetsPage /></ProtectedRoute>}
-                  />
+                  {/* Legacy Asset Store surface folded into IP Vault. */}
+                  <Route path={appRoutes.assets} element={<Navigate to={appRoutes.ipVault} replace />} />
                   <Route
                     path={appRoutes.ipVault}
                     element={<ProtectedRoute><IPVault /></ProtectedRoute>}

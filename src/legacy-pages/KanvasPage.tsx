@@ -21,7 +21,6 @@ import {
   Loader2,
   LogOut,
   Mic2,
-  Music2,
   Pencil,
   Settings,
   SlidersHorizontal,
@@ -91,6 +90,10 @@ import {
   normalizeStudioParam,
   pickLatestStudioJob,
 } from "@/features/kanvas/helpers";
+import {
+  KANVAS_NAV_ITEMS,
+  kanvasStudioFromNavItem,
+} from "@/components/home/navigation";
 import {
   fetchKanvasModels,
   InsufficientCreditsError,
@@ -1483,47 +1486,29 @@ export default function KanvasPage() {
 
               {/* Center: Pill-slider studio nav — hidden on mobile (bottom nav replaces it) */}
               <div className="hidden md:inline-flex items-center bg-kanvas-surface-1 rounded-full p-1 border border-white/[0.06] gap-0.5">
-                {KANVAS_STUDIO_ORDER.map((s) => {
-                  const Icon = {
-                    image: ImageIcon,
-                    video: Video,
-                    edit: Pencil,
-                    cinema: Clapperboard,
-                    lipsync: Mic2,
-                    worldview: Globe2,
-                    'character-creation': Sparkles,
-                  }[s] as typeof ImageIcon;
-                  const isActive = studio === s;
+                {KANVAS_NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  const itemStudio = kanvasStudioFromNavItem(item);
+                  const isActive = itemStudio === studio;
                   return (
                     <button
-                      key={s}
+                      key={item.id}
                       type="button"
-                      onClick={() => setStudio(s)}
+                      aria-label={item.label}
+                      aria-current={isActive ? 'page' : undefined}
+                      onClick={() => (itemStudio ? setStudio(itemStudio as KanvasStudio) : navigate(item.path ?? appRoutes.kanvas))}
                       className={cn(
-                        'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200',
+                        'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-[background-color,color] duration-wzrd-control',
                         isActive
-                          ? 'bg-white/10 text-kanvas-accent shadow-[inset_0_0_12px_hsl(var(--kanvas-accent)/0.06)]'
+                          ? 'bg-white/10 text-kanvas-accent'
                           : 'text-kanvas-text-muted hover:text-kanvas-text-secondary',
                       )}
                     >
                       <Icon className="h-3.5 w-3.5" />
-                      <span className="hidden md:inline">{KANVAS_STUDIO_META[s].label}</span>
+                      <span className="hidden md:inline">{item.label}</span>
                     </button>
                   );
                 })}
-                {/* Lyrics — separate route, not a KanvasStudio */}
-                <button
-                  type="button"
-                  onClick={() => navigate(appRoutes.kanvasLyrics)}
-                  className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200',
-                    'text-kanvas-text-muted hover:text-kanvas-text-secondary'
-                  )}
-                  aria-label="Open Lyrics wizard"
-                >
-                  <Music2 className="h-3.5 w-3.5" />
-                  <span className="hidden md:inline">Lyrics</span>
-                </button>
               </div>
 
               {/* Right: action buttons */}
@@ -1808,23 +1793,26 @@ export default function KanvasPage() {
       {/* Mobile bottom nav */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-[55] bg-kanvas-bg/95 backdrop-blur-xl border-t border-white/[0.06] pb-[env(safe-area-inset-bottom)]">
         <div className="flex items-center justify-around px-2 py-2">
-          {KANVAS_STUDIO_ORDER.map((s) => {
-            const Icon = STUDIO_ICONS[s];
-            const isActive = studio === s;
+          {KANVAS_NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            const itemStudio = kanvasStudioFromNavItem(item);
+            const isActive = itemStudio === studio;
             return (
               <button
-                key={s}
+                key={item.id}
                 type="button"
-                onClick={() => setStudio(s)}
+                aria-label={item.label}
+                aria-current={isActive ? 'page' : undefined}
+                onClick={() => (itemStudio ? setStudio(itemStudio as KanvasStudio) : navigate(item.path ?? appRoutes.kanvas))}
                 className={cn(
-                  'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-all',
+                  'flex min-h-[44px] flex-col items-center justify-center gap-0.5 px-2 py-1 rounded-wzrd-sm transition-colors duration-wzrd-control',
                   isActive
                     ? 'text-kanvas-accent'
                     : 'text-kanvas-text-muted active:text-kanvas-text-secondary',
                 )}
               >
                 <Icon className="h-5 w-5" />
-                <span className="text-[9px] font-medium">{KANVAS_STUDIO_META[s].label}</span>
+                <span className="text-[9px] font-medium">{item.label}</span>
               </button>
             );
           })}

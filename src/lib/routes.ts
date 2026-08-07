@@ -70,7 +70,8 @@ export const ROUTE_MANIFEST: RouteManifestEntry[] = [
   { id: 'login', pattern: appRoutes.login, category: 'support' },
   { id: 'home', pattern: appRoutes.home, category: 'core' },
   { id: 'project-setup', pattern: appRoutes.projectSetup, category: 'core' },
-  { id: 'assets', pattern: appRoutes.assets, category: 'support' },
+  // Legacy Asset Store surface; redirects to /ip-vault.
+  { id: 'assets', pattern: appRoutes.assets, category: 'legacy' },
   { id: 'ip-vault', pattern: appRoutes.ipVault, category: 'core' },
   { id: 'learning-studio', pattern: appRoutes.learningStudio, category: 'support' },
   { id: 'storyboard-generator', pattern: appRoutes.storyboardGenerator, category: 'support' },

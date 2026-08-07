@@ -75,6 +75,77 @@ then discover the system one element at a time.
 - Water and Fire are clearly marked **Coming soon** with no financial claims or
   implied availability.
 
+## Creator OS semantic token contract
+
+The app shell consumes semantic tokens, never raw hexes. Every token is stored
+as an HSL triplet in both `:root` and `.dark` in `src/index.css` and mapped in
+`tailwind.config.ts`, so `bg-surface-canvas`, `text-accent-ember`,
+`border-line-subtle`, `ring-focus`, etc. resolve through `hsl(var(--x))`.
+
+| Token | Purpose |
+| --- | --- |
+| `--surface-canvas` | Page/base surface behind everything. |
+| `--surface-raised` | Panels, rails, cards lifted off the canvas. |
+| `--accent-air` (`#8cc8ff`) | Calm accent: hover, selection, focus. |
+| `--accent-ember` (`#f06a47`) | Decisive accent: active nav, primary actions. |
+| `--accent-mineral` (`#b8b096`) | Quiet supporting accent. |
+| `--text-primary` / `--text-secondary` / `--text-muted` | Text hierarchy. |
+| `--line-subtle` | Hairline borders and dividers. |
+| `--status-success` / `--status-warning` / `--status-danger` | State colour. |
+| `--focus` | Focus ring colour; used by `focus-visible:ring-focus`. |
+| `--accent-water` / `--accent-fire` | Reserved for the coming-soon horizon; no surface consumes them yet. |
+
+Light-theme accents are darkened relative to the brand hexes so text and icons
+using them clear WCAG AA against `--surface-canvas`.
+
+Deprecated but still present: `accent-purple` (misnamed — it resolves to coral
+`#ff6b4a`), and the `cosmic` and `glass` palettes. ~30 legacy component files
+still reference them; new and shell code must not. Use `accent-ember` /
+`accent-air` instead.
+
+### Spacing, radius, motion
+
+- **Spacing:** 4 / 8 / 12 / 16 / 24 / 32 / 48 (`wzrd-1` … `wzrd-12`).
+- **Radius:** 6 controls (`rounded-wzrd-sm`), 10 cards (`rounded-wzrd-md`),
+  14 panels (`rounded-wzrd-lg`); `rounded-wzrd-chip` (999px) for chips only.
+- **Motion:** transform and opacity only. Controls 160–240ms
+  (`duration-wzrd-control`, `duration-wzrd-control-slow`), reveals ~250ms
+  (`duration-wzrd-reveal`). Never `transition: all` — name the properties.
+  `prefers-reduced-motion: reduce` is honoured globally in `src/index.css`.
+
+## Creator OS navigation shell
+
+`src/components/home/navigation.ts` is the single source of truth for app
+navigation. `SIDEBAR_SECTIONS` holds exactly five root groups:
+
+1. **Studio** — All Projects, Shared with me, Community, Favorites, Aura
+   (view-based; landing view `all`).
+2. **Kanvas** — Image, Video, Edit, Lip Sync, Cinema, Worldview, Characters,
+   Lyrics (`/kanvas/lyrics`); landing `/kanvas`.
+3. **IP Management** — IP Vault only; landing `/ip-vault`.
+4. **Clip Studio** — Clipper, Sourcify, Postz; landing `/clipper`.
+5. **Settings** — Billing; landing `/settings`.
+
+WTR is not surfaced. Asset Store is gone: `/assets` redirects to `/ip-vault`.
+`/clip-studio` → `/clipper` and `/IPVault` → `/ip-vault` remain.
+
+Consumers derive from this model: `Sidebar`, `FloatingNavPill` (the collapsed
+rail), `MobileSidebarDrawer`, `KanvasSidebar`, and the Kanvas page's pill
+slider and mobile bottom nav (`KANVAS_NAV_ITEMS`).
+
+### Sidebar behaviour contract
+
+- The root row is two controls: the label navigates to the group landing, a
+  separate chevron button (`aria-expanded`, `aria-controls`) toggles the subnav.
+- The active destination carries `aria-current="page"`.
+- Interactive targets are at least 44px.
+- The collapsed rail is persistent, not hover-revealed: it stays visible, is
+  reachable by keyboard, and shows a `focus-visible` ring using `--focus`.
+- A persistent collapse/expand control switches between the rail and the full
+  sidebar.
+- No decorative shine borders or glow chrome in the shell; accent usage comes
+  from `accent-air` / `accent-ember`.
+
 ## Related design docs
 
 - [Kanvas design system](docs/design/kanvas-system.md) — tokens, theme

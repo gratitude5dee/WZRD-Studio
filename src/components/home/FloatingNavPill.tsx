@@ -1,5 +1,5 @@
 import { ChevronLeft, LogOut } from 'lucide-react';
-import { memo, useState, useEffect, useCallback } from 'react';
+import { memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -7,7 +7,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { appRoutes } from '@/lib/routes';
 import { Badge } from '@/components/ui/badge';
-import { ShineBorder } from '@/components/ui/shine-border';
 import {
   Tooltip,
   TooltipContent,
@@ -22,15 +21,21 @@ import {
   type SidebarNavNode,
 } from './navigation';
 
+/** Shared focus treatment: visible ring on keyboard focus only. */
+const FOCUS_RING =
+  'outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface-canvas';
+
 export const FloatingNavButton = memo(function FloatingNavButton({
   item,
   isActive,
   isChild = false,
+  isExpanded,
   onClick,
 }: {
   item: SidebarNavItem;
   isActive: boolean;
   isChild?: boolean;
+  isExpanded?: boolean;
   onClick: () => void;
 }) {
   const Icon = item.icon;
@@ -42,16 +47,20 @@ export const FloatingNavButton = memo(function FloatingNavButton({
           type="button"
           onClick={onClick}
           aria-label={item.label}
+          aria-current={isActive ? 'page' : undefined}
+          aria-expanded={isExpanded}
           className={cn(
-            'relative flex items-center justify-center rounded-lg transition-all duration-200',
-            isChild ? 'h-8 w-8' : 'h-10 w-10',
+            'relative flex items-center justify-center rounded-wzrd-sm',
+            'transition-[background-color,color] duration-wzrd-control',
+            FOCUS_RING,
+            'h-11 w-11',
             isActive
-              ? 'bg-white/10 text-[#f97316]'
-              : 'text-zinc-500 hover:bg-white/[0.04] hover:text-zinc-300',
+              ? 'bg-accent-ember/12 text-accent-ember'
+              : 'text-text-secondary hover:bg-accent-air/8 hover:text-text-primary',
           )}
         >
           {isActive && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full bg-[#f97316] shadow-[0_0_6px_rgba(249,115,22,0.4)]" />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-wzrd-chip bg-accent-ember" />
           )}
           <Icon className={cn(isChild ? 'h-4 w-4' : 'h-[18px] w-[18px]')} />
         </button>
@@ -60,7 +69,7 @@ export const FloatingNavButton = memo(function FloatingNavButton({
         <span className="flex items-center gap-2">
           {item.label}
           {item.showBadge && (
-            <Badge variant="secondary" className="text-[9px] bg-[rgba(249,115,22,0.15)] text-[#f97316] border-[rgba(249,115,22,0.2)] px-1.5 py-0.5">
+            <Badge variant="secondary" className="text-[9px] bg-accent-ember/15 text-accent-ember border-accent-ember/25 px-1.5 py-0.5">
               New
             </Badge>
           )}
@@ -78,9 +87,9 @@ export interface FloatingNavPillProps {
 }
 
 /**
- * Hover-revealed floating navigation pill anchored to the left edge.
- * Used by the collapsed home sidebar and standalone on pages without a
- * persistent sidebar (Kanvas, timeline, editors, …).
+ * Persistent icon rail anchored to the left edge. Used by the collapsed home
+ * sidebar and standalone on pages without a full sidebar (Kanvas, timeline,
+ * editors, …). Always visible and reachable by keyboard.
  */
 export const FloatingNavPill = memo(function FloatingNavPill({
   activeView,
@@ -89,16 +98,6 @@ export const FloatingNavPill = memo(function FloatingNavPill({
 }: FloatingNavPillProps) {
   const { isGroupOpen, toggleGroup } = useNavGroupState(activeView);
   const navigate = useNavigate();
-  const [isVisible, setIsVisible] = useState(false);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    setIsVisible((current) => (current ? e.clientX <= 96 : e.clientX <= 80));
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [handleMouseMove]);
 
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -132,30 +131,13 @@ export const FloatingNavPill = memo(function FloatingNavPill({
 
   return (
     <TooltipProvider delayDuration={200}>
-      {/* Invisible hover trigger zone */}
-      <div className="fixed left-0 top-[68px] bottom-0 w-[80px] z-[49] pointer-events-none" />
-
       <aside
+        aria-label="Primary navigation rail"
         className={cn(
-          'fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 flex max-h-[calc(100vh-100px)] flex-col items-center py-3 rounded-2xl',
-          'bg-[#0A0A0A]/90 backdrop-blur-xl',
-          'shadow-[0_0_15px_rgba(249,115,22,0.15),0_0_30px_rgba(249,115,22,0.05),0_8px_32px_rgba(0,0,0,0.5)]',
-          'transition-all duration-300 ease-out',
-          isVisible ? 'w-14 opacity-100 translate-x-0' : 'w-3 opacity-0 -translate-x-2 pointer-events-none overflow-hidden',
+          'fixed left-3 top-[calc(50%+34px)] -translate-y-1/2 z-50 flex max-h-[calc(100vh-100px)] w-14 flex-col items-center py-3 rounded-wzrd-lg',
+          'bg-surface-raised border border-line-subtle shadow-lg',
         )}
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
       >
-        {/* Animated orange glow border */}
-        <ShineBorder
-          shineColor={["#f97316", "#d4a574"]}
-          borderWidth={1}
-          duration={8}
-        />
-
-        {/* Faint orange top-highlight */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-orange-500/5 to-transparent pointer-events-none" />
-
         {onExpand && (
           <>
             <Tooltip>
@@ -164,7 +146,11 @@ export const FloatingNavPill = memo(function FloatingNavPill({
                   type="button"
                   onClick={onExpand}
                   aria-label="Expand sidebar"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-white/[0.04] hover:text-zinc-300"
+                  className={cn(
+                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-wzrd-sm text-text-secondary',
+                    'transition-[background-color,color] duration-wzrd-control hover:bg-accent-air/8 hover:text-text-primary',
+                    FOCUS_RING,
+                  )}
                 >
                   <ChevronLeft className="h-[18px] w-[18px] rotate-180" />
                 </button>
@@ -172,7 +158,7 @@ export const FloatingNavPill = memo(function FloatingNavPill({
               <TooltipContent side="right" sideOffset={8} className="z-[60]">Expand sidebar</TooltipContent>
             </Tooltip>
 
-            <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
+            <div className="mx-auto my-2 h-px w-6 shrink-0 bg-line-subtle" />
           </>
         )}
 
@@ -180,7 +166,7 @@ export const FloatingNavPill = memo(function FloatingNavPill({
         <nav className="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto hide-scrollbar">
           {FLOATING_NAV_ITEMS.map((entry) => {
             if (entry.kind === 'divider') {
-              return <div key={entry.id} className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />;
+              return <div key={entry.id} className="mx-auto my-2 h-px w-6 shrink-0 bg-line-subtle" />;
             }
 
             const node = entry.node;
@@ -192,6 +178,7 @@ export const FloatingNavPill = memo(function FloatingNavPill({
                 <FloatingNavButton
                   item={node}
                   isActive={activeView === node.id}
+                  isExpanded={group ? isOpen : undefined}
                   onClick={() => handleNodeClick(node)}
                 />
                 {group && isOpen && group.children.map((child) => (
@@ -209,7 +196,7 @@ export const FloatingNavPill = memo(function FloatingNavPill({
         </nav>
 
         {/* Divider */}
-        <div className="mx-auto my-2 h-px w-6 shrink-0 bg-white/[0.06]" />
+        <div className="mx-auto my-2 h-px w-6 shrink-0 bg-line-subtle" />
 
         {/* Logout */}
         <Tooltip>
@@ -218,7 +205,11 @@ export const FloatingNavPill = memo(function FloatingNavPill({
               type="button"
               onClick={handleLogout}
               aria-label="Logout"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-zinc-500 transition-all duration-200 hover:bg-rose-500/10 hover:text-rose-400"
+              className={cn(
+                'flex h-11 w-11 shrink-0 items-center justify-center rounded-wzrd-sm text-text-secondary',
+                'transition-[background-color,color] duration-wzrd-control hover:bg-status-danger/10 hover:text-status-danger',
+                FOCUS_RING,
+              )}
             >
               <LogOut className="h-[18px] w-[18px]" />
             </button>
@@ -228,7 +219,7 @@ export const FloatingNavPill = memo(function FloatingNavPill({
 
         {/* Brand dot */}
         <div className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center">
-          <div className="h-2 w-2 rounded-full bg-[#f97316]/60 shadow-[0_0_6px_rgba(249,115,22,0.3)]" />
+          <div className="h-2 w-2 rounded-wzrd-chip bg-accent-ember/60" />
         </div>
       </aside>
     </TooltipProvider>
