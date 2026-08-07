@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -39,6 +39,13 @@ export function IPVaultPage() {
   const { isCollapsed, setIsCollapsed } = useSidebar();
   const isMobile = useIsMobile();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  const handleHomeViewChange = useCallback(
+    (view: string) => {
+      navigate(appRoutes.home, { state: { activeView: view } });
+    },
+    [navigate],
+  );
 
   const storyWallet = useStoryProtocolClient();
   const [items, setItems] = useState<IPVaultItem[]>([]);
@@ -191,7 +198,7 @@ export function IPVaultPage() {
     <div className="min-h-screen bg-background flex w-full">
       {/* Desktop Sidebar */}
       <div className="hidden md:block">
-        <Sidebar activeView="ip-vault" onViewChange={() => {}} />
+        <Sidebar activeView="ip-vault" onViewChange={handleHomeViewChange} />
       </div>
 
       {/* Mobile Sidebar Drawer */}
@@ -199,7 +206,7 @@ export function IPVaultPage() {
         isOpen={isMobileSidebarOpen}
         onClose={() => setIsMobileSidebarOpen(false)}
         activeView="ip-vault"
-        onViewChange={() => {}}
+        onViewChange={handleHomeViewChange}
       />
 
       {/* Main Content */}
