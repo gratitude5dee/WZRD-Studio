@@ -7,16 +7,22 @@
  * on the server unless the importing route is a client-only island, so this
  * scanner is the inventory behind that guarantee.
  *
+ * The walk is AST-based: it visits each top-level statement and descends into
+ * everything except function-like bodies, so it reports exactly what runs at
+ * import time. Access under a `typeof window !== "undefined"` guard still runs
+ * at import time but is safe on the server, so it is counted separately.
+ *
  * Usage: node scripts/qcut-ssr-hazards.mjs [--json]
  */
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
+import ts from "typescript";
 
 const ROOT = process.cwd();
 const SCAN_DIR = join(ROOT, "src/qcut");
 const EXTENSIONS = [".ts", ".tsx", ".js", ".jsx"];
-const GLOBALS = [
+const GLOBALS = new Set([
   "window",
   "document",
   "navigator",
@@ -25,8 +31,7 @@ const GLOBALS = [
   "indexedDB",
   "MediaRecorder",
   "matchMedia",
-];
-const GLOBAL_PATTERN = new RegExp(`\\b(${GLOBALS.join("|")})\\b\\s*(\\.|\\[)`);
+]);
 
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir)) {
@@ -41,89 +46,143 @@ function walk(dir, out = []) {
   return out;
 }
 
+/** Bodies that only run when something calls them, not at import time. */
+function isDeferredBody(node) {
+  return (
+    ts.isFunctionDeclaration(node) ||
+    ts.isFunctionExpression(node) ||
+    ts.isArrowFunction(node) ||
+    ts.isMethodDeclaration(node) ||
+    ts.isGetAccessorDeclaration(node) ||
+    ts.isSetAccessorDeclaration(node) ||
+    ts.isConstructorDeclaration(node) ||
+    ts.isClassDeclaration(node) ||
+    ts.isClassExpression(node) ||
+    ts.isModuleDeclaration(node) ||
+    ts.isInterfaceDeclaration(node) ||
+    ts.isTypeAliasDeclaration(node)
+  );
+}
+
 /**
- * Track brace/paren/bracket depth so we only report statements that execute at
- * import time, not the (safe) bodies of functions, classes, and components.
+ * A reference is only a hazard when the identifier resolves to the global —
+ * `foo.window` and a locally declared `document` are not.
  */
-function findModuleScopeHazards(source) {
+function isGlobalReference(node) {
+  if (!ts.isIdentifier(node) || !GLOBALS.has(node.text)) return false;
+  const { parent } = node;
+  if (
+    (ts.isPropertyAccessExpression(parent) && parent.name === node) ||
+    (ts.isQualifiedName(parent) && parent.right === node) ||
+    ts.isTypeOfExpression(parent) ||
+    ts.isPropertyAssignment(parent) ||
+    ts.isBindingElement(parent) ||
+    ts.isParameter(parent) ||
+    ts.isVariableDeclaration(parent) ||
+    ts.isImportSpecifier(parent)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/** `typeof window !== "undefined"` and friends make the guarded body safe. */
+function isTypeofGuard(node) {
+  let found = false;
+  const scan = (child) => {
+    if (
+      ts.isTypeOfExpression(child) &&
+      ts.isIdentifier(child.expression) &&
+      GLOBALS.has(child.expression.text)
+    ) {
+      found = true;
+      return;
+    }
+    ts.forEachChild(child, scan);
+  };
+  scan(node);
+  return found;
+}
+
+function findModuleScopeHazards(source, fileName) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    fileName.endsWith(".tsx") || fileName.endsWith(".jsx")
+      ? ts.ScriptKind.TSX
+      : ts.ScriptKind.TS,
+  );
+
   const hazards = [];
-  let depth = 0;
-  let inBlockComment = false;
-  let inTemplate = false;
+  const lines = source.split("\n");
 
-  source.split("\n").forEach((rawLine, index) => {
-    let line = rawLine;
+  const visit = (node, guarded) => {
+    if (isDeferredBody(node)) return;
 
-    if (inTemplate) {
-      const ticks = (line.match(/`/g) ?? []).length;
-      if (ticks % 2 === 1) inTemplate = false;
+    if (isGlobalReference(node)) {
+      const { line } = sourceFile.getLineAndCharacterOfPosition(
+        node.getStart(sourceFile),
+      );
+      hazards.push({
+        line: line + 1,
+        global: node.text,
+        guarded,
+        text: (lines[line] ?? "").trim().slice(0, 160),
+      });
       return;
     }
 
-    if (inBlockComment) {
-      const end = line.indexOf("*/");
-      if (end === -1) return;
-      line = line.slice(end + 2);
-      inBlockComment = false;
+    if (ts.isIfStatement(node) && isTypeofGuard(node.expression)) {
+      visit(node.expression, guarded);
+      visit(node.thenStatement, true);
+      if (node.elseStatement) visit(node.elseStatement, guarded);
+      return;
     }
 
-    line = line.replace(/\/\*.*?\*\//g, "");
-
-    const blockStart = line.indexOf("/*");
-    if (blockStart !== -1 && !line.includes("*/", blockStart)) {
-      line = line.slice(0, blockStart);
-      inBlockComment = true;
+    if (
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken &&
+      isTypeofGuard(node.left)
+    ) {
+      visit(node.left, guarded);
+      visit(node.right, true);
+      return;
     }
 
-    let code = line.replace(/\/\/.*$/, "");
+    ts.forEachChild(node, (child) => visit(child, guarded));
+  };
 
-    // Drop single-line template literals, then detect an unterminated one.
-    code = code.replace(/`[^`]*`/g, "``");
-    if ((code.match(/`/g) ?? []).length % 2 === 1) {
-      inTemplate = true;
-      code = code.slice(0, code.indexOf("`"));
-    }
-
-    const openDepth = depth;
-
-    if (openDepth === 0 && GLOBAL_PATTERN.test(code)) {
-      const match = code.match(GLOBAL_PATTERN);
-      hazards.push({
-        line: index + 1,
-        global: match[1],
-        text: rawLine.trim().slice(0, 160),
-      });
-    }
-
-    for (const char of code) {
-      if (char === "{" || char === "(" || char === "[") depth++;
-      else if (char === "}" || char === ")" || char === "]") depth--;
-    }
-    if (depth < 0) depth = 0;
-  });
-
+  ts.forEachChild(sourceFile, (node) => visit(node, false));
   return hazards;
 }
 
 const results = [];
 for (const file of walk(SCAN_DIR)) {
-  const hazards = findModuleScopeHazards(readFileSync(file, "utf8"));
+  const hazards = findModuleScopeHazards(readFileSync(file, "utf8"), file);
   if (hazards.length) {
     results.push({ file: relative(ROOT, file), hazards });
   }
 }
 
+const count = (predicate) =>
+  results.reduce((sum, r) => sum + r.hazards.filter(predicate).length, 0);
+const unguarded = count((h) => !h.guarded);
+const guarded = count((h) => h.guarded);
+
 if (process.argv.includes("--json")) {
-  console.log(JSON.stringify(results, null, 2));
+  console.log(JSON.stringify({ unguarded, guarded, results }, null, 2));
 } else {
   for (const { file, hazards } of results) {
     console.log(file);
     for (const hazard of hazards) {
-      console.log(`  ${hazard.line}: [${hazard.global}] ${hazard.text}`);
+      const tag = hazard.guarded ? "guarded" : "HAZARD ";
+      console.log(`  ${tag} ${hazard.line}: [${hazard.global}] ${hazard.text}`);
     }
   }
-  const total = results.reduce((sum, r) => sum + r.hazards.length, 0);
   console.log(
-    `\n${total} module-scope browser-global access${total === 1 ? "" : "es"} in ${results.length} file${results.length === 1 ? "" : "s"}.`,
+    `\n${unguarded} unguarded module-scope browser-global access${unguarded === 1 ? "" : "es"}` +
+      ` (plus ${guarded} behind a typeof guard) in ${results.length} file${results.length === 1 ? "" : "s"}.`,
   );
 }

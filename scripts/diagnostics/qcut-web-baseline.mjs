@@ -190,11 +190,13 @@ async function runBrowser(name) {
     });
     report.baseline = await page.evaluate(() => window.__wzrdQcutWebBaseline);
 
-    // Commands are rejected until a QCut project is active.
+    // Editing commands are rejected until a QCut project is active. Poll for
+    // the project itself: `getProjectState` succeeds with `project: null`.
     report.steps.projectState = await page
       .waitForFunction(
         async () =>
-          (await window.wzrd.editor.commands.execute("getProjectState"))?.ok
+          (await window.wzrd.editor.commands.execute("getProjectState"))?.result
+            ?.project?.id
             ? true
             : false,
         null,

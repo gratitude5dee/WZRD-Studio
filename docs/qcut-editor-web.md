@@ -107,22 +107,40 @@ from the AI panels and are Phase 2/4 work.
 
 ### SSR hazards
 
-`node scripts/qcut-ssr-hazards.mjs` walks `src/qcut/**` for module-scope `window` / `document` /
-`navigator` / `localStorage` / `sessionStorage` / `indexedDB` / `MediaRecorder` / `matchMedia`
-access:
+`node scripts/qcut-ssr-hazards.mjs` parses `src/qcut/**` with the TypeScript AST and reports every
+`window` / `document` / `navigator` / `localStorage` / `sessionStorage` / `indexedDB` /
+`MediaRecorder` / `matchMedia` reference that executes at import time — it descends into everything
+except function-like bodies, and separates access behind a `typeof window !== "undefined"` guard
+(safe on the server) from unguarded access (throws):
 
 ```
-src/qcut/app/components/ui/draggable-item.tsx:26   [navigator]
-src/qcut/app/lib/debug/ios-console-bridge.ts:14    [navigator]
-
-2 module-scope browser-global accesses in 2 files.
+11 unguarded module-scope browser-global accesses (plus 25 behind a typeof guard) in 22 files.
 ```
 
-Both are `typeof navigator !== "undefined"` guarded iOS sniffs, so the vendored tree is currently
-SSR-clean. This is unsurprising: the route is already a client-only island
+Every unguarded one is a debug handle assigned at module scope, e.g.:
+
+```
+src/qcut/app/stores/timeline/timeline-store.ts:212      (window as any).__timelineStore = …
+src/qcut/app/stores/project-store.ts:643                (window as any).__projectStore = …
+src/qcut/app/stores/media/media-store.ts:746            (window as any).__mediaStore = …
+src/qcut/app/stores/export-store.ts:414                 (window as any).__exportStore = …
+src/qcut/app/stores/editor/editor-store.ts:123          (window as any).__editorStore = …
+src/qcut/app/components/editor/media-panel/store.ts:274 (window as any).__mediaPanelStore = …
+src/qcut/app/lib/media/blob-url-debug.ts:139            window.blobUrlDebug = { … }
+src/qcut/app/lib/debug/ios-console-bridge.ts:17,18,48   (window as any).__qcutLogs…
+src/qcut/app/lib/stickers/sticker-test-helper.ts:14     (window as any).stickerTestReady = …
+```
+
+They are inert today because the route is a client-only island
 (`src/app/projects/[projectId]/editor/page.tsx` → `src/next/RouteShellPage.tsx` →
-`src/next/NextClientShell.tsx`, which imports the Vite `App` with `{ ssr: false }`). The scanner
-exists so the Phase 3 re-vendor cannot silently reintroduce a hazard.
+`src/next/NextClientShell.tsx`, which imports the Vite `App` with `{ ssr: false }`), so none of
+these modules ever execute on the server. Each would throw `window is not defined` the moment any
+part of this tree is imported from a server component — importing a single store type from a
+server file is enough. The guarded set is not a hazard but is the Phase 2 storage inventory: the
+`localStorage` reads in `keybindings-store.ts:19` and `adjustment-store.ts:538` run on import and
+have to survive the IndexedDB migration.
+
+The scanner exists so the Phase 3 re-vendor cannot silently increase the unguarded count.
 
 One related item is *not* an SSR hazard but is worth recording: `src/qcut/QCutEditor.tsx` calls
 `ensurePlatformInitialized()` at **module scope**. It is safe today only because the module is never
