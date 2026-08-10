@@ -1,5 +1,10 @@
 # WZRD Studio Desktop Goal Spec: QCut as the Native Agentic Editor on /editor
 
+> Archived 2026-08-10. This goal is superseded by the QCut sync + browser-render spec; the QCut
+> editor now ships on `/projects/:projectId/editor` in both the Electron shell and the Next.js web
+> build. Preserved here for reference on the desktop integration contract
+> (`window.wzrdQcut`, native FFmpeg, PTY terminal).
+>
 > Previous goal (Sourcify/Postz) is complete and archived at `docs/goals/goal-sourcify-postz.md`.
 
 **Audience:** Kiwi Code (autonomous coding agent)
