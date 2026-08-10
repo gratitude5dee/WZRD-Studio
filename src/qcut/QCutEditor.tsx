@@ -43,6 +43,10 @@ import { setWzrdProjectContext } from "./bridge/wzrd-project-context";
 import { installEditorAgentApi } from "./bridge/agent-api";
 import { maybeImportLegacyTimeline } from "./bridge/legacy-importer";
 import { readPublicFlag } from "@/lib/env";
+import {
+	collectWebBaseline,
+	isWebBaselineEnabled,
+} from "./diagnostics/web-baseline";
 
 import { useRegisterVoiceActions } from "@/voice/VoiceAgentProvider";
 import type { VoiceActionRegistration, VoiceActionResult } from "@/voice/actions/registry";
@@ -114,6 +118,14 @@ export function QCutEditor({ projectId }: { projectId: string }) {
 	useEffect(() => {
 		return installEditorAgentApi({ projectId: qcutProjectId });
 	}, [qcutProjectId]);
+
+	// WZRD-EDIT: record the browser export baseline (see docs/qcut-editor-web.md).
+	useEffect(() => {
+		if (!isWebBaselineEnabled()) return;
+		void collectWebBaseline().catch((error) => {
+			debugError("[WZRD/QCut] web baseline diagnostics failed", error);
+		});
+	}, []);
 
 	const editorVoiceActions = useMemo<VoiceActionRegistration[]>(() => {
 		const callEditor = async (
