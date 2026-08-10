@@ -51,9 +51,14 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   async headers() {
+    // WZRD-EDIT: the editor route used to be cross-origin isolated for
+    // SharedArrayBuffer. The self-hosted FFmpeg core in public/ffmpeg is a
+    // single-threaded build (zero SharedArrayBuffer/pthread references), and
+    // the WebCodecs export path never needed isolation, so `require-corp` only
+    // bought us broken third-party media, fonts and provider assets. Keep
+    // same-origin COOP, which costs nothing. See docs/qcut-editor-web.md.
     const isolationHeaders = [
       { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
-      { key: "Cross-Origin-Embedder-Policy", value: "require-corp" },
     ];
 
     return [

@@ -227,13 +227,23 @@ async function loadInBrowser(
 	const coreBlobUrl = createObjectURL(coreBlob, "FFmpeg-core");
 	const wasmBlobUrl = createObjectURL(wasmBlob, "FFmpeg-wasm");
 
-	const timeoutDuration = environment.hasSharedArrayBuffer ? 60_000 : 120_000;
+	// WZRD-EDIT: the self-hosted core is a single-threaded ~32MB build, so
+	// SharedArrayBuffer says nothing about how long compiling it takes. The old
+	// 60s SAB branch was the shorter one and it is what timed out in Firefox.
+	const timeoutDuration = 180_000;
 
 	try {
+		const loadStartTime = Date.now();
 		const loadPromise = ffmpeg.load({
 			coreURL: coreBlobUrl,
 			wasmURL: wasmBlobUrl,
 		});
+
+		const progressInterval = setInterval(() => {
+			debugLog(
+				`[FFmpeg Utils] ⏳ Compiling core... ${((Date.now() - loadStartTime) / 1000).toFixed(1)}s elapsed`
+			);
+		}, 5000);
 
 		const timeoutPromise = new Promise((_, reject) => {
 			setTimeout(
@@ -247,7 +257,11 @@ async function loadInBrowser(
 			);
 		});
 
-		await Promise.race([loadPromise, timeoutPromise]);
+		try {
+			await Promise.race([loadPromise, timeoutPromise]);
+		} finally {
+			clearInterval(progressInterval);
+		}
 
 		debugLog("[FFmpeg Utils] ✅ FFmpeg core loaded with blob URLs");
 
@@ -285,7 +299,7 @@ async function loadInBrowser(
 			loadError instanceof Error ? loadError.message : String(loadError);
 		if (errorMessage.includes("timeout")) {
 			throw new Error(
-				`FFmpeg initialization timed out after ${timeoutDuration / 1000}s. This may be due to slow network, large WASM files, or missing SharedArrayBuffer support.`
+				`FFmpeg initialization timed out after ${timeoutDuration / 1000}s while fetching and compiling the ~32MB WebAssembly core. This is usually a slow or throttled network.`
 			);
 		}
 		if (errorMessage.includes("SharedArrayBuffer")) {

@@ -11,6 +11,12 @@ export interface FfmpegWasmFallbackState {
 
 export interface FfmpegWasmFallbackOptions {
 	basePath?: string;
+	/**
+	 * WZRD-EDIT: defaults to `false`. The core we self-host is single-threaded,
+	 * so it neither needs nor benefits from cross-origin isolation; requiring it
+	 * made the fallback report itself unavailable on every non-isolated page.
+	 * Set to `true` only if a multi-threaded core is ever shipped.
+	 */
 	requireCrossOriginIsolation?: boolean;
 	fetchImpl?: typeof fetch;
 }
@@ -47,7 +53,7 @@ export async function getFfmpegWasmFallbackState(
 ): Promise<FfmpegWasmFallbackState> {
 	const {
 		basePath = "/ffmpeg",
-		requireCrossOriginIsolation = true,
+		requireCrossOriginIsolation = false,
 		fetchImpl = globalThis.fetch,
 	} = options;
 

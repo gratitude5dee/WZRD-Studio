@@ -38,6 +38,59 @@ function pushCommandLog(entry: CommandLogEntry) {
 	}
 }
 
+/**
+ * WZRD-EDIT: download an imported URL into a real `File`.
+ *
+ * A direct fetch covers same-origin and CORS-enabled sources; anything else
+ * (most provider CDNs) goes through the platform's media proxy, which also
+ * keeps the resulting object URL same-origin so canvas rendering during export
+ * does not taint the canvas. Falls back to the old zero-byte placeholder only
+ * when both routes fail, so an unreachable URL still lands on the timeline.
+ */
+async function fetchImportedMedia(
+	url: string,
+	name: string,
+	fallbackMime: string
+): Promise<{ file: File; objectUrl: string | null }> {
+	const toFile = (blob: Blob) => {
+		const file = new File([blob], name, {
+			type: blob.type || fallbackMime,
+		});
+		return { file, objectUrl: URL.createObjectURL(blob) };
+	};
+
+	try {
+		const response = await fetch(url);
+		if (response.ok) return toFile(await response.blob());
+	} catch {
+		// Cross-origin or offline — try the proxy below.
+	}
+
+	try {
+		const { platform } = await import("@qcut/platform-core");
+		const cached = await platform().mediaImport.cacheRemoteMedia?.({
+			url,
+			operationId: generateUUID(),
+			name,
+		});
+		const proxied = cached?.mediaUrl ?? cached?.path;
+		if (proxied) {
+			const response = await fetch(proxied);
+			if (response.ok) return toFile(await response.blob());
+		}
+	} catch {
+		// Fall through to the placeholder.
+	}
+
+	console.warn(
+		`[WZRD/QCut] Could not download ${url}; importing a placeholder with no bytes. Export will not include this media.`
+	);
+	return {
+		file: new File([], name, { type: fallbackMime }),
+		objectUrl: null,
+	};
+}
+
 // Basic rate limiting to avoid runaway agent loops.
 const RATE_LIMIT_WINDOW_MS = 1000;
 const RATE_LIMIT_MAX_CALLS = 10;
@@ -371,18 +424,24 @@ async function executeInternal(command: EditorCommandName, args: unknown): Promi
 
 				const type = parsed.mediaType ?? guessMediaTypeFromUrl(parsed.url);
 				const id = generateUUID();
+				const fallbackMime =
+					type === "audio" ? "audio/*" : type === "image" ? "image/*" : "video/*";
 
-				// Placeholder file (size 0). Playback/export paths use the URL.
-				const file = new File([], parsed.name ?? "media", {
-					type: type === "audio" ? "audio/*" : type === "image" ? "image/*" : "video/*",
-				});
+				// WZRD-EDIT: fetch the bytes rather than registering a zero-byte
+				// placeholder. Export decodes `file`, not `url`, so a placeholder
+				// exported as silence over a blank frame with no error anywhere.
+				const { file, objectUrl } = await fetchImportedMedia(
+					parsed.url,
+					parsed.name ?? "media",
+					fallbackMime
+				);
 
 				await mediaStore.addMediaItem(projectId, {
 					id,
 					name: parsed.name ?? `Imported ${type}`,
 					type,
 					file,
-					url: parsed.url,
+					url: objectUrl ?? parsed.url,
 					thumbnailUrl: parsed.thumbnailUrl,
 					duration: parsed.durationSeconds,
 					metadata: {

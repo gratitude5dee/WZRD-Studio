@@ -1,5 +1,7 @@
 import { createWebAdapter } from "@qcut/platform-web";
 import type { PlatformAPI } from "@qcut/platform-core";
+import { writeQcutSnapshotToSupabase } from "../../bridge/qcut-project-json-supabase";
+import { indexedDbStorage, requestPersistentStorage } from "./storage";
 
 type CacheRemoteMediaOptions = Parameters<
 	NonNullable<PlatformAPI["mediaImport"]["cacheRemoteMedia"]>
@@ -166,10 +168,23 @@ async function checkSameOriginResource(url: string): Promise<boolean> {
 export function createVercelAdapter(): PlatformAPI {
 	const base = createWebAdapter();
 
+	// Best-effort, fire-and-forget: ask the browser not to evict our projects.
+	void requestPersistentStorage();
+
 	return {
 		...base,
 		platform: "web",
 		isElectron: false,
+		// WZRD-EDIT: localStorage caps out around 5MB and throws synchronously.
+		storage: indexedDbStorage,
+		// WZRD-EDIT: the base web adapter resolves this to a silent `null`, so
+		// browser edits were never snapshotted. The Supabase writer used by the
+		// desktop adapter works unchanged here — it is plain PostgREST.
+		projectJson: {
+			async write(projectId: string) {
+				await writeQcutSnapshotToSupabase(projectId);
+			},
+		},
 		mediaImport: {
 			...base.mediaImport,
 			async cacheRemoteMedia(options) {
