@@ -707,6 +707,12 @@ export class ExportEngineFactory {
 		return false;
 	}
 
+	// WZRD-EDIT: expose the encoder probe so the editor's web baseline diagnostics
+	// can report the same result the factory uses to pick the MUXER engine.
+	async probeWebCodecsEncoderForDiagnostics(): Promise<boolean> {
+		return this.probeWebCodecsEncoder();
+	}
+
 	/**
 	 * Probe whether WebCodecs VideoEncoder actually works (not just API presence).
 	 * Simulators expose the API but the encoder stalls. This test configures,

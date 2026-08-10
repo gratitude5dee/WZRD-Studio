@@ -77,7 +77,7 @@ function createUnsupportedNamespace<T extends object>(
  * Used for web-capable APIs not yet fully implemented.
  * Event listeners (on*, remove*) are no-ops; other methods return null/empty.
  */
-function createGracefulNamespace<T extends object>(): T {
+function createGracefulNamespace<T extends object>(namespace = "unknown"): T {
 	const noop = () => {};
 	return new Proxy({} as T, {
 		get(_, prop) {
@@ -85,11 +85,38 @@ function createGracefulNamespace<T extends object>(): T {
 				if (prop.startsWith("on") || prop.startsWith("remove")) {
 					return (..._args: unknown[]) => noop;
 				}
-				return (..._args: unknown[]) => Promise.resolve(null);
+				return (..._args: unknown[]) => {
+					recordGracefulStubCall(`${namespace}.${prop}`);
+					return Promise.resolve(null);
+				};
 			}
 			return undefined;
 		},
 	});
+}
+
+const GRACEFUL_STUB_CALLS_GLOBAL = "__wzrdQcutGracefulStubCalls";
+
+/**
+ * WZRD-EDIT: diagnostics for the browser export baseline.
+ *
+ * Record — and in development warn about — every call that resolves to a
+ * graceful `null` stub. A silent null reads as a hung spinner in the UI, so the
+ * editor's baseline diagnostics surface the list instead.
+ */
+function recordGracefulStubCall(method: string): void {
+	const scope = globalThis as Record<string, unknown>;
+	const calls = Array.isArray(scope[GRACEFUL_STUB_CALLS_GLOBAL])
+		? (scope[GRACEFUL_STUB_CALLS_GLOBAL] as string[])
+		: ((scope[GRACEFUL_STUB_CALLS_GLOBAL] = []) as string[]);
+
+	if (calls.includes(method)) return;
+	calls.push(method);
+	if (import.meta.env.DEV) {
+		console.warn(
+			`[QCut/web] platform.${method} resolved to a graceful null stub — the caller sees no result and no error.`
+		);
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -408,17 +435,21 @@ const githubAdapter: PlatformGitHubAPI = {
 // These return safe defaults instead of throwing.
 // ---------------------------------------------------------------------------
 
-const soundsGraceful = createGracefulNamespace<PlatformSoundsAPI>();
-const audioGraceful = createGracefulNamespace<PlatformAudioAPI>();
-const videoGraceful = createGracefulNamespace<PlatformVideoAPI>();
-const screenshotGraceful = createGracefulNamespace<PlatformScreenshotAPI>();
+const soundsGraceful = createGracefulNamespace<PlatformSoundsAPI>("sounds");
+const audioGraceful = createGracefulNamespace<PlatformAudioAPI>("audio");
+const videoGraceful = createGracefulNamespace<PlatformVideoAPI>("video");
+const screenshotGraceful =
+	createGracefulNamespace<PlatformScreenshotAPI>("screenshot");
 const screenRecordingGraceful =
-	createGracefulNamespace<PlatformScreenRecordingAPI>();
-const ffmpegGraceful = createGracefulNamespace<PlatformFFmpegAPI>();
+	createGracefulNamespace<PlatformScreenRecordingAPI>(
+		"screenRecording"
+	);
+const ffmpegGraceful = createGracefulNamespace<PlatformFFmpegAPI>("ffmpeg");
 const transcriptionGraceful =
-	createGracefulNamespace<PlatformTranscriptionAPI>();
-const falGraceful = createGracefulNamespace<PlatformFalAPI>();
-const geminiChatGraceful = createGracefulNamespace<PlatformGeminiChatAPI>();
+	createGracefulNamespace<PlatformTranscriptionAPI>("transcription");
+const falGraceful = createGracefulNamespace<PlatformFalAPI>("fal");
+const geminiChatGraceful =
+	createGracefulNamespace<PlatformGeminiChatAPI>("geminiChat");
 const mediaImportGraceful: PlatformMediaImportAPI = {
 	async import() {
 		return null as any;
@@ -486,7 +517,8 @@ const projectFolderStub = createUnsupportedNamespace<PlatformProjectFolderAPI>(
 	PlatformCapability.ProjectFolder
 );
 // projectJson uses graceful stub — called during project load, must not crash
-const projectJsonGraceful = createGracefulNamespace<PlatformProjectJsonAPI>();
+const projectJsonGraceful =
+	createGracefulNamespace<PlatformProjectJsonAPI>("projectJson");
 const remotionFolderStub =
 	createUnsupportedNamespace<PlatformRemotionFolderAPI>(
 		PlatformCapability.RemotionFolder
