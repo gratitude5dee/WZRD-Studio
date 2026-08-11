@@ -458,6 +458,9 @@ export function QCutEditor({ projectId }: { projectId: string }) {
 
 					debugError("[WZRD/QCutEditor] Failed to load project", error);
 				} finally {
+					// The pending gate must never outlive the load attempt, or autosave
+					// would silently stop for the rest of the session.
+					clearSnapshotHydrationPending(qcutProjectId);
 					if (inFlightProjectIdRef.current === qcutProjectId) {
 						inFlightProjectIdRef.current = null;
 					}

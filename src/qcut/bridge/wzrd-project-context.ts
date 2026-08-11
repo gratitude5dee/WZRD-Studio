@@ -26,6 +26,7 @@ const hydrationDone = new Set<string>();
  * snapshot before it has been read back.
  */
 export function markSnapshotHydrationPending(qcutProjectId: string) {
+	hydrationDone.delete(qcutProjectId);
 	hydrationPending.add(qcutProjectId);
 }
 
