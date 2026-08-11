@@ -64,6 +64,13 @@ describe("text2image-models registry", () => {
 		expect(TEXT2IMAGE_MODEL_ORDER).not.toContain("seeddream-v4-5-edit");
 	});
 
+	it("keeps unpriced Fal models defined but out of the picker", () => {
+		expect(TEXT2IMAGE_MODELS["gemini-3-pro"]).toBeDefined();
+		expect(TEXT2IMAGE_MODELS["wan-v2-2"]).toBeDefined();
+		expect(TEXT2IMAGE_MODEL_ORDER).not.toContain("gemini-3-pro");
+		expect(TEXT2IMAGE_MODEL_ORDER).not.toContain("wan-v2-2");
+	});
+
 	it("gpt-image-2-ima is registered with OpenAI via IMA Router as the provider", () => {
 		const model = TEXT2IMAGE_MODELS["gpt-image-2-ima"];
 		expect(model).toBeDefined();
