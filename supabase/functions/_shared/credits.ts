@@ -227,6 +227,23 @@ function getFiniteInputNumber(inputs: Record<string, unknown>, keys: string[]): 
   return undefined;
 }
 
+function getFiniteDurationNumber(inputs: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const raw = inputs[key];
+    if (typeof raw === 'number') {
+      if (Number.isFinite(raw) && raw > 0) return raw;
+      continue;
+    }
+    if (typeof raw !== 'string') continue;
+
+    const match = raw.match(/^\s*((?:\d+(?:\.\d*)?|\.\d+))\s*(?:s|sec|seconds)?\s*$/i);
+    if (!match) continue;
+    const value = Number(match[1]);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return undefined;
+}
+
 export function getCatalogRateQuantity(
   unit: string,
   inputs: Record<string, unknown>,
@@ -236,7 +253,7 @@ export function getCatalogRateQuantity(
       return getFiniteInputNumber(inputs, ['max_images', 'num_images']);
     case 'per_second':
     case 'per_minute': {
-      const duration = getFiniteInputNumber(inputs, ['duration', 'duration_seconds', 'durationSeconds']);
+      const duration = getFiniteDurationNumber(inputs, ['duration', 'duration_seconds', 'durationSeconds']);
       if (duration !== undefined) return unit === 'per_minute' ? duration / 60 : duration;
 
       const frames = getFiniteInputNumber(inputs, ['num_frames']);

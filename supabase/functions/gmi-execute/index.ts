@@ -90,7 +90,7 @@ serve(async (req) => {
     }
 
     const model = await getCatalogModelById(modelId, {
-      enabledOnly: strictPricing ? false : true,
+      enabledOnly: true,
     });
     if (!model || model.provider !== 'gmi-cloud') {
       return errorResponse(`Model ${modelId} is not a GMI Cloud model`, 400);
