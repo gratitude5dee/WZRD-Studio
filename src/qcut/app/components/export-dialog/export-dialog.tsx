@@ -393,6 +393,7 @@ export function ExportDialog() {
 
 				<EngineCard
 					engineType={exportSettings.engineType}
+					webCodecsAvailable={exportSettings.webCodecsAvailable}
 					ffmpegAvailable={exportSettings.ffmpegAvailable}
 					isElectron={isElectron()}
 					onEngineTypeChange={exportSettings.setEngineType}

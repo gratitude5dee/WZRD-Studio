@@ -209,6 +209,20 @@ videoCodec, audioCodec}`) and the blob is built with `plan.mimeType`, so the fal
 rather than implied. If neither container is encodable the error names the resolution instead of the
 codec string.
 
+The export dialog now exposes the WebCodecs/mediabunny muxer and defaults to it in any browser that
+exposes `VideoEncoder` and `VideoFrame`. This matters because Standard uses `MediaRecorder` and
+records in real time: on Chromium, the same 4-second timeline produced a 102-second file with no
+audio stream, measured with `ffprobe`, while the muxer produced a 3.02-second file with an audio
+track. Electron still defaults to native CLI FFmpeg, and browsers without WebCodecs still use
+Standard.
+
+Container negotiation no longer trusts the audio codec list advertised by the output format.
+Mediabunny will mux Opus into MP4, while Chromium/Linux has no AAC encoder, so the naive probe could
+produce Opus-in-MP4 that many players cannot play. `CONTAINER_AUDIO_CODECS` in
+`src/qcut/app/lib/export/export-engine-muxer.ts` restricts MP4 to AAC; when AAC is unavailable the
+audio export now falls back to WebM/Opus. A WebM request also leads with the WebM candidate instead
+of always trying MP4 first.
+
 `resolveExportFilename` (`src/qcut/app/lib/export/export-filename.ts`) derives the extension from the
 blob's MIME type, not from the requested format, so a WebM fallback is saved as `.webm`. MOV keeps
 its label because MOV and MP4 share a MIME type and only a genuine mismatch rewrites the extension.
@@ -276,5 +290,7 @@ browser edits persist exactly like desktop ones.
 - **Render offload polling.** `exportVideoCLI` still queues a `web_render_jobs` row and returns
   `success: false`; the client-side export path is now the supported one.
 - **Safari** remains unverified (Playwright WebKit crashes on this VM's GStreamer).
+- **GIF export** is still not wired to an engine: `gif-export-engine.ts` exists, but nothing in the
+  factory constructs it, and `gifConfig` is threaded through `use-export-progress` unused.
 - The additive project-snapshot migration and the remaining adapter overrides (fal, transcription,
   license/credits) are still to come.

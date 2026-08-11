@@ -57,7 +57,7 @@ export function useExportProgress() {
 		}
 	};
 
-	type EngineSelection = "auto" | "cli" | "ffmpeg" | "standard";
+	type EngineSelection = "auto" | "cli" | "ffmpeg" | "standard" | "muxer";
 
 	const handleExport = async (
 		canvas: HTMLCanvasElement,
@@ -127,6 +127,9 @@ export function useExportProgress() {
 				} else if (exportSettings.engineType === "ffmpeg") {
 					console.log("    - FFmpeg WASM mode selected");
 					selectedEngineType = ExportEngineType.FFMPEG;
+				} else if (exportSettings.engineType === "muxer") {
+					console.log("    - WebCodecs muxer mode selected");
+					selectedEngineType = ExportEngineType.MUXER;
 				} else {
 					console.log("    - Standard Canvas mode selected");
 					selectedEngineType = ExportEngineType.STANDARD;
