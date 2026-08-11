@@ -335,6 +335,10 @@ describe('edge credits shared helper', () => {
     expect(getGenerationReservationAmount(8, 20)).toBe(20);
   });
 
+  it('reserves exactly the strict primary cost when fallback execution is disabled', () => {
+    expect(getGenerationReservationAmount(2)).toBe(2);
+  });
+
   it('leaves an unpriced fallback ineligible without reducing the primary hold', () => {
     expect(getGenerationReservationAmount(8)).toBe(8);
   });
