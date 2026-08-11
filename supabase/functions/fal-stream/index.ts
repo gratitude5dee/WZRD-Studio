@@ -15,6 +15,7 @@ import {
   buildCreditIdempotencyKey,
   commitCredits,
   getGenerationCreditCost,
+  getGenerationReservationAmount,
   InsufficientCreditsError,
   insufficientCreditsResponse,
   releaseCredits,
@@ -146,22 +147,43 @@ serve(async (req) => {
 
     const primaryCost = getGenerationCreditCost({
       pricingMode: strictPricing ? 'catalog-strict' : undefined,
-      pricing: catalogModel?.pricing,
-      credits: catalogModel?.credits,
-      pricingText: catalogModel?.pricingText,
+      catalogModel,
+      inputs: resolvedFromRequest.inputs,
       modelId: resolvedFromRequest.modelId,
       resourceType: resourceTypeForBilling,
     });
     let fallbackCost = 0;
+    let fallbackEligible = true;
     if (!strictPricing) {
       fallbackCost = getGenerationCreditCost({
         modelId: fallbackCandidateId,
         resourceType: resourceTypeForBilling,
       });
+    } else {
+      const fallbackCatalogModel = await getCatalogModelById(
+        fallbackCandidateId,
+        { provider: 'fal-ai', enabledOnly: false }
+      );
+      try {
+        fallbackCost = getGenerationCreditCost({
+          pricingMode: 'catalog-strict',
+          catalogModel: fallbackCatalogModel,
+          inputs: mergeFalModelInputs(fallbackCandidateId, rawInputs).inputs,
+          modelId: fallbackCandidateId,
+          resourceType: resourceTypeForBilling,
+        });
+      } catch (error) {
+        if (error instanceof UnpricedModelError) {
+          fallbackEligible = false;
+        } else {
+          throw error;
+        }
+      }
     }
-    const reservedAmount = strictPricing
-      ? primaryCost
-      : Math.max(primaryCost, fallbackCost);
+    const reservedAmount = getGenerationReservationAmount(
+      primaryCost,
+      fallbackEligible ? fallbackCost : undefined,
+    );
     const creditReservation = await reserveCredits({
       supabase: supabaseClient,
       userId: claimsData.user.id,
@@ -297,23 +319,11 @@ serve(async (req) => {
         } catch (primaryError) {
           const primaryMessage = primaryError instanceof Error ? primaryError.message : 'Fal execution failed';
 
-          const shouldTryFallback = resolvedFromRequest.modelId !== fallbackCandidateId;
+          const shouldTryFallback =
+            resolvedFromRequest.modelId !== fallbackCandidateId &&
+            fallbackEligible;
           if (shouldTryFallback) {
             try {
-              if (strictPricing) {
-                const fallbackCatalogModel = await getCatalogModelById(
-                  fallbackCandidateId,
-                  { provider: 'fal-ai', enabledOnly: false }
-                );
-                fallbackCost = getGenerationCreditCost({
-                  pricingMode: 'catalog-strict',
-                  pricing: fallbackCatalogModel?.pricing,
-                  credits: fallbackCatalogModel?.credits,
-                  pricingText: fallbackCatalogModel?.pricingText,
-                  modelId: fallbackCandidateId,
-                  resourceType: resourceTypeForBilling,
-                });
-              }
               sendSse(controller, encoder, {
                 type: 'fallback',
                 message: `Primary model failed, retrying with ${fallbackCandidateId}`,
