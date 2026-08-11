@@ -39,7 +39,11 @@ import { debugError, debugLog } from "@qcut-app/lib/debug/debug-config";
 
 import { projectService } from "@/services/supabaseService";
 import { assetService } from "@/services/assetService";
-import { setWzrdProjectContext } from "./bridge/wzrd-project-context";
+import {
+	clearSnapshotHydrationPending,
+	markSnapshotHydrationPending,
+	setWzrdProjectContext,
+} from "./bridge/wzrd-project-context";
 import { installEditorAgentApi } from "./bridge/agent-api";
 import { maybeImportLegacyTimeline } from "./bridge/legacy-importer";
 import { maybeHydrateFromSnapshot } from "./bridge/qcut-snapshot-hydrator";
@@ -253,12 +257,18 @@ export function QCutEditor({ projectId }: { projectId: string }) {
 
 		const maybeImportRemoteTimeline = async () => {
 			if (useLocalProjectData) return;
-			const { hydrated } = await maybeHydrateFromSnapshot({
-				wzrdProjectId,
-				qcutProjectId,
-			});
-			if (hydrated) return;
-			await maybeImportLegacyTimeline({ wzrdProjectId, qcutProjectId });
+			try {
+				const { hydrated } = await maybeHydrateFromSnapshot({
+					wzrdProjectId,
+					qcutProjectId,
+				});
+				if (hydrated) return;
+				await maybeImportLegacyTimeline({ wzrdProjectId, qcutProjectId });
+			} finally {
+				// Lift the snapshot-write suppression even if hydration failed, so
+				// autosave isn't blocked for the rest of the session.
+				clearSnapshotHydrationPending(qcutProjectId);
+			}
 		};
 
 		const ensureProjectExists = async (name: string) => {
@@ -414,6 +424,11 @@ export function QCutEditor({ projectId }: { projectId: string }) {
 						qcutProjectId,
 						lastKnownUpdatedAt: (wzrdProject as any)?.updated_at ?? null,
 					});
+					if (!useLocalProjectData) {
+						// Suppress snapshot writes until the remote snapshot has been read
+						// back, so loading an empty local state can't overwrite it.
+						markSnapshotHydrationPending(qcutProjectId);
+					}
 
 					await ensureProjectExists(desiredName);
 					await loadProject(qcutProjectId);
@@ -443,6 +458,9 @@ export function QCutEditor({ projectId }: { projectId: string }) {
 
 					debugError("[WZRD/QCutEditor] Failed to load project", error);
 				} finally {
+					// The pending gate must never outlive the load attempt, or autosave
+					// would silently stop for the rest of the session.
+					clearSnapshotHydrationPending(qcutProjectId);
 					if (inFlightProjectIdRef.current === qcutProjectId) {
 						inFlightProjectIdRef.current = null;
 					}
