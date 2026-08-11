@@ -15,7 +15,11 @@ import {
   inferFalMediaType,
   resolveFalModelOrFallback,
 } from '../../../supabase/functions/_shared/falai-client.ts';
-import { assertStrictFalModelResolution } from '../../../supabase/functions/_shared/fal-stream-strict.ts';
+import {
+  assertStrictFalModelResolution,
+  strictModelResolutionResponse,
+  StrictModelResolutionError,
+} from '../../../supabase/functions/_shared/fal-stream-strict.ts';
 
 describe('edge credits shared helper', () => {
   it.each([
@@ -36,6 +40,10 @@ describe('edge credits shared helper', () => {
   it('keeps the explicit non-strict audio default despite generation TTS entries', () => {
     expect(getDefaultFalModelForMedia('audio', 'generation').id)
       .toBe('fal-ai/ffmpeg-api/merge-audios');
+    expect(getDefaultFalModelForMedia('image', 'generation').id)
+      .toBe('fal-ai/flux/schnell');
+    expect(getDefaultFalModelForMedia('video', 'generation').id)
+      .toBe('fal-ai/kling-video/v3/pro/image-to-video');
   });
 
   it('rejects unknown models before strict Fal execution can substitute a default', () => {
@@ -48,6 +56,23 @@ describe('edge credits shared helper', () => {
       .toThrow('catalog-strict rejected model substitution');
     expect(() => assertStrictFalModelResolution('fal-ai/unknown-tts', resolution))
       .toThrow('unknown_model:fal-ai/unknown-tts');
+  });
+
+  it('returns a 400 response with a code for strict model substitution refusal', async () => {
+    const error = new StrictModelResolutionError(
+      'fal-ai/unknown-tts',
+      'fal-ai/ffmpeg-api/merge-audios',
+      'unknown_model:fal-ai/unknown-tts',
+    );
+    const response = strictModelResolutionResponse(error, {
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: 'catalog-strict rejected model substitution: requested "fal-ai/unknown-tts" resolved to "fal-ai/ffmpeg-api/merge-audios" (unknown_model:fal-ai/unknown-tts)',
+      code: 'strict_model_resolution',
+    });
   });
 
   it('prices a canonical TTS model from its text quantity in strict mode', () => {

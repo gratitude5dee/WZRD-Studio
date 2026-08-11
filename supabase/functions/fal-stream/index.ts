@@ -11,7 +11,11 @@ import {
   type FalMediaType,
 } from '../_shared/falai-client.ts';
 import { getCatalogModelById } from '../_shared/ai-model-catalog.ts';
-import { assertStrictFalModelResolution } from '../_shared/fal-stream-strict.ts';
+import {
+  assertStrictFalModelResolution,
+  strictModelResolutionResponse,
+  StrictModelResolutionError,
+} from '../_shared/fal-stream-strict.ts';
 import {
   buildCreditIdempotencyKey,
   commitCredits,
@@ -424,6 +428,9 @@ serve(async (req) => {
         JSON.stringify({ error: error.message, code: error.code }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+    if (error instanceof StrictModelResolutionError) {
+      return strictModelResolutionResponse(error, corsHeaders);
     }
     console.error('fal-stream request processing error:', error?.message, error?.stack);
     return new Response(

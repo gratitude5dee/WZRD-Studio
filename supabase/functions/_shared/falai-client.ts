@@ -664,7 +664,7 @@ export interface CanonicalFalModel {
 const canonicalModel = (model: CanonicalFalModel): CanonicalFalModel => model;
 
 export const CANONICAL_FAL_MODELS: CanonicalFalModel[] = [
-  // Text-to-speech generation
+  // Text-to-speech generation (advanced)
   canonicalModel({
     id: 'fal-ai/chatterbox/text-to-speech',
     name: 'Chatterbox Text to Speech',
@@ -672,7 +672,7 @@ export const CANONICAL_FAL_MODELS: CanonicalFalModel[] = [
     category: 'text-to-speech',
     media_type: 'audio',
     workflow_type: 'text-to-speech',
-    ui_group: 'generation',
+    ui_group: 'advanced',
     supports: ['text', 'audio_url', 'exaggeration', 'temperature', 'cfg', 'seed'],
     defaults: { exaggeration: 0.25, temperature: 0.7, cfg: 0.5 },
   }),
@@ -683,7 +683,7 @@ export const CANONICAL_FAL_MODELS: CanonicalFalModel[] = [
     category: 'text-to-speech',
     media_type: 'audio',
     workflow_type: 'text-to-speech',
-    ui_group: 'generation',
+    ui_group: 'advanced',
     supports: ['text', 'audio_url', 'exaggeration', 'temperature', 'cfg', 'seed'],
     defaults: { exaggeration: 0.25, temperature: 0.7, cfg: 0.5 },
   }),
@@ -694,7 +694,7 @@ export const CANONICAL_FAL_MODELS: CanonicalFalModel[] = [
     category: 'text-to-speech',
     media_type: 'audio',
     workflow_type: 'text-to-speech',
-    ui_group: 'generation',
+    ui_group: 'advanced',
     supports: ['text', 'voice', 'stability', 'language_code', 'timestamps', 'apply_text_normalization'],
     defaults: { voice: 'Rachel', stability: 0.5 },
   }),
@@ -705,7 +705,7 @@ export const CANONICAL_FAL_MODELS: CanonicalFalModel[] = [
     category: 'text-to-speech',
     media_type: 'audio',
     workflow_type: 'text-to-speech',
-    ui_group: 'generation',
+    ui_group: 'advanced',
     supports: [
       'text',
       'voice',
@@ -1593,14 +1593,14 @@ export function getDefaultFalModelForMedia(
   mediaType: FalMediaType,
   uiGroup: FalUiGroup = 'generation'
 ): CanonicalFalModel {
-  const fallbackId = DEFAULT_MODEL_BY_MEDIA[mediaType];
-  const fallback = CANONICAL_MODEL_BY_ID.get(fallbackId);
-  if (fallback) return fallback;
-
   const inGroup = CANONICAL_FAL_MODELS.find(
     (model) => model.media_type === mediaType && model.ui_group === uiGroup
   );
   if (inGroup) return inGroup;
+
+  const fallbackId = DEFAULT_MODEL_BY_MEDIA[mediaType];
+  const fallback = CANONICAL_MODEL_BY_ID.get(fallbackId);
+  if (fallback) return fallback;
 
   // Absolute fallback
   return CANONICAL_FAL_MODELS[0];
