@@ -18,6 +18,7 @@ import {
 } from "./export-engine-utils";
 import { validateRenderedFrame } from "./export-engine-debug";
 import { stripMarkdownSyntax } from "@qcut-app/lib/markdown";
+import { getTextAnimationState } from "@qcut-app/lib/text/text-animation";
 import { resolveSubtitleStyle, hexToRgba } from "@qcut-app/lib/captions/subtitle-style";
 import type { CaptionElement } from "@qcut-app/types/timeline";
 import {
@@ -181,7 +182,7 @@ async function renderElement(
 	if (element.type === "media" && mediaItem) {
 		await renderMediaElement(context, element, mediaItem, elementTimeOffset);
 	} else if (element.type === "text") {
-		renderTextElement(context.ctx, element);
+		renderTextElement(context.ctx, element, elementTimeOffset);
 	} else if (element.type === "captions") {
 		renderCaptionElement(
 			context.ctx,
@@ -564,20 +565,42 @@ export async function renderOverlayStickers(
 /** Render text element */
 export function renderTextElement(
 	ctx: CanvasRenderingContext2D,
-	element: TimelineElement
+	element: TimelineElement,
+	elementTime?: number
 ): void {
 	if (element.type !== "text") return;
 	if (!element.content || !element.content.trim()) return;
+
+	const animationState = getTextAnimationState(
+		element.animation,
+		elementTime ?? 0,
+		element.duration - element.trimStart - element.trimEnd,
+		element.content.length
+	);
+	const content =
+		animationState.visibleCharacters === null
+			? element.content
+			: element.content.slice(0, animationState.visibleCharacters);
+	if (!content) return;
+
+	const x = (element.x ?? 50) + animationState.offsetX;
+	const y = (element.y ?? 50) + animationState.offsetY;
+
+	ctx.save();
+	ctx.globalAlpha *= animationState.opacity;
+	if (animationState.scale !== 1) {
+		ctx.translate(x, y);
+		ctx.scale(animationState.scale, animationState.scale);
+		ctx.translate(-x, -y);
+	}
 
 	ctx.fillStyle = element.color || "#ffffff";
 	ctx.font = `${element.fontSize || 24}px ${element.fontFamily || "Arial"}`;
 	ctx.textAlign = "left";
 	ctx.textBaseline = "top";
 
-	const x = element.x ?? 50;
-	const y = element.y ?? 50;
-
-	ctx.fillText(element.content, x, y);
+	ctx.fillText(content, x, y);
+	ctx.restore();
 }
 
 /** Render caption element with subtitle styling */

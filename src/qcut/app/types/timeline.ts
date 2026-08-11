@@ -4,6 +4,8 @@ export type {
 	TrackType,
 	MediaElement,
 	TextElement,
+	TextAnimation,
+	TextAnimationPreset,
 	StickerElement,
 	CaptionElement,
 	SubtitleStyle,
