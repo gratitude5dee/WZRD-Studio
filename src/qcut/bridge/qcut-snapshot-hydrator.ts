@@ -66,6 +66,21 @@ export async function maybeHydrateFromSnapshot({
 	const isStale = () =>
 		useProjectStore.getState().activeProject?.id !== qcutProjectId;
 
+	const addedMediaIds: string[] = [];
+	const rollbackAddedMedia = async () => {
+		const store = useMediaStore.getState();
+		for (const addedId of addedMediaIds) {
+			try {
+				await store.removeMediaItem(qcutProjectId, addedId);
+			} catch (rollbackError) {
+				debugError(
+					"[WZRD/QCut] Failed to roll back hydrated media item",
+					rollbackError
+				);
+			}
+		}
+	};
+
 	try {
 		if (timelineHasContent()) {
 			markSnapshotHydrationDone(qcutProjectId);
@@ -123,20 +138,6 @@ export async function maybeHydrateFromSnapshot({
 		const mediaStore = useMediaStore.getState();
 		const existingIds = new Set(mediaStore.mediaItems.map((m) => m.id));
 		const snapshotItems = snapshot.media?.mediaItems;
-		const addedMediaIds: string[] = [];
-		const rollbackAddedMedia = async () => {
-			const store = useMediaStore.getState();
-			for (const addedId of addedMediaIds) {
-				try {
-					await store.removeMediaItem(qcutProjectId, addedId);
-				} catch (rollbackError) {
-					debugError(
-						"[WZRD/QCut] Failed to roll back hydrated media item",
-						rollbackError
-					);
-				}
-			}
-		};
 		if (Array.isArray(snapshotItems)) {
 			for (const raw of snapshotItems as SnapshotMediaItem[]) {
 				if (isStale()) {
@@ -213,6 +214,13 @@ export async function maybeHydrateFromSnapshot({
 		return { hydrated: true };
 	} catch (error) {
 		debugError("[WZRD/QCut] Snapshot hydration failed", error);
+		// A throw mid-hydration can land here after the user switched projects;
+		// report staleness so the caller doesn't import this project's legacy
+		// timeline into the newly active one, and undo any media already added.
+		if (isStale()) {
+			await rollbackAddedMedia();
+			return { hydrated: false, stale: true };
+		}
 		return { hydrated: false };
 	}
 }
