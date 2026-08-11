@@ -324,6 +324,7 @@ serve(async (req) => {
           const primaryMessage = primaryError instanceof Error ? primaryError.message : 'Fal execution failed';
 
           const shouldTryFallback =
+            !strictPricing &&
             resolvedFromRequest.modelId !== fallbackCandidateId &&
             fallbackEligible;
           if (shouldTryFallback) {
