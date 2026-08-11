@@ -42,6 +42,7 @@ import { assetService } from "@/services/assetService";
 import { setWzrdProjectContext } from "./bridge/wzrd-project-context";
 import { installEditorAgentApi } from "./bridge/agent-api";
 import { maybeImportLegacyTimeline } from "./bridge/legacy-importer";
+import { maybeHydrateFromSnapshot } from "./bridge/qcut-snapshot-hydrator";
 import { readPublicFlag } from "@/lib/env";
 import {
 	collectWebBaseline,
@@ -252,6 +253,11 @@ export function QCutEditor({ projectId }: { projectId: string }) {
 
 		const maybeImportRemoteTimeline = async () => {
 			if (useLocalProjectData) return;
+			const { hydrated } = await maybeHydrateFromSnapshot({
+				wzrdProjectId,
+				qcutProjectId,
+			});
+			if (hydrated) return;
 			await maybeImportLegacyTimeline({ wzrdProjectId, qcutProjectId });
 		};
 
