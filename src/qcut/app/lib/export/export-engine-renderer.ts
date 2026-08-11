@@ -20,6 +20,9 @@ import {
 import { validateRenderedFrame } from "./export-engine-debug";
 import { stripMarkdownSyntax } from "@qcut-app/lib/markdown";
 import { resolveSubtitleStyle, hexToRgba } from "@qcut-app/lib/captions/subtitle-style";
+import { renderKaraokeCaptionToCanvas } from "@qcut-app/lib/captions/karaoke-canvas";
+import { useWordTimelineStore } from "@qcut-app/stores/timeline/word-timeline-store";
+import { WORD_FILTER_STATE } from "@qcut-app/types/word-timeline";
 import type { CaptionElement } from "@qcut-app/types/timeline";
 import {
 	ScreenRecordingExportCompositor,
@@ -187,7 +190,8 @@ async function renderElement(
 		renderCaptionElement(
 			context.ctx,
 			context.canvas,
-			element as CaptionElement
+			element as CaptionElement,
+			currentTime
 		);
 	} else if (element.type === "markdown") {
 		renderMarkdownElement({
@@ -584,15 +588,56 @@ export function renderTextElement(
 	ctx.fillText(element.content, x, y);
 }
 
+/** Words inside the element's timeline window, for karaoke rendering. */
+function karaokeWordsForElement(
+	element: CaptionElement,
+	currentTime: number | undefined
+) {
+	if (currentTime === undefined) return [];
+	const style = resolveSubtitleStyle(element.style);
+	if ((style.karaokeMode ?? "none") === "none") return [];
+	const words = useWordTimelineStore.getState().data?.words;
+	if (!words || words.length === 0) return [];
+	const windowStart = element.startTime - 0.05;
+	const windowEnd =
+		element.startTime +
+		(element.duration - element.trimStart - element.trimEnd) +
+		0.05;
+	return words.filter(
+		(w) =>
+			w.type === "word" &&
+			w.filterState !== WORD_FILTER_STATE.AI &&
+			w.filterState !== WORD_FILTER_STATE.USER_REMOVE &&
+			w.start >= windowStart &&
+			w.end <= windowEnd
+	);
+}
+
 /** Render caption element with subtitle styling */
 export function renderCaptionElement(
 	ctx: CanvasRenderingContext2D,
 	canvas: HTMLCanvasElement,
-	element: CaptionElement
+	element: CaptionElement,
+	currentTime?: number
 ): void {
 	if (!element.text || !element.text.trim()) return;
 
 	const style = resolveSubtitleStyle(element.style);
+
+	const karaokeWords = karaokeWordsForElement(element, currentTime);
+	if (karaokeWords.length > 0 && currentTime !== undefined) {
+		renderKaraokeCaptionToCanvas({
+			ctx,
+			canvas,
+			style,
+			words: karaokeWords,
+			currentTime,
+		});
+		// Karaoke owns this caption for the whole element window; the preview
+		// renders nothing between words, so the export must not fall back to
+		// the full static caption.
+		return;
+	}
 	const fontWeight = style.bold ? "bold" : "normal";
 	const fontStyle = style.italic ? "italic" : "normal";
 
