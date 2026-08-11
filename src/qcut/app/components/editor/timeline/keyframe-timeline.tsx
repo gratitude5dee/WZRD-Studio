@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useEffectsStore } from "@qcut-app/stores/ai/effects-store";
 import { usePlaybackStore } from "@qcut-app/stores/editor/playback-store";
+import { useLivePlaybackTime } from "@qcut-app/hooks/use-live-playback-time";
 import { cn } from "@qcut-app/lib/utils";
 import {
 	Diamond,
@@ -57,7 +58,9 @@ export function KeyframeTimeline({
 	className,
 }: KeyframeTimelineProps) {
 	const { getElementEffects, updateEffectAnimations } = useEffectsStore();
-	const { currentTime, isPlaying, toggle, seek } = usePlaybackStore();
+	const { isPlaying, toggle, seek } = usePlaybackStore();
+	// Per-frame time while playing; the store's currentTime is frozen then.
+	const currentTime = useLivePlaybackTime();
 	const timelineRef = useRef<HTMLDivElement>(null);
 
 	const [selectedParameter, setSelectedParameter] =
