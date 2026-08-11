@@ -1,6 +1,7 @@
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment -- Deno edge modules are outside the browser app TypeScript graph.
 // @ts-nocheck
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { filterStudioCatalogRows, isEditorOnlyPricing } from "./editor-only-catalog.ts";
 
 // ── Inlined types & helpers from shared/ai-model-catalog.ts ──────────────
 // These are duplicated here so edge-function bundling works without reaching
@@ -102,6 +103,7 @@ export interface CatalogModel {
   rawSourceBlock: string;
   isDefault: boolean;
   defaultRank: number;
+  editorOnly: boolean;
 }
 
 const CATALOG_PROVIDER_ALIASES: Record<string, string> = {
@@ -431,6 +433,7 @@ export function normalizeCatalogModel(row: QueryableCatalogRow): CatalogModel {
     rawSourceBlock: asString(row.raw_source_block),
     isDefault: asBoolean(row.is_default, false),
     defaultRank: asNumber(row.default_rank, 1000),
+    editorOnly: isEditorOnlyPricing(row.pricing),
   };
 }
 
@@ -526,8 +529,9 @@ export async function listCatalogModelsPage(filters: CatalogQueryFilters = {}): 
     throw new Error(`Failed to query ai_model_catalog: ${error.message}`);
   }
 
-  const filtered = (data ?? [])
-    .map((row) => normalizeCatalogModel(row as QueryableCatalogRow))
+  const filtered = filterStudioCatalogRows(
+    (data ?? []).map((row) => normalizeCatalogModel(row as QueryableCatalogRow)),
+  )
     .filter((model) => modelMatchesCatalogSurface(model, filters.studioSurface))
     .filter((model) => matchesSearch(model, filters.search))
     .filter((model) => matchesCapabilities(model, filters.capabilities));

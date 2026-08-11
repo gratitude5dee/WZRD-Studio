@@ -204,7 +204,7 @@ export async function handleModelCatalogRequest(req: Request): Promise<Response>
           studioSurface: surface,
           kanvasMode: kanvasMode ?? undefined,
         });
-        if (!model) {
+        if (!model || model.editorOnly) {
           return errorResponse("Model not found", 404);
         }
 
@@ -243,7 +243,7 @@ export async function handleModelCatalogRequest(req: Request): Promise<Response>
         workflowType: workflowType ?? undefined,
         studioSurface: studioSurface ?? undefined,
       });
-      if (!model || !hasStudioSurface(model)) {
+      if (!model || model.editorOnly || !hasStudioSurface(model)) {
         return errorResponse("Model not found", 404);
       }
       return successResponse({ model: toStudioCatalogModel(model) });
