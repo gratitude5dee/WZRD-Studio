@@ -16,7 +16,12 @@ import {
 } from "@qcut-app/lib/captions/caption-export";
 
 // Custom hook imports
-import type { ExportFormat, ExportQuality, GifFrameRate } from "@qcut-app/types/export";
+import type {
+	ExportFormat,
+	ExportQuality,
+	GifFrameRate,
+	GifSizePreset,
+} from "@qcut-app/types/export";
 import { DEFAULT_GIF_CONFIG, isValidGifFrameRate } from "@qcut-app/types/export";
 import { useExportSettings } from "@qcut-app/hooks/export/use-export-settings";
 import { useExportProgress } from "@qcut-app/hooks/export/use-export-progress";
@@ -63,6 +68,10 @@ export function ExportDialog() {
 	);
 	const [gifLoop, setGifLoop] = useState(DEFAULT_GIF_CONFIG.loop);
 	const [gifQuality, setGifQuality] = useState(DEFAULT_GIF_CONFIG.quality);
+	// WZRD-EDIT: default GIF exports to the memory-safe 720p-capped preset.
+	const [gifSizePreset, setGifSizePreset] = useState<GifSizePreset>(
+		DEFAULT_GIF_CONFIG.sizePreset
+	);
 
 	// Check if there are caption tracks available
 	const hasCaptions = tracks.some(
@@ -245,7 +254,7 @@ export function ExportDialog() {
 							frameRate: gifFrameRate,
 							loop: gifLoop,
 							quality: gifQuality,
-							sizePreset: "original" as const,
+							sizePreset: gifSizePreset,
 						}
 					: undefined,
 		});
@@ -420,6 +429,9 @@ export function ExportDialog() {
 						onLoopChange={setGifLoop}
 						quality={gifQuality}
 						onQualityChange={setGifQuality}
+						sizePreset={gifSizePreset}
+						onSizePresetChange={setGifSizePreset}
+						sourceDimensions={exportSettings.resolution}
 						isExporting={isExporting}
 					/>
 				)}

@@ -97,6 +97,8 @@ export const FORMAT_INFO = {
 // Get supported formats based on browser capabilities
 export const getSupportedFormats = (): ExportFormat[] => {
 	const supported: ExportFormat[] = [];
+	// WZRD-EDIT: keep the video fallback independent from unconditional GIF support.
+	let hasSupportedVideoFormat = false;
 
 	Object.entries(FORMAT_INFO).forEach(([format, info]) => {
 		// WZRD-EDIT: GIF is encoded by gif.js, not MediaRecorder.
@@ -109,11 +111,12 @@ export const getSupportedFormats = (): ExportFormat[] => {
 		);
 		if (isSupported) {
 			supported.push(format as ExportFormat);
+			hasSupportedVideoFormat = true;
 		}
 	});
 
 	// Always include WebM as fallback since it's widely supported
-	if (supported.length === 0) {
+	if (!hasSupportedVideoFormat) {
 		supported.push(ExportFormat.WEBM);
 	}
 
