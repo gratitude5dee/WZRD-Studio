@@ -24,6 +24,8 @@ import {
 	TooltipTrigger,
 } from "@qcut-app/components/ui/tooltip";
 import { cn } from "@qcut-app/lib/utils";
+import { usePlatformCapability } from "@qcut-app/hooks/use-platform-capability";
+import { PlatformCapability } from "@qcut/platform-core";
 import {
 	useRemotionStore,
 	selectAllComponents,
@@ -187,6 +189,9 @@ export function RemotionView() {
 	const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
 	const [isFolderImportDialogOpen, setIsFolderImportDialogOpen] =
 		useState(false);
+	const canUseFolderImport = usePlatformCapability(
+		PlatformCapability.RemotionFolder
+	);
 
 	// Get store state - use individual selectors for stable references
 	const isLoading = useRemotionStore((state) => state.isLoading);
@@ -345,24 +350,26 @@ export function RemotionView() {
 							</button>
 						)}
 					</div>
-					<TooltipProvider>
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									variant="outline"
-									size="icon"
-									className="h-9 w-9 shrink-0"
-									onClick={() => setIsFolderImportDialogOpen(true)}
-									data-testid="import-folder-button"
-								>
-									<FolderOpen className="h-4 w-4" />
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>
-								<p>Import Remotion folder</p>
-							</TooltipContent>
-						</Tooltip>
-					</TooltipProvider>
+					{canUseFolderImport && (
+						<TooltipProvider>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										variant="outline"
+										size="icon"
+										className="h-9 w-9 shrink-0"
+										onClick={() => setIsFolderImportDialogOpen(true)}
+										data-testid="import-folder-button"
+									>
+										<FolderOpen className="h-4 w-4" />
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>
+									<p>Import Remotion folder</p>
+								</TooltipContent>
+							</Tooltip>
+						</TooltipProvider>
+					)}
 					<TooltipProvider>
 						<Tooltip>
 							<TooltipTrigger asChild>

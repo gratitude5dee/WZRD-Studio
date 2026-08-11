@@ -38,9 +38,11 @@ describe("platform tab gating", () => {
 		expect(isTabAvailable("pty")).toBe(false);
 		expect(isTabAvailable("nano-edit")).toBe(false);
 		expect(isTabAvailable("project-folder")).toBe(false);
-		expect(isTabAvailable("remotion")).toBe(false);
+		// The Remotion component library works in the browser; only its
+		// folder-import affordance is desktop-only.
+		expect(isTabAvailable("remotion")).toBe(true);
 		expect(isTabAvailable("media")).toBe(true);
-		expect(availableTabsForGroup("agents")).toEqual(["ai-chat"]);
+		expect(availableTabsForGroup("agents")).toEqual(["ai-chat", "remotion"]);
 		expect(availableTabsForGroup("media")).toEqual(["media", "search"]);
 	});
 

@@ -134,7 +134,6 @@ const tabRequiredCapability: Partial<Record<Tab, PlatformCapability>> = {
 	pty: PlatformCapability.Pty,
 	"nano-edit": PlatformCapability.Skills,
 	"project-folder": PlatformCapability.ProjectFolder,
-	remotion: PlatformCapability.RemotionFolder,
 };
 
 /** Whether a tab is usable on the current platform. */
