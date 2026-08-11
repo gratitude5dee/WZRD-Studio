@@ -14,6 +14,7 @@ import {
 import {
 	withErrorHandling,
 	getFalApiKeyAsync,
+	isBrowserFalStreamPath,
 	generateJobId,
 	makeFalRequest,
 	pollQueueStatus,
@@ -44,7 +45,7 @@ export async function generateWAN26TextVideo(
 		{ operation: "generateWAN26TextVideo", model: request.model },
 		async () => {
 			const falApiKey = await getFalApiKeyAsync();
-			if (!falApiKey) {
+			if (!falApiKey && !isBrowserFalStreamPath()) {
 				throw new Error(
 					"FAL API key not configured. Please set VITE_FAL_API_KEY environment variable or configure it in Settings."
 				);

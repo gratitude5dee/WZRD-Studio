@@ -8,6 +8,7 @@
 import { platform } from "@qcut/platform-core";
 import { handleAIServiceError } from "@qcut-app/lib/debug/error-handler";
 import { estimateCreditCost } from "@qcut-app/lib/credit-costs";
+import { executeFalStream } from "@/services/unifiedGenerationService";
 import { LICENSE_SERVER_URL, getSessionToken } from "./license-relay";
 
 // Direct FAL AI integration - no backend needed
@@ -234,11 +235,26 @@ export async function makeFalRequest(
 	payload: Record<string, unknown>,
 	options?: FalRequestOptions
 ): Promise<Response> {
-	const apiKey = await getFalApiKeyAsync();
 	const base = options?.queueMode ? FAL_QUEUE_BASE : FAL_API_BASE;
 	const targetUrl = endpoint.startsWith("https://")
 		? endpoint
 		: `${base}/${endpoint}`;
+
+	const streamModelId = falModelIdFromUrl(targetUrl);
+	if (streamModelId && isBrowserFalStreamPath()) {
+		const { result } = await executeFalStream(
+			streamModelId,
+			payload,
+			undefined,
+			"catalog-strict"
+		);
+		return new Response(JSON.stringify(result ?? {}), {
+			status: 200,
+			headers: { "Content-Type": "application/json" },
+		});
+	}
+
+	const apiKey = await getFalApiKeyAsync();
 
 	const sessionToken =
 		options?.proxyFirst || !apiKey ? await getSessionToken() : "";
@@ -299,6 +315,30 @@ export async function makeFalRequest(
 		body: JSON.stringify(payload),
 		signal: buildAbortSignal(options),
 	});
+}
+
+const FAL_URL_PATTERN = /^https:\/\/(?:queue\.)?fal\.run\/(.+)$/;
+
+/**
+ * Extract the Fal model id from a `fal.run` / `queue.fal.run` URL.
+ * Returns undefined for non-Fal URLs and the storage upload endpoint.
+ */
+export function falModelIdFromUrl(url: string): string | undefined {
+	const id = FAL_URL_PATTERN.exec(url)?.[1];
+	if (!id || id === "upload" || id.startsWith("upload/")) return undefined;
+	return id;
+}
+
+/**
+ * Whether generation should route through the server-side `fal-stream`
+ * Edge Function (browser) instead of a page-held Fal key (Electron/BYOK).
+ */
+export function isBrowserFalStreamPath(): boolean {
+	try {
+		return !platform().isElectron;
+	} catch {
+		return false;
+	}
 }
 
 // ---------------------------------------------------------------------------

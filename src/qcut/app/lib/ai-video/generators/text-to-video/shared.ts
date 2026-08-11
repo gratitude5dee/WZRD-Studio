@@ -18,6 +18,7 @@ export {
 	getFalApiKey,
 	getFalApiKeyAsync,
 	generateJobId,
+	isBrowserFalStreamPath,
 	makeFalRequest,
 	handleFalResponse,
 } from "../../core/fal-request";

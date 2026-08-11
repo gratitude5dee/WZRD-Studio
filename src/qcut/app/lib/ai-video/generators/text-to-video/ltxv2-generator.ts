@@ -13,6 +13,7 @@ import {
 import {
 	withErrorHandling,
 	getFalApiKeyAsync,
+	isBrowserFalStreamPath,
 	generateJobId,
 	makeFalRequest,
 	handleFalResponse,
@@ -35,7 +36,7 @@ export async function generateLTXV2Video(
 		{ operation: "generateLTXV2Video", model: request.model },
 		async () => {
 			const falApiKey = await getFalApiKeyAsync();
-			if (!falApiKey) {
+			if (!falApiKey && !isBrowserFalStreamPath()) {
 				throw new Error(
 					"FAL API key not configured. Please set VITE_FAL_API_KEY environment variable or configure it in Settings."
 				);
