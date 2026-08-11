@@ -94,6 +94,13 @@ export async function maybeHydrateFromSnapshot({
 			.maybeSingle();
 		if (error) throw error;
 
+		// The user may have switched projects while the snapshot was fetched;
+		// every return past this point must report staleness so the caller
+		// doesn't run the legacy import against the wrong project's stores.
+		if (isStale()) {
+			return { hydrated: false, stale: true };
+		}
+
 		const snapshot = data?.qcut_project_json as
 			| {
 					version?: unknown;
@@ -120,12 +127,6 @@ export async function maybeHydrateFromSnapshot({
 		if (!hasElements) {
 			markSnapshotHydrationDone(qcutProjectId);
 			return { hydrated: false };
-		}
-
-		// The user may have switched projects while the snapshot was fetched;
-		// the stores are global, so hydrating now would inject the wrong project.
-		if (isStale()) {
-			return { hydrated: false, stale: true };
 		}
 
 		debugLog("[WZRD/QCut] Hydrating editor state from snapshot", {
