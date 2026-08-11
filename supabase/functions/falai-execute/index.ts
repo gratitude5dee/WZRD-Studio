@@ -73,9 +73,14 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } },
     );
+    const providerInputs = strictPricing && catalogModel?.provider === 'fal-ai'
+      ? { ...catalogModel.defaults, ...inputs }
+      : inputs;
     creditCost = getGenerationCreditCost({
       pricingMode: strictPricing ? 'catalog-strict' : undefined,
-      catalogModel,
+      catalogModel: catalogModel
+        ? { ...catalogModel, inputs: providerInputs }
+        : null,
       modelId,
       resourceType: billingResourceType,
     });
@@ -171,7 +176,7 @@ serve(async (req) => {
     }
 
     // ── Default: route to Fal AI ────────────────────────────────────────
-    const result = await executeFalModel(modelId, inputs, mode);
+    const result = await executeFalModel(modelId, providerInputs, mode);
     if (!result.success) {
       await releaseCredits({
         supabase: serviceClient,

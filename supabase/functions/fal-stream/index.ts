@@ -147,7 +147,9 @@ serve(async (req) => {
 
     const primaryCost = getGenerationCreditCost({
       pricingMode: strictPricing ? 'catalog-strict' : undefined,
-      catalogModel,
+      catalogModel: catalogModel
+        ? { ...catalogModel, inputs: resolvedFromRequest.inputs }
+        : null,
       modelId: resolvedFromRequest.modelId,
       resourceType: resourceTypeForBilling,
     });
@@ -166,7 +168,12 @@ serve(async (req) => {
       try {
         fallbackCost = getGenerationCreditCost({
           pricingMode: 'catalog-strict',
-          catalogModel: fallbackCatalogModel,
+          catalogModel: fallbackCatalogModel
+            ? {
+              ...fallbackCatalogModel,
+              inputs: mergeFalModelInputs(fallbackCandidateId, rawInputs).inputs,
+            }
+            : null,
           modelId: fallbackCandidateId,
           resourceType: resourceTypeForBilling,
         });

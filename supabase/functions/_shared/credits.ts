@@ -180,6 +180,7 @@ export function getCatalogCreditCost(
   pricing: Record<string, unknown> | null | undefined,
   credits?: number,
   pricingText?: string,
+  inputs: Record<string, unknown> = {},
 ): number {
   const pricingCandidates = [
     pricing?.editor_billing &&
@@ -193,18 +194,22 @@ export function getCatalogCreditCost(
   for (const candidate of pricingCandidates) {
     const unit = typeof candidate?.unit === 'string' ? candidate.unit : '';
     if (!unit) continue;
-    if (unit !== 'per_request') {
-      throw new UnpricedModelError(
-        'This model uses rate-based pricing and cannot be generated until rate-aware billing is available.'
-      );
-    }
-
     const usd = typeof candidate?.usd === 'number'
       ? candidate.usd
       : Number(candidate?.usd);
-    if (Number.isFinite(usd) && usd > 0) {
+    if (!Number.isFinite(usd) || usd <= 0) continue;
+
+    if (unit === 'per_request') {
       return Math.max(1, Math.ceil(usd * 100));
     }
+
+    const quantity = getCatalogRateQuantity(unit, inputs);
+    if (quantity === undefined) {
+      throw new UnpricedModelError(
+        'This model cannot be billed because the request quantity could not be determined.'
+      );
+    }
+    return Math.max(1, Math.ceil(usd * quantity * 100));
   }
 
   if (typeof credits === 'number' && credits > 0 && pricingText !== '0 credits') {
@@ -214,12 +219,55 @@ export function getCatalogCreditCost(
   throw new UnpricedModelError();
 }
 
+function getFiniteInputNumber(inputs: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = typeof inputs[key] === 'number' ? inputs[key] : Number(inputs[key]);
+    if (Number.isFinite(value) && value > 0) return value;
+  }
+  return undefined;
+}
+
+export function getCatalogRateQuantity(
+  unit: string,
+  inputs: Record<string, unknown>,
+): number | undefined {
+  switch (unit) {
+    case 'per_image':
+      return getFiniteInputNumber(inputs, ['num_images']);
+    case 'per_second':
+    case 'per_minute': {
+      const duration = getFiniteInputNumber(inputs, ['duration', 'duration_seconds', 'durationSeconds']);
+      if (duration !== undefined) return unit === 'per_minute' ? duration / 60 : duration;
+
+      const frames = getFiniteInputNumber(inputs, ['num_frames']);
+      const fps = getFiniteInputNumber(inputs, ['fps']);
+      if (frames !== undefined && fps !== undefined) {
+        const seconds = frames / fps;
+        return unit === 'per_minute' ? seconds / 60 : seconds;
+      }
+      return undefined;
+    }
+    case 'per_1k_characters': {
+      const text = typeof inputs.text === 'string' ? inputs.text : undefined;
+      return text && text.length > 0 ? text.length / 1000 : undefined;
+    }
+    case 'per_megapixel': {
+      const width = getFiniteInputNumber(inputs, ['width', 'output_width']);
+      const height = getFiniteInputNumber(inputs, ['height', 'output_height']);
+      return width !== undefined && height !== undefined ? (width * height) / 1_000_000 : undefined;
+    }
+    default:
+      return undefined;
+  }
+}
+
 export function getGenerationCreditCost(input: {
   pricingMode?: 'catalog-strict';
   catalogModel?: {
     pricing?: Record<string, unknown> | null;
     credits?: number;
     pricingText?: string;
+    inputs?: Record<string, unknown>;
   } | null;
   modelId: string | null | undefined;
   resourceType: string;
@@ -229,6 +277,7 @@ export function getGenerationCreditCost(input: {
       input.catalogModel?.pricing,
       input.catalogModel?.credits,
       input.catalogModel?.pricingText,
+      input.catalogModel?.inputs,
     );
   }
   return getCreditCostForModel(input.modelId, input.resourceType);

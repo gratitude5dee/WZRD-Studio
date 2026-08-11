@@ -89,7 +89,9 @@ serve(async (req) => {
       return errorResponse('Invalid model ID', 400);
     }
 
-    const model = await getCatalogModelById(modelId);
+    const model = await getCatalogModelById(modelId, {
+      enabledOnly: strictPricing ? false : true,
+    });
     if (!model || model.provider !== 'gmi-cloud') {
       return errorResponse(`Model ${modelId} is not a GMI Cloud model`, 400);
     }
@@ -105,7 +107,7 @@ serve(async (req) => {
     );
     creditCost = getGenerationCreditCost({
       pricingMode: strictPricing ? 'catalog-strict' : undefined,
-      catalogModel: model,
+      catalogModel: { ...model, inputs },
       modelId,
       resourceType: resourceTypeForBilling,
     });

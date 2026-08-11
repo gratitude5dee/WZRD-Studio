@@ -58,10 +58,102 @@ describe('edge credits shared helper', () => {
     expect(() => getCatalogCreditCost({}, 1, '0 credits')).toThrowError(UnpricedModelError);
   });
 
-  it('refuses rate-priced models until rate-aware reserve exists', () => {
-    expect(() => getCatalogCreditCost({ unit: 'per_second', usd: 0.4 })).toThrow(
-      'rate-based pricing'
+  it('computes per-image rates from the merged payload', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_image', usd: 0.04 },
+      undefined,
+      undefined,
+      { num_images: 3 },
+    )).toBe(12);
+  });
+
+  it('computes per-second rates from duration_seconds', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_second', usd: 0.4 },
+      undefined,
+      undefined,
+      { duration_seconds: 2.5 },
+    )).toBe(100);
+  });
+
+  it('computes per-minute rates from duration in seconds', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_minute', usd: 0.6 },
+      undefined,
+      undefined,
+      { duration: 90 },
+    )).toBe(90);
+  });
+
+  it('computes per-second rates from frame count and fps', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_second', usd: 0.4 },
+      undefined,
+      undefined,
+      { num_frames: 60, fps: 30 },
+    )).toBe(80);
+  });
+
+  it('computes per-1k-character rates from text', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_1k_characters', usd: 0.02 },
+      undefined,
+      undefined,
+      { text: 'a'.repeat(1500) },
+    )).toBe(3);
+  });
+
+  it('does not infer TTS quantity from a prompt field', () => {
+    expect(() => getCatalogCreditCost(
+      { unit: 'per_1k_characters', usd: 0.02 },
+      undefined,
+      undefined,
+      { prompt: 'not a TTS payload' },
+    )).toThrow('request quantity could not be determined');
+  });
+
+  it('computes per-megapixel rates from explicit dimensions', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_megapixel', usd: 0.1 },
+      undefined,
+      undefined,
+      { width: 1000, height: 1000 },
+    )).toBe(10);
+  });
+
+  it('refuses rate-priced models when quantity is indeterminate', () => {
+    expect(() => getCatalogCreditCost(
+      { unit: 'per_second', usd: 0.4 },
+      undefined,
+      undefined,
+      {},
+    )).toThrow(
+      'request quantity could not be determined'
     );
+  });
+
+  it('floors a tiny rate-priced request at one credit', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_second', usd: 0.000001 },
+      undefined,
+      undefined,
+      { duration: 0.001 },
+    )).toBe(1);
+  });
+
+  it('uses the same computed amount for reservation and commit', () => {
+    const cost = getGenerationCreditCost({
+      pricingMode: 'catalog-strict',
+      catalogModel: {
+        pricing: { unit: 'per_second', usd: 0.4 },
+        inputs: { duration: 2.5 },
+      },
+      modelId: 'fal-ai/veo3.1/extend-video',
+      resourceType: 'video',
+    });
+
+    expect(cost).toBe(100);
+    expect(getGenerationReservationAmount(cost)).toBe(cost);
   });
 
   it('converts a per-request catalog price to integer credits', () => {
