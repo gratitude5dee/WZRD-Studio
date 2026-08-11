@@ -11,6 +11,7 @@ import {
 import { useElectron } from "@qcut-app/hooks/useElectron";
 // Export engine factory and types will be imported dynamically when needed
 import { debugLog, debugWarn } from "@qcut-app/lib/debug/debug-config";
+import { toast } from "sonner";
 
 /**
  * Hook for managing export settings state, derived metadata (supported formats, resolution, size estimates),
@@ -39,7 +40,7 @@ export function useExportSettings() {
 	const [engineType, setEngineType] = useState<
 		"standard" | "ffmpeg" | "cli" | "muxer"
 	>(electron ? "cli" : webCodecsAvailable ? "muxer" : "standard");
-	const userSelectedEngineRef = useRef(false);
+	const muxerFallbackNoticeShownRef = useRef(false);
 	const [ffmpegAvailable, setFfmpegAvailable] = useState(false);
 	const [engineRecommendation, setEngineRecommendation] = useState<
 		string | null
@@ -64,9 +65,9 @@ export function useExportSettings() {
 
 		if (electron || !webCodecsAvailable) {
 			setMuxerAvailable(false);
-			if (!electron && !userSelectedEngineRef.current) {
-				setEngineType("standard");
-			}
+			setEngineType((current) =>
+				current === "muxer" ? "standard" : current
+			);
 			return () => {
 				cancelled = true;
 			};
@@ -79,16 +80,30 @@ export function useExportSettings() {
 			.then((usable) => {
 				if (cancelled) return;
 				setMuxerAvailable(usable);
-				if (!usable && !userSelectedEngineRef.current) {
-					setEngineType("standard");
+				if (!usable) {
+					setEngineType((current) =>
+						current === "muxer" ? "standard" : current
+					);
+					if (!muxerFallbackNoticeShownRef.current) {
+						muxerFallbackNoticeShownRef.current = true;
+						toast.warning(
+							"WebCodecs isn't usable on this device. Standard export will be used."
+						);
+					}
 				}
 			})
 			.catch((error) => {
 				if (cancelled) return;
 				debugWarn("Muxer availability check failed:", error);
 				setMuxerAvailable(false);
-				if (!userSelectedEngineRef.current) {
-					setEngineType("standard");
+				setEngineType((current) =>
+					current === "muxer" ? "standard" : current
+				);
+				if (!muxerFallbackNoticeShownRef.current) {
+					muxerFallbackNoticeShownRef.current = true;
+					toast.warning(
+						"WebCodecs isn't usable on this device. Standard export will be used."
+					);
 				}
 			});
 
@@ -216,10 +231,7 @@ export function useExportSettings() {
 		handleQualityChange,
 		handleFormatChange,
 		handleFilenameChange,
-		setEngineType: (type: "standard" | "ffmpeg" | "cli" | "muxer") => {
-			userSelectedEngineRef.current = true;
-			setEngineType(type);
-		},
+		setEngineType,
 		muxerAvailable,
 		// Store integration
 		updateSettings,
