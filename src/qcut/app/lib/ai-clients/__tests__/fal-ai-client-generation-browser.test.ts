@@ -16,6 +16,11 @@ import {
 	generateWithModel,
 } from "@qcut-app/lib/ai-clients/fal-ai-client-generation";
 import type { FalAIClientRequestDelegate } from "@qcut-app/lib/ai-clients/fal-ai-client-internal-types";
+import { TEXT2IMAGE_MODELS } from "@qcut-app/lib/ai-models/text2image-models";
+import {
+	inferFalMediaType,
+	resolveFalModelOrFallback,
+} from "../../../../../../supabase/functions/_shared/falai-client.ts";
 
 const imageResponse = {
 	images: [
@@ -40,6 +45,25 @@ describe("browser text-to-image routing", () => {
 		expect(
 			falModelIdFromEndpoint("https://api.imarouter.com/v1/images/generations")
 		).toBeUndefined();
+	});
+
+	it("resolves every fal.run picker-registry endpoint directly without fallback", () => {
+		for (const model of Object.values(TEXT2IMAGE_MODELS)) {
+			const modelId = falModelIdFromEndpoint(model.endpoint);
+			if (!modelId) continue;
+
+			const resolution = resolveFalModelOrFallback(modelId, {
+				mediaTypeHint: inferFalMediaType(modelId),
+				uiGroup: "generation",
+			});
+
+			expect(resolution.model.id, `model ${model.id} (${modelId})`).toBe(
+				modelId
+			);
+			expect(resolution.fallbackUsed, `model ${model.id} (${modelId})`).toBe(
+				false
+			);
+		}
 	});
 
 	it("routes browser generation through fal-stream with strict pricing", async () => {
