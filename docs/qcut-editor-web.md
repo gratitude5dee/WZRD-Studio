@@ -321,3 +321,28 @@ browser edits persist exactly like desktop ones.
   completed with an `image/gif` blob.
 - The additive project-snapshot migration and the remaining adapter overrides (fal, transcription,
   license/credits) are still to come.
+
+## Phase 5 — hardening
+
+What is enforced and where:
+
+- **Browser E2E.** `e2e/web/qcut-editor.spec.ts` (run via `bun run test:e2e:web`) mounts
+  `/projects/<id>/editor` in Chromium with the auth/media test bypasses, and asserts the media
+  panel and timeline toolbar render, the desktop-only PTY tab is absent, and no
+  `PlatformUnsupportedError`/page errors fire during boot.
+- **Electron E2E (desktop gates).** `bun run desktop:test` builds the renderer and runs the
+  Electron Playwright suite: `electron-qcut-editor.spec.ts` verifies `/editor` mounts with
+  `window.wzrdQcut` exposed and the local MCP server reachable (`mcp.getInfo()` reports
+  `editorConnected: true`); the smoke specs cover routing and the desktop media bridge.
+  `desktop:dist:mac` remains a macOS-host-only gate (electron-builder `--mac`).
+- **Dependency budgets.** `bun run check:budgets` (chained into `bun run lint`) fails if more than
+  one physical copy of `react`, `react-dom`, or `remotion` is installed, or if the `zod3` alias
+  stops resolving to zod 3.x.
+- **Bundle budget.** `bun run web:build` now runs `scripts/check-dependency-budgets.mjs --bundle`
+  after `next build`, failing the build (locally and on Vercel, whose `buildCommand` is
+  `bun run web:build`) if total client JS in `.next/static/chunks` exceeds 30 MB (currently
+  ~19 MB).
+- **Vercel env.** The web build needs `NEXT_PUBLIC_SUPABASE_URL` + anon key (and their `VITE_*`
+  equivalents for the embedded SPA); provider keys (`FAL_KEY`, `GMI_CLOUD_API_KEY`,
+  `GEMINI_API_KEY`) live only in Supabase Edge Function secrets and must not be set as
+  browser-exposed variables.
