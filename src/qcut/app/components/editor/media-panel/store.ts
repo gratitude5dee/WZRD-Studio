@@ -24,6 +24,7 @@ import {
 	SearchIcon,
 } from "lucide-react";
 import { create } from "zustand";
+import { PlatformCapability, platform } from "@qcut/platform-core";
 
 export type Tab =
 	| "media"
@@ -125,6 +126,32 @@ export const tabs: { [key in Tab]: { icon: LucideIcon; label: string } } = {
 		label: "Search",
 	},
 };
+
+// --- Platform gating ---
+
+/** Tabs that only work when the platform exposes the given capability. */
+const tabRequiredCapability: Partial<Record<Tab, PlatformCapability>> = {
+	pty: PlatformCapability.Pty,
+	"nano-edit": PlatformCapability.Skills,
+	"project-folder": PlatformCapability.ProjectFolder,
+	remotion: PlatformCapability.RemotionFolder,
+};
+
+/** Whether a tab is usable on the current platform. */
+export function isTabAvailable(tab: Tab): boolean {
+	const capability = tabRequiredCapability[tab];
+	if (!capability) return true;
+	try {
+		return platform().hasCapability(capability);
+	} catch {
+		return false;
+	}
+}
+
+/** The group's tabs restricted to what the current platform supports. */
+export function availableTabsForGroup(group: TabGroup): Tab[] {
+	return tabGroups[group].tabs.filter(isTabAvailable);
+}
 
 // --- Tab Groups ---
 
@@ -232,10 +259,13 @@ const defaultLastTabPerGroup: Record<TabGroup, Tab> = {
 export const useMediaPanelStore = create<MediaPanelStore>((set) => ({
 	activeGroup: "media",
 	setActiveGroup: (group) =>
-		set((state) => ({
-			activeGroup: group,
-			activeTab: state.lastTabPerGroup[group],
-		})),
+		set((state) => {
+			const remembered = state.lastTabPerGroup[group];
+			const activeTab = isTabAvailable(remembered)
+				? remembered
+				: (availableTabsForGroup(group)[0] ?? remembered);
+			return { activeGroup: group, activeTab };
+		}),
 
 	activeTab: "media",
 	setActiveTab: (tab) =>
