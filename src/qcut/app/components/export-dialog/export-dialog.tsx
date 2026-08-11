@@ -422,6 +422,12 @@ export function ExportDialog() {
 						isExporting={isExporting}
 					/>
 				)}
+				{exportSettings.format === "gif" && (
+					<p className="text-xs text-muted-foreground">
+						GIF exports use the GIF encoder regardless of the engine selection.
+						{hasAudio && " Audio is not included."}
+					</p>
+				)}
 
 				<DetailsCard
 					resolution={exportSettings.resolution}

@@ -290,7 +290,12 @@ browser edits persist exactly like desktop ones.
 - **Render offload polling.** `exportVideoCLI` still queues a `web_render_jobs` row and returns
   `success: false`; the client-side export path is now the supported one.
 - **Safari** remains unverified (Playwright WebKit crashes on this VM's GStreamer).
-- **GIF export** is still not wired to an engine: `gif-export-engine.ts` exists, but nothing in the
-  factory constructs it, and `gifConfig` is threaded through `use-export-progress` unused.
+- **GIF export** is format-driven: the factory routes `format: "gif"` to the client-side gif.js
+  adapter regardless of the selected video engine, including in Electron. It samples the shared
+  timeline renderer at the configured GIF frame rate, honors the GIF loop, quality, and size preset,
+  and produces an `image/gif` blob with no audio. The dialog calls out that the engine selection and
+  audio setting do not apply to GIF. `gif.js` is configured with `/gif.worker.js`, copied from the
+  package's worker into `public/`; the production web build served that asset successfully during
+  export verification, so the worker no longer depends on page-relative resolution.
 - The additive project-snapshot migration and the remaining adapter overrides (fal, transcription,
   license/credits) are still to come.

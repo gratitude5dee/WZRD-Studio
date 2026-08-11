@@ -16,6 +16,7 @@ export const ExportEngineType = {
 	FFMPEG: "ffmpeg",
 	CLI: "cli",
 	REMOTION: "remotion",
+	GIF: "gif",
 } as const;
 
 export type ExportEngineType =
@@ -251,6 +252,26 @@ export class ExportEngineFactory {
 		console.log("  - Requested engine type:", engineType || "auto-select");
 		console.log("  - Total duration:", totalDuration);
 		console.log("  - Export settings:", settings);
+
+		// WZRD-EDIT: GIF routing takes precedence over engine recommendations.
+		if (settings.format === "gif") {
+			console.log("  - GIF format selected, bypassing video engine selection");
+			try {
+				const { GifTimelineExportEngine } = await import(
+					"./export-engine-gif"
+				);
+				return new GifTimelineExportEngine(
+					canvas,
+					settings,
+					tracks,
+					mediaItems,
+					totalDuration
+				);
+			} catch (error) {
+				debugError("[ExportEngineFactory] Failed to create GIF engine:", error);
+				throw error;
+			}
+		}
 
 		let selectedEngineType = engineType;
 		if (!selectedEngineType) {
