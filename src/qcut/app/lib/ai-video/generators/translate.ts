@@ -8,7 +8,11 @@
  */
 
 import { withErrorHandling } from "./base-generator";
-import { getFalApiKeyAsync, makeFalRequest } from "../core/fal-request";
+import {
+	getFalApiKeyAsync,
+	isBrowserFalStreamPath,
+	makeFalRequest,
+} from "../core/fal-request";
 import { pollQueueStatus } from "../core/polling";
 import type { ProgressCallback } from "@qcut-app/components/editor/media-panel/views/ai/types/ai-types";
 import { generateJobId } from "../core/fal-request";
@@ -27,7 +31,7 @@ export async function generateHeyGenTranslate(
 		{ operation: "generateHeyGenTranslate", language: request.output_language },
 		async () => {
 			const falApiKey = await getFalApiKeyAsync();
-			if (!falApiKey) {
+			if (!falApiKey && !isBrowserFalStreamPath()) {
 				throw new Error(
 					"FAL API key not configured. Please set your FAL API key in Settings."
 				);
@@ -67,13 +71,36 @@ export async function generateHeyGenTranslate(
 				{ queueMode: true }
 			);
 			const queueResult = (await queueResponse.json()) as {
-				request_id: string;
+				request_id?: string;
 				status_url?: string;
 				response_url?: string;
+				video?: { url?: string } | string;
 			};
 			const requestId = queueResult.request_id;
 
 			if (!requestId) {
+				// The browser fal-stream path runs the job server-side and returns
+				// the final result inline instead of a queue ticket.
+				const inlineVideoUrl =
+					typeof queueResult.video === "string"
+						? queueResult.video
+						: queueResult.video?.url;
+				if (inlineVideoUrl) {
+					onProgress?.({
+						status: "completed",
+						progress: 100,
+						message: "Video translated successfully",
+						elapsedTime: 0,
+					});
+					return {
+						job_id: jobId,
+						status: "completed",
+						message: "Video translated successfully",
+						estimated_time: 0,
+						video_url: inlineVideoUrl,
+						video_data: queueResult,
+					} satisfies VideoGenerationResponse;
+				}
 				throw new Error("Failed to submit translation job to queue");
 			}
 
