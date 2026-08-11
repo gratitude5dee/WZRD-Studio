@@ -46,6 +46,78 @@ interface RequestBody {
   };
 }
 
+/**
+ * Settle the credit hold recorded for a queued generation once the job
+ * reaches a terminal status. Idempotent: the row is claimed by a
+ * status-guarded update before the ledger call, so concurrent polls settle
+ * at most once.
+ */
+async function settleQueuedGeneration(input: {
+  requestId: string;
+  userId: string;
+  outcome: 'committed' | 'released';
+}): Promise<void> {
+  const serviceClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    { auth: { persistSession: false } },
+  );
+
+  const { data: claimed, error: claimError } = await serviceClient
+    .from('gmi_generation_settlements')
+    .update({ status: input.outcome, updated_at: new Date().toISOString() })
+    .eq('request_id', input.requestId)
+    .eq('user_id', input.userId)
+    .eq('status', 'pending')
+    .select('hold_id, hold_skipped, amount, model_id')
+    .maybeSingle();
+
+  if (claimError) {
+    console.error('[gmi-execute] Settlement claim failed:', claimError.message);
+    return;
+  }
+  if (!claimed) return; // No pending settlement (already settled, or pre-dates deferral).
+
+  try {
+    if (input.outcome === 'committed') {
+      await commitCredits({
+        supabase: serviceClient,
+        holdId: claimed.hold_id,
+        skipped: claimed.hold_skipped,
+        amount: Number(claimed.amount),
+        userId: input.userId,
+        metadata: {
+          endpoint: 'gmi-execute',
+          model_id: claimed.model_id,
+          request_id: input.requestId,
+        },
+      });
+    } else {
+      await releaseCredits({
+        supabase: serviceClient,
+        holdId: claimed.hold_id,
+        skipped: claimed.hold_skipped,
+        reason: 'gmi_queue_job_failed',
+        userId: input.userId,
+        metadata: {
+          endpoint: 'gmi-execute',
+          model_id: claimed.model_id,
+          request_id: input.requestId,
+        },
+      });
+    }
+  } catch (error) {
+    // The hold may have expired (15-minute TTL) before the job finished;
+    // record that instead of charging against a dead hold.
+    console.error('[gmi-execute] Settlement failed:', error);
+    await serviceClient
+      .from('gmi_generation_settlements')
+      .update({ status: 'expired', updated_at: new Date().toISOString() })
+      .eq('request_id', input.requestId)
+      .eq('user_id', input.userId);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return handleCors();
@@ -76,11 +148,20 @@ serve(async (req) => {
         return errorResponse(pollResult.error ?? 'GMI poll failed', 502);
       }
 
+      const status = pollResult.data?.status;
+      if (status === 'success' || status === 'failed' || status === 'cancelled') {
+        await settleQueuedGeneration({
+          requestId,
+          userId,
+          outcome: status === 'success' ? 'committed' : 'released',
+        });
+      }
+
       return successResponse({
         success: true,
         data: pollResult.data,
         requestId,
-        status: pollResult.data?.status,
+        status,
       });
     }
 
@@ -205,19 +286,47 @@ serve(async (req) => {
       return errorResponse(result.error ?? 'GMI queue submission failed', 502);
     }
 
-    await commitCredits({
-      supabase: serviceClient,
-      holdId: creditReservation.holdId,
-      skipped: creditReservation.skipped,
-      amount: creditCost,
-      userId,
-      metadata: {
-        endpoint: 'gmi-execute',
-        model_id: modelId,
-        request_id: result.requestId,
-      },
-    });
-    creditReservation = null;
+    // Defer settlement to poll time: a queued job that fails or is cancelled
+    // must release its hold instead of charging. If the pending-settlement
+    // record can't be stored, fall back to committing now so the generation
+    // is never free.
+    if (result.requestId) {
+      const { error: settlementError } = await serviceClient
+        .from('gmi_generation_settlements')
+        .insert({
+          request_id: result.requestId,
+          user_id: userId,
+          hold_id: creditReservation.holdId,
+          hold_skipped: creditReservation.skipped,
+          amount: creditCost,
+          model_id: modelId,
+        });
+
+      if (!settlementError) {
+        creditReservation = null;
+      } else {
+        console.error(
+          '[gmi-execute] Failed to record pending settlement, committing immediately:',
+          settlementError.message,
+        );
+      }
+    }
+
+    if (creditReservation) {
+      await commitCredits({
+        supabase: serviceClient,
+        holdId: creditReservation.holdId,
+        skipped: creditReservation.skipped,
+        amount: creditCost,
+        userId,
+        metadata: {
+          endpoint: 'gmi-execute',
+          model_id: modelId,
+          request_id: result.requestId,
+        },
+      });
+      creditReservation = null;
+    }
 
     return successResponse({
       success: true,
