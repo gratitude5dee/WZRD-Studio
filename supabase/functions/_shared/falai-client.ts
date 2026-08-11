@@ -728,6 +728,19 @@ export const CANONICAL_FAL_MODELS: CanonicalFalModel[] = [
     },
   }),
 
+  // Speech-to-text transcription
+  canonicalModel({
+    id: 'fal-ai/whisper',
+    name: 'Whisper Speech-to-Text',
+    description: 'OpenAI Whisper transcription with segment timestamps.',
+    category: 'speech-to-text',
+    media_type: 'audio',
+    workflow_type: 'speech-to-text',
+    ui_group: 'advanced',
+    supports: ['audio_url', 'task', 'language', 'chunk_level', 'version', 'batch_size', 'diarize'],
+    defaults: { task: 'transcribe', chunk_level: 'segment' },
+  }),
+
   // Image generation (primary)
   canonicalModel({
     id: 'fal-ai/flux/schnell',

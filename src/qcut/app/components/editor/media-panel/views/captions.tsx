@@ -43,6 +43,11 @@ import {
 	getGeminiSetupUrl,
 	getGeminiSetupInstructions,
 } from "@qcut-app/lib/gemini/gemini-utils";
+import {
+	isBrowserTranscriptionPath,
+	transcribeInBrowser,
+	MAX_BROWSER_TRANSCRIPTION_BYTES,
+} from "@qcut-app/lib/transcription/browser-transcription";
 import type {
 	TranscriptionResult,
 	TranscriptionSegment,
@@ -97,8 +102,12 @@ export function CaptionsView() {
 		startTranscriptionJob,
 	} = useCaptionsStore();
 
-	// Check if transcription is configured (Gemini)
-	const { configured, missingVars } = isGeminiConfigured();
+	// Browser transcription runs server-side through fal-stream and needs no
+	// local Gemini key; only the Electron path requires Gemini configuration.
+	const browserTranscription = isBrowserTranscriptionPath();
+	const geminiConfig = isGeminiConfigured();
+	const configured = browserTranscription || geminiConfig.configured;
+	const missingVars = geminiConfig.missingVars;
 
 	const updateState = useCallback((updates: Partial<TranscriptionState>) => {
 		setState((prev) => ({ ...prev, ...updates }));
@@ -210,6 +219,40 @@ export function CaptionsView() {
 					"Size:",
 					file.size
 				);
+
+				if (browserTranscription) {
+					toast.info("Transcribing...");
+					updateState({ isTranscribing: true });
+
+					const result = await transcribeInBrowser({
+						file,
+						language: selectedLanguage,
+					});
+
+					completeTranscriptionJob(jobId, result);
+					updateState({ isTranscribing: false, result });
+					toast.success(
+						`Transcription completed! Found ${result.segments.length} segments.`
+					);
+
+					if (fileKey) {
+						try {
+							localStorage.setItem(
+								`transcription-${fileKey}`,
+								JSON.stringify({ result, timestamp: Date.now() })
+							);
+						} catch (error) {
+							handleError(error, {
+								operation: "Cache Transcription Result",
+								category: ErrorCategory.STORAGE,
+								severity: ErrorSeverity.LOW,
+								showToast: false,
+								metadata: { fileKey },
+							});
+						}
+					}
+					return;
+				}
 
 				let audioFilePath: string;
 				if (file.type.startsWith("video/")) {
@@ -518,6 +561,7 @@ export function CaptionsView() {
 		[
 			configured,
 			missingVars,
+			browserTranscription,
 			updateState,
 			startTranscriptionJob,
 			completeTranscriptionJob,
@@ -560,6 +604,18 @@ export function CaptionsView() {
 			if (cachedResult) {
 				toast.success("Found cached transcription!");
 				setState((prev) => ({ ...prev, result: cachedResult }));
+				return;
+			}
+
+			// Browser transcription sends the media inline to the server route,
+			// so it has a much tighter ceiling than the desktop path.
+			if (
+				isBrowserTranscriptionPath() &&
+				file.size > MAX_BROWSER_TRANSCRIPTION_BYTES
+			) {
+				toast.error(
+					`File too large (max ${Math.floor(MAX_BROWSER_TRANSCRIPTION_BYTES / (1024 * 1024))}MB in the browser). Use a shorter clip or the desktop app.`
+				);
 				return;
 			}
 
@@ -647,7 +703,11 @@ export function CaptionsView() {
 									Drop video or audio files here
 								</p>
 								<p className="text-xs text-muted-foreground">
-									Supports MP4, MOV, MP3, WAV, M4A (max 100MB)
+									Supports MP4, MOV, MP3, WAV, M4A (max{" "}
+									{browserTranscription
+										? `${Math.floor(MAX_BROWSER_TRANSCRIPTION_BYTES / (1024 * 1024))}MB`
+										: `${MAX_FILE_SIZE_MB}MB`}
+									)
 								</p>
 							</div>
 							<Button
@@ -691,9 +751,7 @@ export function CaptionsView() {
 						<div className="space-y-3">
 							<div className="flex items-center justify-center gap-2">
 								<Loader2 className="size-4 animate-spin" />
-								<p className="text-sm font-medium">
-									Transcribing with Gemini...
-								</p>
+								<p className="text-sm font-medium">Transcribing...</p>
 							</div>
 							{state.currentFile && (
 								<p className="text-xs text-muted-foreground text-center">
@@ -730,7 +788,7 @@ export function CaptionsView() {
 							<AlertCircle className="size-8 mx-auto text-red-500" />
 							<div>
 								<p className="text-sm font-medium text-red-500">
-									Gemini Transcription Failed
+									Transcription Failed
 								</p>
 								<p className="text-xs text-muted-foreground">{state.error}</p>
 							</div>
