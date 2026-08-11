@@ -146,8 +146,8 @@ describe('edge credits shared helper', () => {
       pricingMode: 'catalog-strict',
       catalogModel: {
         pricing: { unit: 'per_second', usd: 0.4 },
-        inputs: { duration: 2.5 },
       },
+      inputs: { duration: 2.5 },
       modelId: 'fal-ai/veo3.1/extend-video',
       resourceType: 'video',
     });

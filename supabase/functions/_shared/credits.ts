@@ -267,8 +267,8 @@ export function getGenerationCreditCost(input: {
     pricing?: Record<string, unknown> | null;
     credits?: number;
     pricingText?: string;
-    inputs?: Record<string, unknown>;
   } | null;
+  inputs?: Record<string, unknown>;
   modelId: string | null | undefined;
   resourceType: string;
 }): number {
@@ -277,7 +277,7 @@ export function getGenerationCreditCost(input: {
       input.catalogModel?.pricing,
       input.catalogModel?.credits,
       input.catalogModel?.pricingText,
-      input.catalogModel?.inputs,
+      input.inputs,
     );
   }
   return getCreditCostForModel(input.modelId, input.resourceType);

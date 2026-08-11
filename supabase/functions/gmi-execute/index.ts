@@ -107,7 +107,8 @@ serve(async (req) => {
     );
     creditCost = getGenerationCreditCost({
       pricingMode: strictPricing ? 'catalog-strict' : undefined,
-      catalogModel: { ...model, inputs },
+      catalogModel: model,
+      inputs,
       modelId,
       resourceType: resourceTypeForBilling,
     });
