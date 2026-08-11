@@ -664,6 +664,70 @@ export interface CanonicalFalModel {
 const canonicalModel = (model: CanonicalFalModel): CanonicalFalModel => model;
 
 export const CANONICAL_FAL_MODELS: CanonicalFalModel[] = [
+  // Text-to-speech generation
+  canonicalModel({
+    id: 'fal-ai/chatterbox/text-to-speech',
+    name: 'Chatterbox Text to Speech',
+    description: 'Expressive text-to-speech generation with Chatterbox.',
+    category: 'text-to-speech',
+    media_type: 'audio',
+    workflow_type: 'text-to-speech',
+    ui_group: 'generation',
+    supports: ['text', 'audio_url', 'exaggeration', 'temperature', 'cfg', 'seed'],
+    defaults: { exaggeration: 0.25, temperature: 0.7, cfg: 0.5 },
+  }),
+  canonicalModel({
+    id: 'fal-ai/chatterbox/text-to-speech/turbo',
+    name: 'Chatterbox Turbo Text to Speech',
+    description: 'Fast expressive text-to-speech generation with Chatterbox Turbo.',
+    category: 'text-to-speech',
+    media_type: 'audio',
+    workflow_type: 'text-to-speech',
+    ui_group: 'generation',
+    supports: ['text', 'audio_url', 'exaggeration', 'temperature', 'cfg', 'seed'],
+    defaults: { exaggeration: 0.25, temperature: 0.7, cfg: 0.5 },
+  }),
+  canonicalModel({
+    id: 'fal-ai/elevenlabs/tts/eleven-v3',
+    name: 'ElevenLabs Eleven v3',
+    description: 'High-quality multilingual text-to-speech with ElevenLabs.',
+    category: 'text-to-speech',
+    media_type: 'audio',
+    workflow_type: 'text-to-speech',
+    ui_group: 'generation',
+    supports: ['text', 'voice', 'stability', 'language_code', 'timestamps', 'apply_text_normalization'],
+    defaults: { voice: 'Rachel', stability: 0.5 },
+  }),
+  canonicalModel({
+    id: 'fal-ai/qwen-3-tts/text-to-speech/1.7b',
+    name: 'Qwen3 Text to Speech',
+    description: 'Text-to-speech generation with Qwen3 TTS.',
+    category: 'text-to-speech',
+    media_type: 'audio',
+    workflow_type: 'text-to-speech',
+    ui_group: 'generation',
+    supports: [
+      'text',
+      'voice',
+      'language',
+      'prompt',
+      'speaker_voice_embedding_file_url',
+      'reference_text',
+      'temperature',
+      'top_k',
+      'top_p',
+      'repetition_penalty',
+      'max_new_tokens',
+    ],
+    defaults: {
+      temperature: 0.9,
+      top_k: 50,
+      top_p: 1,
+      repetition_penalty: 1.05,
+      max_new_tokens: 200,
+    },
+  }),
+
   // Image generation (primary)
   canonicalModel({
     id: 'fal-ai/flux/schnell',
@@ -1529,14 +1593,14 @@ export function getDefaultFalModelForMedia(
   mediaType: FalMediaType,
   uiGroup: FalUiGroup = 'generation'
 ): CanonicalFalModel {
+  const fallbackId = DEFAULT_MODEL_BY_MEDIA[mediaType];
+  const fallback = CANONICAL_MODEL_BY_ID.get(fallbackId);
+  if (fallback) return fallback;
+
   const inGroup = CANONICAL_FAL_MODELS.find(
     (model) => model.media_type === mediaType && model.ui_group === uiGroup
   );
   if (inGroup) return inGroup;
-
-  const fallbackId = DEFAULT_MODEL_BY_MEDIA[mediaType];
-  const fallback = CANONICAL_MODEL_BY_ID.get(fallbackId);
-  if (fallback) return fallback;
 
   // Absolute fallback
   return CANONICAL_FAL_MODELS[0];

@@ -11,6 +11,7 @@ import {
   type FalMediaType,
 } from '../_shared/falai-client.ts';
 import { getCatalogModelById } from '../_shared/ai-model-catalog.ts';
+import { assertStrictFalModelResolution } from '../_shared/fal-stream-strict.ts';
 import {
   buildCreditIdempotencyKey,
   commitCredits,
@@ -127,6 +128,9 @@ serve(async (req) => {
       mediaTypeHint: hintedMediaType,
       uiGroup: 'generation',
     });
+    if (strictPricing) {
+      assertStrictFalModelResolution(modelId, resolution);
+    }
 
     const resolvedFromRequest = mergeFalModelInputs(resolution.model.id, rawInputs);
     const normalizedRequestedModel = normalizeFalModelId(modelId);
