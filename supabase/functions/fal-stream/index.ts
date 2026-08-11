@@ -161,32 +161,12 @@ serve(async (req) => {
       resourceType: resourceTypeForBilling,
     });
     let fallbackCost = 0;
-    let fallbackEligible = true;
+    const fallbackEligible = !strictPricing;
     if (!strictPricing) {
       fallbackCost = getGenerationCreditCost({
         modelId: fallbackCandidateId,
         resourceType: resourceTypeForBilling,
       });
-    } else {
-      const fallbackCatalogModel = await getCatalogModelById(
-        fallbackCandidateId,
-        { provider: 'fal-ai', enabledOnly: false }
-      );
-      try {
-        fallbackCost = getGenerationCreditCost({
-          pricingMode: 'catalog-strict',
-          catalogModel: fallbackCatalogModel,
-          inputs: mergeFalModelInputs(fallbackCandidateId, rawInputs).inputs,
-          modelId: fallbackCandidateId,
-          resourceType: resourceTypeForBilling,
-        });
-      } catch (error) {
-        if (error instanceof UnpricedModelError) {
-          fallbackEligible = false;
-        } else {
-          throw error;
-        }
-      }
     }
     const reservedAmount = getGenerationReservationAmount(
       primaryCost,
