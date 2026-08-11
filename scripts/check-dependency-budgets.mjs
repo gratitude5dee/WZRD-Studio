@@ -52,7 +52,11 @@ function collectPackageCopies(nodeModulesDir, pkg, copies) {
 
 function findPackageCopies(pkg) {
 	const copies = [];
-	collectPackageCopies("node_modules", pkg, copies);
+	// Missing root node_modules just means nothing is installed; only failures
+	// inside an existing tree should abort the scan.
+	if (existsSync("node_modules")) {
+		collectPackageCopies("node_modules", pkg, copies);
+	}
 	return copies;
 }
 
