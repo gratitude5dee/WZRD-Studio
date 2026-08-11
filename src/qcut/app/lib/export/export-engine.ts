@@ -22,6 +22,7 @@ import {
 	calculateElementBounds as calculateElementBoundsImpl,
 } from "./export-engine-utils";
 import { logActualVideoDuration } from "./export-engine-debug";
+import { actualFormat, resolveExportFilename } from "./export-filename";
 import {
 	type RecorderContext,
 	getVideoBitrate as getVideoBitrateImpl,
@@ -59,29 +60,6 @@ type ProgressCallback = (
 
 interface ExportEngineOptions {
 	useFFmpegExport?: boolean;
-}
-
-/**
- * WZRD-EDIT: the container the blob really is, which is not always the one that
- * was requested — the WebCodecs engine falls back to WebM when the browser has
- * no H.264 encoder.
- */
-function actualFormat(blob: Blob, requested: ExportFormat): ExportFormat {
-	const type = blob.type.split(";")[0].trim();
-	const baseTypes = (info: (typeof FORMAT_INFO)[ExportFormat]) =>
-		info.mimeTypes.map((mime) => mime.split(";")[0].trim());
-
-	// MOV and MP4 share a MIME type, so an unchanged container keeps its label.
-	if (!type || baseTypes(FORMAT_INFO[requested]).includes(type)) {
-		return requested;
-	}
-
-	const matched = (
-		Object.entries(FORMAT_INFO) as Array<
-			[ExportFormat, (typeof FORMAT_INFO)[ExportFormat]]
-		>
-	).find(([, info]) => baseTypes(info).includes(type));
-	return matched ? matched[0] : requested;
 }
 
 // Export engine for rendering timeline to video
@@ -569,20 +547,14 @@ export class ExportEngine {
 
 	// Download video blob
 	async downloadVideo(blob: Blob, filename: string): Promise<void> {
-		// WZRD-EDIT: the browser may not be able to encode the requested format
-		// (Chromium/Linux has no AAC encoder, Firefox no H.264), in which case the
-		// engine falls back to another container. Name the file after what is
-		// actually in it, not what was asked for.
+		// WZRD-EDIT: name the file after the container it actually holds.
 		const formatInfo = FORMAT_INFO[actualFormat(blob, this.settings.format)];
 		const extension = formatInfo.extension;
-		const knownExtensions = Object.values(FORMAT_INFO).map(
-			(info) => info.extension
+		const finalFilename = resolveExportFilename(
+			blob,
+			filename,
+			this.settings.format
 		);
-		const stem = knownExtensions.reduce(
-			(name, ext) => (name.endsWith(ext) ? name.slice(0, -ext.length) : name),
-			filename
-		);
-		const finalFilename = `${stem}${extension}`;
 
 		if ("showSaveFilePicker" in window) {
 			try {

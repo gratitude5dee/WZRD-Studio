@@ -209,9 +209,12 @@ videoCodec, audioCodec}`) and the blob is built with `plan.mimeType`, so the fal
 rather than implied. If neither container is encodable the error names the resolution instead of the
 codec string.
 
-`ExportEngine.downloadVideo` derives the extension from the blob's MIME type, not from the requested
-format, so a WebM fallback is saved as `.webm`. MOV keeps its label because MOV and MP4 share a MIME
-type and only a genuine mismatch rewrites the extension.
+`resolveExportFilename` (`src/qcut/app/lib/export/export-filename.ts`) derives the extension from the
+blob's MIME type, not from the requested format, so a WebM fallback is saved as `.webm`. MOV keeps
+its label because MOV and MP4 share a MIME type and only a genuine mismatch rewrites the extension.
+Both save paths go through it: `ExportEngine.downloadVideo` and `saveExportedVideo`, which is what
+the editor's export flow (`use-export-progress`) and the agent API actually call — the export history
+entry and the success toast report that same corrected name.
 
 ### 2. FFmpeg WASM fallback: budget and isolation
 

@@ -12,6 +12,7 @@ vi.mock("@qcut-app/lib/debug/debug-config", () => ({
 }));
 
 import { ExportEngine } from "../export-engine";
+import { saveExportedVideo } from "../export-output";
 import { ExportFormat, ExportQuality } from "@qcut-app/types/export";
 
 function createEngine(format: ExportFormat) {
@@ -118,5 +119,70 @@ describe("ExportEngine.downloadVideo naming", () => {
 			"my-clip"
 		);
 		expect(name).toBe("my-clip.webm");
+	});
+});
+
+/**
+ * The editor's export flow saves through `saveExportedVideo`, not the engine's
+ * download helper, so the container correction has to apply there too.
+ */
+describe("saveExportedVideo naming", () => {
+	let anchor: HTMLAnchorElement;
+
+	beforeEach(() => {
+		URL.createObjectURL = vi.fn().mockReturnValue("blob:test");
+		URL.revokeObjectURL = vi.fn();
+		delete (navigator as { share?: unknown }).share;
+		delete (navigator as { canShare?: unknown }).canShare;
+		delete (window as { Capacitor?: unknown }).Capacitor;
+
+		const originalCreate = document.createElement.bind(document);
+		anchor = originalCreate("a");
+		vi.spyOn(document, "createElement").mockImplementation(((tag: string) =>
+			tag === "a" ? anchor : originalCreate(tag)) as never);
+		vi.spyOn(anchor, "click").mockImplementation(() => undefined);
+		vi.spyOn(document.body, "appendChild").mockImplementation((() =>
+			anchor) as never);
+		vi.spyOn(document.body, "removeChild").mockImplementation((() =>
+			anchor) as never);
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	it("downloads a WebM fallback as .webm when MP4 was requested", async () => {
+		await saveExportedVideo(
+			new Blob(["x"], { type: "video/webm" }),
+			"my-clip.mp4",
+			ExportFormat.MP4
+		);
+		expect(anchor.download).toBe("my-clip.webm");
+	});
+
+	it("adds the real extension when the filename has none", async () => {
+		await saveExportedVideo(
+			new Blob(["x"], { type: "video/webm" }),
+			"my-clip",
+			ExportFormat.MP4
+		);
+		expect(anchor.download).toBe("my-clip.webm");
+	});
+
+	it("keeps the name when the container matches the request", async () => {
+		await saveExportedVideo(
+			new Blob(["x"], { type: "video/mp4" }),
+			"my-clip.mp4",
+			ExportFormat.MP4
+		);
+		expect(anchor.download).toBe("my-clip.mp4");
+	});
+
+	it("infers the requested container from the filename when unspecified", async () => {
+		await saveExportedVideo(
+			new Blob(["x"], { type: "video/mp4" }),
+			"my-clip.mov"
+		);
+		expect(anchor.download).toBe("my-clip.mov");
 	});
 });
