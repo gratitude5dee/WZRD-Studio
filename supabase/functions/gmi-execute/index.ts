@@ -107,12 +107,20 @@ async function settleQueuedGeneration(input: {
       });
     }
   } catch (error) {
-    // The hold may have expired (15-minute TTL) before the job finished;
-    // record that instead of charging against a dead hold.
     console.error('[gmi-execute] Settlement failed:', error);
+    // A dead hold (expired 15-minute TTL, or already settled elsewhere) can
+    // never succeed, so record it as expired. Anything else — a transient
+    // network/database error — goes back to pending so a later poll retries.
+    const message = error instanceof Error ? error.message : String(error);
+    const holdIsDead =
+      message.includes('invalid_hold_status') ||
+      message.includes('hold_not_found');
     await serviceClient
       .from('gmi_generation_settlements')
-      .update({ status: 'expired', updated_at: new Date().toISOString() })
+      .update({
+        status: holdIsDead ? 'expired' : 'pending',
+        updated_at: new Date().toISOString(),
+      })
       .eq('request_id', input.requestId)
       .eq('user_id', input.userId);
   }
