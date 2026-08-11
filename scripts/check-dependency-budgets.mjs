@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import {
+	existsSync,
+	readFileSync,
+	readdirSync,
+	realpathSync,
+	statSync,
+} from "node:fs";
 import path from "node:path";
 
 // Runtime-singleton packages: a second physical copy anywhere in node_modules
@@ -12,9 +18,21 @@ const BUNDLE_BUDGET_BYTES = 30 * 1024 * 1024;
 
 const failures = [];
 
+// True when the path is (or links to) a directory. statSync follows
+// symlinks, so linked packages (workspaces, file: deps, pnpm stores) count.
+function isDirectory(fullPath) {
+	try {
+		return statSync(fullPath).isDirectory();
+	} catch {
+		return false; // dangling symlink
+	}
+}
+
 // Walk a node_modules directory with plain fs calls (no shell) so a scan
 // failure surfaces as an error instead of silently passing the check.
-function collectPackageCopies(nodeModulesDir, pkg, copies) {
+// Symlinked packages are followed; `visited` holds real paths of package
+// directories already scanned so link cycles and shared stores count once.
+function collectPackageCopies(nodeModulesDir, pkg, copies, visited) {
 	let entries;
 	try {
 		entries = readdirSync(nodeModulesDir, { withFileTypes: true });
@@ -23,15 +41,16 @@ function collectPackageCopies(nodeModulesDir, pkg, copies) {
 	}
 	const packageDirs = [];
 	for (const entry of entries) {
-		if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
 		if (entry.name === ".bin" || entry.name === ".cache") continue;
 		const fullPath = path.join(nodeModulesDir, entry.name);
+		if (!isDirectory(fullPath)) continue;
 		if (entry.name.startsWith("@")) {
 			for (const scoped of readdirSync(fullPath, { withFileTypes: true })) {
-				if (!scoped.isDirectory() || scoped.isSymbolicLink()) continue;
+				const scopedPath = path.join(fullPath, scoped.name);
+				if (!isDirectory(scopedPath)) continue;
 				packageDirs.push({
 					name: `${entry.name}/${scoped.name}`,
-					dir: path.join(fullPath, scoped.name),
+					dir: scopedPath,
 				});
 			}
 		} else {
@@ -39,13 +58,16 @@ function collectPackageCopies(nodeModulesDir, pkg, copies) {
 		}
 	}
 	for (const { name, dir } of packageDirs) {
+		const realDir = realpathSync(dir);
+		if (visited.has(realDir)) continue;
+		visited.add(realDir);
 		const manifest = path.join(dir, "package.json");
 		if (name === pkg && existsSync(manifest)) {
 			copies.push(manifest);
 		}
 		const nested = path.join(dir, "node_modules");
-		if (existsSync(nested)) {
-			collectPackageCopies(nested, pkg, copies);
+		if (isDirectory(nested)) {
+			collectPackageCopies(nested, pkg, copies, visited);
 		}
 	}
 }
@@ -55,7 +77,7 @@ function findPackageCopies(pkg) {
 	// Missing root node_modules just means nothing is installed; only failures
 	// inside an existing tree should abort the scan.
 	if (existsSync("node_modules")) {
-		collectPackageCopies("node_modules", pkg, copies);
+		collectPackageCopies("node_modules", pkg, copies, new Set());
 	}
 	return copies;
 }
