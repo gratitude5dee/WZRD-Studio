@@ -10,15 +10,18 @@ import {
   resolveFalModelOrFallback,
   type FalMediaType,
 } from '../_shared/falai-client.ts';
+import { getCatalogModelById } from '../_shared/ai-model-catalog.ts';
 import {
   buildCreditIdempotencyKey,
   commitCredits,
+  getCatalogCreditCost,
   getCreditCostForModel,
   InsufficientCreditsError,
   insufficientCreditsResponse,
   releaseCredits,
   reserveCredits,
   shouldSkipCreditBilling,
+  UnpricedModelError,
 } from '../_shared/credits.ts';
 
 const corsHeaders = {
@@ -103,6 +106,14 @@ serve(async (req) => {
       );
     }
 
+    const catalogModel = await getCatalogModelById(modelId, {
+      provider: 'fal-ai',
+      enabledOnly: false,
+    });
+    if (!catalogModel) {
+      throw new UnpricedModelError();
+    }
+
     const falKey = Deno.env.get('FAL_KEY');
     if (!falKey) {
       return new Response(
@@ -134,8 +145,14 @@ serve(async (req) => {
       : hintedMediaType === 'audio' ? 'audio'
       : hintedMediaType === 'image' ? 'image'
       : 'generation';
-    const primaryCost = getCreditCostForModel(resolvedFromRequest.modelId, resourceTypeForBilling);
-    const fallbackCost = getCreditCostForModel(fallbackCandidateId, resourceTypeForBilling);
+    const primaryCost = getCatalogCreditCost(catalogModel.pricing);
+    const fallbackCatalogModel = await getCatalogModelById(fallbackCandidateId, {
+      provider: 'fal-ai',
+      enabledOnly: false,
+    });
+    const fallbackCost = fallbackCatalogModel
+      ? getCatalogCreditCost(fallbackCatalogModel.pricing)
+      : primaryCost;
     const reservedAmount = Math.max(primaryCost, fallbackCost);
     const creditReservation = await reserveCredits({
       supabase: supabaseClient,
@@ -261,7 +278,7 @@ serve(async (req) => {
             supabase: supabaseClient,
             holdId: creditReservation.holdId,
             skipped: creditReservation.skipped,
-            amount: getCreditCostForModel(succeededModel, resourceTypeForBilling),
+            amount: succeededModel === resolvedFromRequest.modelId ? primaryCost : fallbackCost,
             userId: claimsData.user.id,
             metadata: {
               endpoint: 'fal-stream',
@@ -291,7 +308,7 @@ serve(async (req) => {
                 supabase: supabaseClient,
                 holdId: creditReservation.holdId,
                 skipped: creditReservation.skipped,
-                amount: getCreditCostForModel(fallbackSucceededModel, resourceTypeForBilling),
+                amount: fallbackCost,
                 userId: claimsData.user.id,
                 metadata: {
                   endpoint: 'fal-stream',
@@ -364,6 +381,12 @@ serve(async (req) => {
   } catch (error: any) {
     if (error instanceof InsufficientCreditsError) {
       return insufficientCreditsResponse(error, corsHeaders);
+    }
+    if (error instanceof UnpricedModelError) {
+      return new Response(
+        JSON.stringify({ error: error.message, code: error.code }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
     console.error('fal-stream request processing error:', error?.message, error?.stack);
     return new Response(

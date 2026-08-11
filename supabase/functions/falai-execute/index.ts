@@ -11,11 +11,12 @@ import {
 import {
   buildCreditIdempotencyKey,
   commitCredits,
-  getCreditCostForModel,
+  getCatalogCreditCost,
   InsufficientCreditsError,
   insufficientCreditsResponse,
   releaseCredits,
   reserveCredits,
+  UnpricedModelError,
 } from '../_shared/credits.ts';
 
 interface RequestBody {
@@ -59,15 +60,18 @@ serve(async (req) => {
     });
 
     const catalogModel = await getCatalogModelById(modelId, { enabledOnly: false });
+    if (!catalogModel) {
+      throw new UnpricedModelError();
+    }
     billingModelId = modelId;
-    billingResourceType = catalogModel?.mediaType || 'generation';
+    billingResourceType = catalogModel.mediaType || 'generation';
 
     const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } },
     );
-    creditCost = getCreditCostForModel(modelId, billingResourceType);
+    creditCost = getCatalogCreditCost(catalogModel.pricing);
     creditReservation = await reserveCredits({
       supabase: serviceClient,
       userId,
@@ -197,6 +201,9 @@ serve(async (req) => {
     }
     if (error instanceof InsufficientCreditsError) {
       return insufficientCreditsResponse(error, corsHeaders);
+    }
+    if (error instanceof UnpricedModelError) {
+      return errorResponse(error.message, 400);
     }
 
     if (creditReservation && userId) {

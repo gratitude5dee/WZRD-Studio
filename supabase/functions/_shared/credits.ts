@@ -167,6 +167,41 @@ export class InsufficientCreditsError extends Error {
   }
 }
 
+export class UnpricedModelError extends Error {
+  readonly code = 'unpriced_model';
+
+  constructor(message = "This model isn't priced yet and cannot be generated.") {
+    super(message);
+    this.name = 'UnpricedModelError';
+  }
+}
+
+export function getCatalogCreditCost(pricing: Record<string, unknown> | null | undefined): number {
+  const effectivePricing = pricing?.editor_billing &&
+    typeof pricing.editor_billing === 'object' &&
+    !Array.isArray(pricing.editor_billing)
+    ? pricing.editor_billing as Record<string, unknown>
+    : pricing;
+  const unit = typeof effectivePricing?.unit === 'string' ? effectivePricing.unit : '';
+  if (unit !== 'per_request') {
+    if (unit) {
+      throw new UnpricedModelError(
+        'This model uses rate-based pricing and cannot be generated until rate-aware billing is available.'
+      );
+    }
+    throw new UnpricedModelError();
+  }
+
+  const usd = typeof effectivePricing?.usd === 'number'
+    ? effectivePricing.usd
+    : Number(effectivePricing?.usd);
+  if (!Number.isFinite(usd) || usd <= 0) {
+    throw new UnpricedModelError();
+  }
+
+  return Math.max(1, Math.ceil(usd * 100));
+}
+
 interface CreditSupabaseError {
   message?: string;
 }

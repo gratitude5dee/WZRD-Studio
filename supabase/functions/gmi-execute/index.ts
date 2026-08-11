@@ -18,11 +18,12 @@ import { corsHeaders, errorResponse, successResponse, handleCors } from '../_sha
 import {
   buildCreditIdempotencyKey,
   commitCredits,
-  getCreditCostForModel,
+  getCatalogCreditCost,
   InsufficientCreditsError,
   insufficientCreditsResponse,
   releaseCredits,
   reserveCredits,
+  UnpricedModelError,
 } from '../_shared/credits.ts';
 import {
   executeGmiChatCompletion,
@@ -100,7 +101,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } },
     );
-    creditCost = getCreditCostForModel(modelId, resourceTypeForBilling);
+    creditCost = getCatalogCreditCost(model.pricing);
     creditReservation = await reserveCredits({
       supabase: serviceClient,
       userId,
@@ -223,6 +224,9 @@ serve(async (req) => {
     }
     if (error instanceof InsufficientCreditsError) {
       return insufficientCreditsResponse(error, corsHeaders);
+    }
+    if (error instanceof UnpricedModelError) {
+      return errorResponse(error.message, 400);
     }
 
     if (creditReservation && userId) {
