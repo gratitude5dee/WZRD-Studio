@@ -1,5 +1,10 @@
-import { execSync } from "node:child_process";
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import {
+	existsSync,
+	readFileSync,
+	readdirSync,
+	realpathSync,
+	statSync,
+} from "node:fs";
 import path from "node:path";
 
 // Runtime-singleton packages: a second physical copy anywhere in node_modules
@@ -13,23 +18,68 @@ const BUNDLE_BUDGET_BYTES = 30 * 1024 * 1024;
 
 const failures = [];
 
-function findPackageCopies(pkg) {
-	const pattern = `*/node_modules/${pkg}/package.json`;
+// True when the path is (or links to) a directory. statSync follows
+// symlinks, so linked packages (workspaces, file: deps, pnpm stores) count.
+function isDirectory(fullPath) {
 	try {
-		const out = execSync(
-			`find node_modules -path "${pattern}" -not -path "*/.bin/*" 2>/dev/null`,
-			{ encoding: "utf8" }
-		).trim();
-		const nested = out ? out.split("\n") : [];
-		const top = existsSync(`node_modules/${pkg}/package.json`)
-			? [`node_modules/${pkg}/package.json`]
-			: [];
-		return [...top, ...nested];
+		return statSync(fullPath).isDirectory();
 	} catch {
-		return existsSync(`node_modules/${pkg}/package.json`)
-			? [`node_modules/${pkg}/package.json`]
-			: [];
+		return false; // dangling symlink
 	}
+}
+
+// Walk a node_modules directory with plain fs calls (no shell) so a scan
+// failure surfaces as an error instead of silently passing the check.
+// Symlinked packages are followed; `visited` holds real paths of package
+// directories already scanned so link cycles and shared stores count once.
+function collectPackageCopies(nodeModulesDir, pkg, copies, visited) {
+	let entries;
+	try {
+		entries = readdirSync(nodeModulesDir, { withFileTypes: true });
+	} catch (error) {
+		throw new Error(`cannot read ${nodeModulesDir}: ${error.message}`);
+	}
+	const packageDirs = [];
+	for (const entry of entries) {
+		if (entry.name === ".bin" || entry.name === ".cache") continue;
+		const fullPath = path.join(nodeModulesDir, entry.name);
+		if (!isDirectory(fullPath)) continue;
+		if (entry.name.startsWith("@")) {
+			for (const scoped of readdirSync(fullPath, { withFileTypes: true })) {
+				const scopedPath = path.join(fullPath, scoped.name);
+				if (!isDirectory(scopedPath)) continue;
+				packageDirs.push({
+					name: `${entry.name}/${scoped.name}`,
+					dir: scopedPath,
+				});
+			}
+		} else {
+			packageDirs.push({ name: entry.name, dir: fullPath });
+		}
+	}
+	for (const { name, dir } of packageDirs) {
+		const realDir = realpathSync(dir);
+		if (visited.has(realDir)) continue;
+		visited.add(realDir);
+		const manifest = path.join(dir, "package.json");
+		if (name === pkg && existsSync(manifest)) {
+			copies.push(manifest);
+		}
+		const nested = path.join(dir, "node_modules");
+		if (isDirectory(nested)) {
+			collectPackageCopies(nested, pkg, copies, visited);
+		}
+	}
+}
+
+function findPackageCopies(pkg) {
+	const copies = [];
+	// Missing root node_modules just means nothing is installed; only failures
+	// inside an existing tree should abort the scan.
+	if (existsSync("node_modules")) {
+		collectPackageCopies("node_modules", pkg, copies, new Set());
+	}
+	return copies;
 }
 
 function checkSingletons() {
