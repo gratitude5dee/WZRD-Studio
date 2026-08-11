@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/providers/AuthProvider';
 import { routeToBillingTopUp } from '@/lib/billing-errors';
 import type { Json } from '@/integrations/supabase/types';
+import { fetchCreditBalancePayload } from '@/lib/credit-balance';
 
 const bypassAuthForTests = import.meta.env.DEV &&
   import.meta.env.VITE_BYPASS_AUTH_FOR_TESTS === 'true';
@@ -139,18 +140,8 @@ export const useCredits = () => {
     try {
       setIsLoading(true);
 
-      let { data, error } = await supabase.rpc('credits_get_balance');
-      if (error) {
-        const repair = await supabase.rpc('ensure_credit_account', {
-          p_user_id: user.id,
-          p_source: 'client_fetch_repair',
-        });
-        if (repair.error) throw repair.error;
-        const retry = await supabase.rpc('credits_get_balance');
-        data = retry.data;
-        error = retry.error;
-      }
-      if (error) throw error;
+      const data = await fetchCreditBalancePayload({ repairUserId: user.id });
+      if (!data) throw new Error('Unable to load credits');
 
       const mapped = mapBalancePayload(data);
       setAvailableCredits(mapped.availableCredits);
