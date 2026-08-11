@@ -167,6 +167,67 @@ export class InsufficientCreditsError extends Error {
   }
 }
 
+export class UnpricedModelError extends Error {
+  readonly code = 'unpriced_model';
+
+  constructor(message = "This model isn't priced yet and cannot be generated.") {
+    super(message);
+    this.name = 'UnpricedModelError';
+  }
+}
+
+export function getCatalogCreditCost(
+  pricing: Record<string, unknown> | null | undefined,
+  credits?: number,
+  pricingText?: string,
+): number {
+  const pricingCandidates = [
+    pricing?.editor_billing &&
+    typeof pricing.editor_billing === 'object' &&
+    !Array.isArray(pricing.editor_billing)
+      ? pricing.editor_billing as Record<string, unknown>
+      : null,
+    pricing,
+  ];
+
+  for (const candidate of pricingCandidates) {
+    const unit = typeof candidate?.unit === 'string' ? candidate.unit : '';
+    if (!unit) continue;
+    if (unit !== 'per_request') {
+      throw new UnpricedModelError(
+        'This model uses rate-based pricing and cannot be generated until rate-aware billing is available.'
+      );
+    }
+
+    const usd = typeof candidate?.usd === 'number'
+      ? candidate.usd
+      : Number(candidate?.usd);
+    if (Number.isFinite(usd) && usd > 0) {
+      return Math.max(1, Math.ceil(usd * 100));
+    }
+  }
+
+  if (typeof credits === 'number' && credits > 0 && pricingText !== '0 credits') {
+    return Math.max(1, Math.ceil(credits));
+  }
+
+  throw new UnpricedModelError();
+}
+
+export function getGenerationCreditCost(input: {
+  pricingMode?: 'catalog-strict';
+  pricing?: Record<string, unknown> | null;
+  credits?: number;
+  pricingText?: string;
+  modelId: string | null | undefined;
+  resourceType: string;
+}): number {
+  if (input.pricingMode === 'catalog-strict') {
+    return getCatalogCreditCost(input.pricing, input.credits, input.pricingText);
+  }
+  return getCreditCostForModel(input.modelId, input.resourceType);
+}
+
 interface CreditSupabaseError {
   message?: string;
 }

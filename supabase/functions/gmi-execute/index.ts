@@ -18,11 +18,12 @@ import { corsHeaders, errorResponse, successResponse, handleCors } from '../_sha
 import {
   buildCreditIdempotencyKey,
   commitCredits,
-  getCreditCostForModel,
+  getGenerationCreditCost,
   InsufficientCreditsError,
   insufficientCreditsResponse,
   releaseCredits,
   reserveCredits,
+  UnpricedModelError,
 } from '../_shared/credits.ts';
 import {
   executeGmiChatCompletion,
@@ -36,6 +37,7 @@ interface RequestBody {
   mode?: 'sync' | 'queue';
   action?: 'submit' | 'poll';
   requestId?: string; // for polling
+  pricingMode?: 'catalog-strict';
   metadata?: {
     userId?: string;
     projectId?: string;
@@ -61,6 +63,7 @@ serve(async (req) => {
 
     const body: RequestBody = await req.json();
     const { modelId, inputs, action = 'submit', requestId, metadata } = body;
+    const strictPricing = body.pricingMode === 'catalog-strict';
 
     // ── Poll an existing request ────────────────────────────────────────
     if (action === 'poll') {
@@ -100,7 +103,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } },
     );
-    creditCost = getCreditCostForModel(modelId, resourceTypeForBilling);
+    creditCost = getGenerationCreditCost({
+      pricingMode: strictPricing ? 'catalog-strict' : undefined,
+      pricing: model.pricing,
+      modelId,
+      resourceType: resourceTypeForBilling,
+    });
     creditReservation = await reserveCredits({
       supabase: serviceClient,
       userId,
@@ -223,6 +231,9 @@ serve(async (req) => {
     }
     if (error instanceof InsufficientCreditsError) {
       return insufficientCreditsResponse(error, corsHeaders);
+    }
+    if (error instanceof UnpricedModelError) {
+      return errorResponse(error.message, 400);
     }
 
     if (creditReservation && userId) {

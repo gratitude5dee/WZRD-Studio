@@ -78,6 +78,8 @@ export interface GenerationMetadata {
   projectId?: string;
   /** Associated node / shot / clip ID */
   entityId?: string;
+  /** Opts this editor request into catalog-authoritative pricing enforcement. */
+  pricingMode?: 'catalog-strict';
   /** Custom key-value metadata */
   custom?: Record<string, unknown>;
 }
@@ -405,7 +407,8 @@ function extractDimensions(result: unknown): { width?: number; height?: number }
 async function executeFalStream(
   modelId: string,
   inputs: Record<string, unknown>,
-  onProgress?: OnProgress
+  onProgress?: OnProgress,
+  pricingMode?: GenerationMetadata['pricingMode']
 ): Promise<{ result: unknown; resolvedModelId: string; fallbackUsed: boolean; fallbackReason?: string }> {
   const token = await getAuthToken();
   const canonical = buildCanonicalFalInputs(modelId, inputs);
@@ -419,6 +422,7 @@ async function executeFalStream(
     body: JSON.stringify({
       modelId: canonical.modelId,
       inputs: canonical.inputs,
+      ...(pricingMode ? { pricingMode } : {}),
     }),
   });
 
@@ -672,7 +676,8 @@ async function executeGmiCloud(
   modelId: string,
   input: GenerationInput,
   mediaType: StudioModelMediaType | 'unknown',
-  onProgress?: OnProgress
+  onProgress?: OnProgress,
+  pricingMode?: GenerationMetadata['pricingMode']
 ): Promise<{
   url?: string;
   text?: string;
@@ -696,6 +701,7 @@ async function executeGmiCloud(
           temperature: (input.parameters?.temperature as number) ?? 0.7,
         },
         action: 'submit',
+        ...(pricingMode ? { pricingMode } : {}),
         metadata: { source: input.metadata?.source, projectId: input.metadata?.projectId },
       },
     });
@@ -842,6 +848,7 @@ async function executeGmiCloud(
       modelId: resolvedModelId,
       inputs: translatedPayload,
       action: 'submit',
+      ...(pricingMode ? { pricingMode } : {}),
       metadata: { source: input.metadata?.source, projectId: input.metadata?.projectId },
     },
   });
@@ -1073,7 +1080,12 @@ export const unifiedGenerationService = {
       switch (route) {
         case 'fal-stream': {
           const falInputs = buildFalInputs(input, model);
-          const streamResult = await executeFalStream(normalizedModelId, falInputs, onProgress);
+          const streamResult = await executeFalStream(
+            normalizedModelId,
+            falInputs,
+            onProgress,
+            input.metadata?.pricingMode
+          );
 
           const url = extractResultUrl(streamResult.result, mediaType) ?? '';
           const dimensions = extractDimensions(streamResult.result);
@@ -1145,7 +1157,13 @@ export const unifiedGenerationService = {
         }
 
         case 'gmi-cloud': {
-          const gmiResult = await executeGmiCloud(normalizedModelId, input, mediaType, onProgress);
+          const gmiResult = await executeGmiCloud(
+            normalizedModelId,
+            input,
+            mediaType,
+            onProgress,
+            input.metadata?.pricingMode
+          );
           const gmiUrl = gmiResult.url ?? '';
 
           let gmiStorageUrl: string | null = null;
