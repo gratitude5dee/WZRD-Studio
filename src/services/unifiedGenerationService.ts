@@ -404,7 +404,7 @@ function extractDimensions(result: unknown): { width?: number; height?: number }
 
 // ─── Core Execution Functions ───────────────────────────────────────────────
 
-async function executeFalStream(
+export async function executeFalStream(
   modelId: string,
   inputs: Record<string, unknown>,
   onProgress?: OnProgress,
@@ -520,6 +520,40 @@ async function executeFalStream(
   }
 
   throw new GenerationError('Generation finished without a result', 'no_result');
+}
+
+export function normalizeFalSpeechResult(
+  result: unknown,
+  defaults: { contentType: string; fileName: string },
+): {
+  audioUrl: string;
+  contentType: string;
+  fileName: string;
+  fileSize?: number;
+  duration?: number;
+  sampleRate?: number;
+} {
+  if (!result || typeof result !== 'object') {
+    throw new GenerationError('Speech generation returned no audio result', 'invalid_audio_result');
+  }
+
+  const root = result as Record<string, unknown>;
+  const audio = root.audio && typeof root.audio === 'object'
+    ? root.audio as Record<string, unknown>
+    : root;
+  const audioUrl = typeof audio.url === 'string' ? audio.url : undefined;
+  if (!audioUrl) {
+    throw new GenerationError('Speech generation returned no audio URL', 'invalid_audio_result');
+  }
+
+  return {
+    audioUrl,
+    contentType: typeof audio.content_type === 'string' ? audio.content_type : defaults.contentType,
+    fileName: typeof audio.file_name === 'string' ? audio.file_name : defaults.fileName,
+    fileSize: typeof audio.file_size === 'number' ? audio.file_size : undefined,
+    duration: typeof audio.duration === 'number' ? audio.duration : undefined,
+    sampleRate: typeof audio.sample_rate === 'number' ? audio.sample_rate : undefined,
+  };
 }
 
 async function executeGeminiText(

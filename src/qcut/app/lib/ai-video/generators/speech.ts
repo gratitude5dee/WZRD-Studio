@@ -11,6 +11,11 @@ import {
 	makeFalRequest,
 	handleFalResponse,
 } from "../core/fal-request";
+import { platform } from "@qcut/platform-core";
+import {
+	executeFalStream,
+	normalizeFalSpeechResult,
+} from "@/services/unifiedGenerationService";
 
 export interface SpeechGenerationRequest {
 	/** Text to convert to speech (TTS only). */
@@ -103,6 +108,41 @@ export interface SpeechGenerationResult {
 	sampleRate?: number;
 }
 
+function shouldUseBrowserFalStream(audioUploadPresent: boolean): boolean {
+	try {
+		return !platform().isElectron && !audioUploadPresent;
+	} catch {
+		return false;
+	}
+}
+
+async function generateBrowserSpeech(
+	endpoint: string,
+	payload: Record<string, unknown>,
+	defaults: { contentType: string; fileName: string },
+): Promise<SpeechGenerationResult> {
+	const jobId = generateJobId();
+	const streamResult = await executeFalStream(
+		endpoint,
+		payload,
+		undefined,
+		"catalog-strict",
+	);
+	const audio = normalizeFalStreamSpeechResult(streamResult.result, defaults);
+
+	return {
+		jobId,
+		...audio,
+	};
+}
+
+function normalizeFalStreamSpeechResult(
+	result: unknown,
+	defaults: { contentType: string; fileName: string },
+) {
+	return normalizeFalSpeechResult(result, defaults);
+}
+
 export interface CloneVoiceResult {
 	jobId: string;
 	embeddingUrl: string;
@@ -128,6 +168,13 @@ export async function generateSpeech(
 		payload.temperature = request.temperature;
 	if (request.cfg !== undefined) payload.cfg = request.cfg;
 	if (request.seed !== undefined) payload.seed = request.seed;
+
+	if (shouldUseBrowserFalStream(Boolean(request.audioUrl))) {
+		return generateBrowserSpeech(request.endpoint, payload, {
+			contentType: "audio/wav",
+			fileName: "output.wav",
+		});
+	}
 
 	const response = await makeFalRequest(request.endpoint, payload);
 
@@ -199,6 +246,13 @@ export async function generateElevenLabsSpeech(
 		payload.apply_text_normalization = request.applyTextNormalization;
 	}
 
+	if (shouldUseBrowserFalStream(false)) {
+		return generateBrowserSpeech(request.endpoint, payload, {
+			contentType: "audio/mpeg",
+			fileName: "output.mp3",
+		});
+	}
+
 	const response = await makeFalRequest(request.endpoint, payload);
 
 	if (!response.ok) {
@@ -243,6 +297,14 @@ export async function generateQwen3Speech(
 		payload.repetition_penalty = request.repetitionPenalty;
 	if (request.maxNewTokens !== undefined)
 		payload.max_new_tokens = request.maxNewTokens;
+
+	if (shouldUseBrowserFalStream(Boolean(request.speakerEmbeddingUrl))) {
+		const result = await generateBrowserSpeech(request.endpoint, payload, {
+			contentType: "audio/wav",
+			fileName: "output.wav",
+		});
+		return result;
+	}
 
 	const response = await makeFalRequest(request.endpoint, payload);
 
