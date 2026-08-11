@@ -67,6 +67,24 @@ describe('edge credits shared helper', () => {
     )).toBe(12);
   });
 
+  it('computes per-image rates from max_images', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_image', usd: 0.05 },
+      undefined,
+      undefined,
+      { max_images: 2 },
+    )).toBe(10);
+  });
+
+  it('prefers max_images when both image count fields are present', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_image', usd: 0.05 },
+      undefined,
+      undefined,
+      { max_images: 2, num_images: 5 },
+    )).toBe(10);
+  });
+
   it('computes per-second rates from duration_seconds', () => {
     expect(getCatalogCreditCost(
       { unit: 'per_second', usd: 0.4 },
