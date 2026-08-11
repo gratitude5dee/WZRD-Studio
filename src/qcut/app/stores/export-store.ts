@@ -83,6 +83,9 @@ interface ExportStore {
 
 	// Error state
 	error: string | null;
+	// WZRD-EDIT: expose engine selection and the engine used by automation status polling.
+	requestedEngineType?: string;
+	actualEngineType?: string;
 
 	// Export history
 	exportHistory: ExportHistoryEntry[];
@@ -100,6 +103,10 @@ interface ExportStore {
 	updateSettings: (settings: Partial<ExportSettings>) => void;
 	updateProgress: (progress: Partial<ExportProgress>) => void;
 	setError: (error: string | null) => void;
+	setEngineTypes: (
+		requestedEngineType: string,
+		actualEngineType?: string
+	) => void;
 	resetExport: () => void;
 
 	// Remotion progress actions
@@ -200,6 +207,8 @@ export const useExportStore = create<ExportStore>()(
 			progress: getDefaultProgress(),
 			remotionProgress: getDefaultRemotionProgress(),
 			error: null,
+			requestedEngineType: undefined,
+			actualEngineType: undefined,
 			exportHistory: [],
 
 			// Audio export settings (with defaults)
@@ -250,6 +259,8 @@ export const useExportStore = create<ExportStore>()(
 			},
 
 			setError: (error) => set({ error }),
+			setEngineTypes: (requestedEngineType, actualEngineType) =>
+				set({ requestedEngineType, actualEngineType }),
 
 			resetExport: () => {
 				set({
@@ -257,6 +268,8 @@ export const useExportStore = create<ExportStore>()(
 					progress: getDefaultProgress(),
 					remotionProgress: getDefaultRemotionProgress(),
 					error: null,
+					requestedEngineType: undefined,
+					actualEngineType: undefined,
 					isDialogOpen: false,
 					// Keep audio settings on reset (user preference)
 				});

@@ -1,6 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // WZRD-EDIT: cover validated engine forwarding and actual-engine reporting.
+const mockExportState = vi.hoisted(() => ({
+	progress: { isExporting: false, progress: 0 },
+	error: null as string | null,
+	history: [],
+	requestedEngineType: undefined as string | undefined,
+	actualEngineType: undefined as string | undefined,
+}));
+
 vi.mock("@qcut-app/stores/project-store", () => ({
 	useProjectStore: {
 		getState: () => ({
@@ -12,6 +20,7 @@ vi.mock("@qcut-app/stores/export-store", () => ({
 	useExportStore: {
 		getState: () => ({
 			setPanelView: vi.fn(),
+			...mockExportState,
 		}),
 	},
 }));
@@ -66,15 +75,25 @@ describe("QCut agent API export engine selection", () => {
 	let uninstall: (() => void) | undefined;
 
 	beforeEach(() => {
-		exportAction = vi.fn((settings: ExportSettings) =>
-			Promise.resolve({
+		Object.assign(mockExportState, {
+			progress: { isExporting: false, progress: 0 },
+			error: null,
+			history: [],
+			requestedEngineType: undefined,
+			actualEngineType: undefined,
+		});
+		exportAction = vi.fn(async (settings: ExportSettings) => {
+			mockExportState.requestedEngineType = settings.engineType;
+			mockExportState.actualEngineType =
+				settings.engineType === "muxer" ? "standard" : settings.engineType;
+			return {
 				success: true,
 				filename: settings.filename,
 				format: settings.format,
 				requestedEngineType: settings.engineType,
-				engineType: settings.engineType,
-			})
-		);
+				engineType: mockExportState.actualEngineType,
+			};
+		});
 		(window as any).__exportActions = { export: exportAction };
 		uninstall = installEditorAgentApi({ projectId: "project-1" });
 	});
@@ -84,13 +103,14 @@ describe("QCut agent API export engine selection", () => {
 		delete (window as any).__exportActions;
 	});
 
-	it("defaults an omitted engine selection to auto", async () => {
+	it("defaults an omitted engine selection to auto without blocking", async () => {
 		const result = await getExecute()("export", { format: "mp4" });
 
 		expect(result).toEqual(
 			expect.objectContaining({
 				ok: true,
 				result: expect.objectContaining({
+					started: true,
 					requestedEngineType: "auto",
 				}),
 			})
@@ -123,23 +143,25 @@ describe("QCut agent API export engine selection", () => {
 		expect(exportAction).not.toHaveBeenCalled();
 	});
 
-	it("returns Standard when the selected muxer was downgraded", async () => {
-		exportAction.mockResolvedValueOnce({
-			success: true,
-			filename: "export.mp4",
-			format: "mp4",
-			requestedEngineType: "muxer",
-			engineType: "standard",
-		});
-
+	it("reports a muxer downgrade through export status", async () => {
 		const result = await getExecute()("export", { engineType: "muxer" });
+		const status = await getExecute()("getExportStatus");
 
 		expect(result).toEqual(
 			expect.objectContaining({
 				ok: true,
 				result: expect.objectContaining({
+					started: true,
 					requestedEngineType: "muxer",
-					engineType: "standard",
+				}),
+			})
+		);
+		expect(status).toEqual(
+			expect.objectContaining({
+				ok: true,
+				result: expect.objectContaining({
+					requestedEngineType: "muxer",
+					actualEngineType: "standard",
 				}),
 			})
 		);

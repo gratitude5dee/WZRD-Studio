@@ -746,15 +746,19 @@ async function executeInternal(command: EditorCommandName, args: unknown): Promi
 						? parsed.filename.trim()
 						: `wzrd-export-${new Date().toISOString().replace(/[:.]/g, "-")}.${parsed.format}`;
 
-				// WZRD-EDIT: await the export so the result reports the engine that ran.
-				const execution = await (window as any).__exportActions.export({
+				// WZRD-EDIT: preserve the non-blocking export contract; status exposes the actual engine.
+				void (window as any).__exportActions.export({
 					quality: parsed.preset,
 					format: parsed.format,
 					filename,
 					engineType: parsed.engineType,
 				});
 
-				return ok({ started: true, filename, ...execution });
+				return ok({
+					started: true,
+					filename,
+					requestedEngineType: parsed.engineType,
+				});
 			}
 
 			case "getExportStatus": {
@@ -762,6 +766,8 @@ async function executeInternal(command: EditorCommandName, args: unknown): Promi
 				return ok({
 					progress: state.progress,
 					error: state.error,
+					requestedEngineType: state.requestedEngineType,
+					actualEngineType: state.actualEngineType,
 					history: state.exportHistory,
 				});
 			}

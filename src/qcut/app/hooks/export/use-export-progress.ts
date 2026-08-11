@@ -60,8 +60,14 @@ export async function resolveSelectedEngineType(
 }
 
 export function useExportProgress() {
-	const { progress, updateProgress, setError, resetExport, addToHistory } =
-		useExportStore();
+	const {
+		progress,
+		updateProgress,
+		setError,
+		setEngineTypes,
+		resetExport,
+		addToHistory,
+	} = useExportStore();
 
 	const { tracks } = useTimelineStore();
 	const { mediaItems } = useAsyncMediaItems();
@@ -112,6 +118,7 @@ export function useExportProgress() {
 		// Reset any previous errors
 		setError(null);
 		resetExport();
+		setEngineTypes(exportSettings.engineType);
 
 		// Record export start time
 		const startTime = new Date();
@@ -193,6 +200,7 @@ export function useExportProgress() {
 			// Store engine reference for cancellation
 			currentEngineRef.current = exportEngine;
 			actualEngineType = exportEngine.actualEngineType as ExportEngineType;
+			setEngineTypes(exportSettings.engineType, actualEngineType);
 
 			debugLog(
 				"[ExportPanel] 🚀 Starting export with engine:",
