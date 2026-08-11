@@ -26,9 +26,13 @@ export function useExportSettings() {
 	const [quality, setQuality] = useState<ExportQuality>(settings.quality);
 	const [format, setFormat] = useState<ExportFormat>(settings.format);
 	const [filename, setFilename] = useState(settings.filename);
-	const [engineType, setEngineType] = useState<"standard" | "ffmpeg" | "cli">(
-		isElectron() ? "cli" : "standard"
-	);
+	// WZRD-EDIT: browsers with WebCodecs default to the muxer engine — the
+	// MediaRecorder-based Standard engine records in real time and drops audio.
+	const webCodecsAvailable =
+		typeof VideoEncoder !== "undefined" && typeof VideoFrame !== "undefined";
+	const [engineType, setEngineType] = useState<
+		"standard" | "ffmpeg" | "cli" | "muxer"
+	>(isElectron() ? "cli" : webCodecsAvailable ? "muxer" : "standard");
 	const [ffmpegAvailable, setFfmpegAvailable] = useState(false);
 	const [engineRecommendation, setEngineRecommendation] = useState<
 		string | null
@@ -150,6 +154,7 @@ export function useExportSettings() {
 		format,
 		filename,
 		engineType,
+		webCodecsAvailable,
 		ffmpegAvailable,
 		engineRecommendation,
 		supportedFormats,

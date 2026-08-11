@@ -24,7 +24,9 @@ vi.mock("mediabunny", () => {
 			return ["avc"];
 		}
 		getSupportedAudioCodecs() {
-			return ["aac"];
+			// Mediabunny will mux Opus into MP4, which is why the engine has to
+			// narrow this list itself rather than trusting the container.
+			return ["aac", "opus"];
 		}
 	}
 	class MockWebMOutputFormat {
@@ -352,6 +354,69 @@ describe("ExportEngineMuxer", () => {
 			audioCodec: "opus",
 		});
 		expect(mockAddAudioTrack).toHaveBeenCalledOnce();
+	});
+
+	it("does not settle for Opus inside MP4 when only WebM plays it reliably", async () => {
+		const { canvas } = createMockCanvas();
+		// Chromium on Linux: no AAC encoder, but Opus encodes fine. MP4 would
+		// accept the Opus track; most players would not play it.
+		mockFirstAudioCodec.mockImplementation(async (codecs: string[]) =>
+			codecs.includes("opus") ? "opus" : null
+		);
+
+		const engine = new ExportEngineMuxer(
+			canvas,
+			{
+				format: "mp4",
+				quality: "720p",
+				filename: "test.mp4",
+				width: 1280,
+				height: 720,
+			},
+			[],
+			[],
+			0.1
+		);
+		engine.extractTimelineAudio = async () => ({ duration: 0.1 });
+
+		const blob = await engine.export();
+
+		expect(blob.type).toBe("video/webm");
+		expect(engine.encodingPlan).toMatchObject({
+			container: "webm",
+			audioCodec: "opus",
+		});
+		// The MP4 probe never saw Opus offered to it.
+		expect(mockFirstAudioCodec).toHaveBeenCalledWith(
+			["aac"],
+			expect.anything()
+		);
+	});
+
+	it("leads with WebM when WebM is the requested format", async () => {
+		const { canvas } = createMockCanvas();
+
+		const engine = new ExportEngineMuxer(
+			canvas,
+			{
+				format: "webm",
+				quality: "720p",
+				filename: "test.webm",
+				width: 1280,
+				height: 720,
+			},
+			[],
+			[],
+			0.1
+		);
+
+		const blob = await engine.export();
+
+		expect(blob.type).toBe("video/webm");
+		expect(engine.encodingPlan).toMatchObject({
+			container: "webm",
+			videoCodec: "vp9",
+		});
 	});
 
 	it("exports video-only when no container can encode the audio", async () => {

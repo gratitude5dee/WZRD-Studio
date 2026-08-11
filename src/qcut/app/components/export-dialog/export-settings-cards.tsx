@@ -99,10 +99,11 @@ export interface QualityCardProps {
 }
 
 export interface EngineCardProps {
-	engineType: "standard" | "ffmpeg" | "cli";
+	engineType: "standard" | "ffmpeg" | "cli" | "muxer";
+	webCodecsAvailable: boolean;
 	ffmpegAvailable: boolean;
 	isElectron: boolean;
-	onEngineTypeChange: (type: "standard" | "ffmpeg" | "cli") => void;
+	onEngineTypeChange: (type: "standard" | "ffmpeg" | "cli" | "muxer") => void;
 	isExporting: boolean;
 }
 
@@ -316,6 +317,7 @@ const ENGINE_LABELS: Record<string, string> = {
 
 export function EngineCard({
 	engineType,
+	webCodecsAvailable,
 	ffmpegAvailable,
 	isElectron,
 	onEngineTypeChange,
@@ -334,11 +336,27 @@ export function EngineCard({
 			<RadioGroup
 				value={engineType}
 				onValueChange={(value) => {
-					onEngineTypeChange(value as "standard" | "ffmpeg" | "cli");
+					onEngineTypeChange(value as "standard" | "ffmpeg" | "cli" | "muxer");
 					setOpen(false);
 				}}
 				disabled={isExporting}
 			>
+				{webCodecsAvailable && (
+					<div className="flex items-start space-x-2 py-1">
+						<RadioGroupItem value="muxer" id="muxer" className="mt-0.5" />
+						<Label
+							htmlFor="muxer"
+							className="text-sm cursor-pointer flex-1 min-w-0"
+						>
+							<div className="flex items-center gap-1">
+								<span>WebCodecs (H.264)</span>
+								<span className="text-xs text-muted-foreground">
+									(recommended)
+								</span>
+							</div>
+						</Label>
+					</div>
+				)}
 				<div className="flex items-start space-x-2 py-1">
 					<RadioGroupItem value="standard" id="standard" className="mt-0.5" />
 					<Label

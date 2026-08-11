@@ -56,6 +56,17 @@ interface OutputFormatLike {
 	getSupportedAudioCodecs(): AudioCodec[];
 }
 
+/**
+ * WZRD-EDIT: audio codecs mainstream players expect inside each container.
+ * MP4 is restricted to AAC — Chromium can encode Opus and mediabunny will mux
+ * it into MP4, but Opus-in-MP4 has patchy player support, so a browser without
+ * an AAC encoder falls back to WebM/Opus instead.
+ */
+const CONTAINER_AUDIO_CODECS: Record<"mp4" | "webm", AudioCodec[]> = {
+	mp4: ["aac"],
+	webm: ["opus", "vorbis"],
+};
+
 /** Mixdown format used for both the OfflineAudioContext and the encoder probe. */
 const AUDIO_SAMPLE_RATE = 48_000;
 const AUDIO_CHANNELS = 2;
@@ -284,6 +295,9 @@ export class ExportEngineMuxer extends ExportEngine {
 			{ container: "webm", format: new deps.WebMOutputFormat() },
 		];
 
+		// The requested format leads; the other container is the fallback.
+		if (this.settings.format === "webm") candidates.reverse();
+
 		const plans: MuxerEncodingPlan[] = [];
 		for (const { container, format } of candidates) {
 			const videoCodec = await deps.getFirstEncodableVideoCodec(
@@ -292,9 +306,12 @@ export class ExportEngineMuxer extends ExportEngine {
 			);
 			if (!videoCodec) continue;
 
+			const allowedAudioCodecs = CONTAINER_AUDIO_CODECS[container];
 			const audioCodec = deps.needsAudio
 				? await deps.getFirstEncodableAudioCodec(
-						format.getSupportedAudioCodecs(),
+						format
+							.getSupportedAudioCodecs()
+							.filter((codec) => allowedAudioCodecs.includes(codec)),
 						audioOptions
 					)
 				: null;
