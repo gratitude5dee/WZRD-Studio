@@ -48,6 +48,24 @@ export interface MediaElement extends BaseTimelineElement {
 	volume?: number;
 }
 
+/** Animation presets for ordinary timeline text elements */
+export type TextAnimationPreset =
+	| "none"
+	| "fade"
+	| "slide-up"
+	| "slide-down"
+	| "pop"
+	| "typewriter";
+
+/** Enter/exit animation settings for a text element */
+export interface TextAnimation {
+	preset: TextAnimationPreset;
+	/** Length of the enter (and exit) animation in seconds (default: 0.5) */
+	duration?: number;
+	/** Mirror the enter animation at the end of the element (default: false) */
+	animateOut?: boolean;
+}
+
 export interface TextElement extends BaseTimelineElement {
 	type: "text";
 	content: string;
@@ -63,6 +81,7 @@ export interface TextElement extends BaseTimelineElement {
 	y: number;
 	rotation: number;
 	opacity: number;
+	animation?: TextAnimation;
 }
 
 export interface StickerElement extends BaseTimelineElement {

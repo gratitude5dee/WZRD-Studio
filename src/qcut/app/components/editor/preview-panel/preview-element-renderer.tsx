@@ -4,6 +4,8 @@ import { AudioPlayer } from "@qcut-app/components/ui/audio-player";
 import { VideoPlayer } from "@qcut-app/components/ui/video-player";
 import { TEST_MEDIA_ID } from "@qcut-app/constants/timeline-constants";
 import { FONT_CLASS_MAP } from "@qcut-app/lib/font-config";
+import { getTextAnimationState } from "@qcut-app/lib/text/text-animation";
+import { useLivePlaybackTime } from "@qcut-app/hooks/use-live-playback-time";
 import type { VideoSource } from "@qcut-app/lib/media/media-source";
 import type { TextElementDragState } from "@qcut-app/types/editor";
 import type { TProject } from "@qcut-app/types/project";
@@ -165,6 +167,15 @@ export function PreviewElementRenderer({
 	onElementSelect,
 	onElementResize,
 }: PreviewElementRendererProps): React.ReactNode {
+	// Text animations need per-frame time; the store's currentTime is frozen
+	// while playing (playback dispatches playback-update events instead).
+	// Only animated text pays the per-frame re-render cost — every other
+	// element type renders from the store's currentTime.
+	const needsLiveTime =
+		elementData.element.type === "text" &&
+		elementData.element.animation != null &&
+		elementData.element.animation.preset !== "none";
+	const liveTime = useLivePlaybackTime(needsLiveTime);
 	try {
 		const { element, mediaItem } = elementData;
 		const elementKey = `${element.id}-${elementData.track.id}`;
@@ -174,6 +185,16 @@ export function PreviewElementRenderer({
 				FONT_CLASS_MAP[element.fontFamily as keyof typeof FONT_CLASS_MAP] || "";
 
 			const scaleRatio = previewDimensions.width / canvasSize.width;
+			const animationState = getTextAnimationState(
+				element.animation,
+				liveTime - element.startTime,
+				element.duration - element.trimStart - element.trimEnd,
+				element.content.length
+			);
+			const displayContent =
+				animationState.visibleCharacters === null
+					? element.content
+					: element.content.slice(0, animationState.visibleCharacters);
 			const isDraggingThisElement =
 				dragState.isDragging && dragState.elementId === element.id;
 			const displayX = isDraggingThisElement ? dragState.currentX : element.x;
@@ -200,8 +221,8 @@ export function PreviewElementRenderer({
 					style={{
 						left: `${50 + (displayX / canvasSize.width) * 100}%`,
 						top: `${50 + (displayY / canvasSize.height) * 100}%`,
-						transform: `translate(-50%, -50%) rotate(${element.rotation}deg) scale(${scaleRatio})`,
-						opacity: element.opacity,
+						transform: `translate(-50%, -50%) translate(${animationState.offsetX * scaleRatio}px, ${animationState.offsetY * scaleRatio}px) rotate(${element.rotation}deg) scale(${scaleRatio * animationState.scale})`,
+						opacity: element.opacity * animationState.opacity,
 						zIndex: 100 + index,
 					}}
 				>
@@ -221,7 +242,7 @@ export function PreviewElementRenderer({
 							...(fontClassName ? {} : { fontFamily: element.fontFamily }),
 						}}
 					>
-						{element.content}
+						{displayContent}
 					</div>
 				</div>
 			);

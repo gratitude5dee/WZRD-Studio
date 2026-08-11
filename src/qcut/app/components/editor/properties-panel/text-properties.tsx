@@ -1,7 +1,19 @@
 import { Textarea } from "@qcut-app/components/ui/textarea";
 import { FontPicker } from "@qcut-app/components/ui/font-picker";
 import { FontFamily } from "@qcut-app/constants/font-constants";
-import { TextElement } from "@qcut-app/types/timeline";
+import {
+	TextElement,
+	TextAnimationPreset,
+} from "@qcut-app/types/timeline";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@qcut-app/components/ui/select";
+import { Switch } from "@qcut-app/components/ui/switch";
+import { DEFAULT_TEXT_ANIMATION_DURATION } from "@qcut-app/lib/text/text-animation";
 import { useTimelineStore } from "@qcut-app/stores/timeline/timeline-store";
 import { useEditorStore } from "@qcut-app/stores/editor/editor-store";
 import { Slider } from "@qcut-app/components/ui/slider";
@@ -198,6 +210,10 @@ export function TextProperties({
 	const handleRotationChange = (value: string) =>
 		handlePropertyChange("rotation", value);
 	const handleRotationBlur = () => handlePropertyBlur("rotation");
+
+	const animationPreset = element.animation?.preset ?? "none";
+	const animationDuration =
+		element.animation?.duration ?? DEFAULT_TEXT_ANIMATION_DURATION;
 
 	return (
 		<div className="space-y-6 p-5">
@@ -500,6 +516,97 @@ export function TextProperties({
 					</PropertyItemValue>
 				</PropertyItem>
 			</PropertyGroup>
+
+			<PropertyGroup title="Animation" defaultExpanded={false}>
+				<PropertyItem direction="row">
+					<PropertyItemLabel>Preset</PropertyItemLabel>
+					<PropertyItemValue>
+						<Select
+							value={animationPreset}
+							onValueChange={(value: TextAnimationPreset) =>
+								updateTextElement(trackId, element.id, {
+									animation:
+										value === "none"
+											? undefined
+											: { ...element.animation, preset: value },
+								})
+							}
+						>
+							<SelectTrigger aria-label="Animation preset" className="h-8">
+								<SelectValue placeholder="None" />
+							</SelectTrigger>
+							<SelectContent>
+								{TEXT_ANIMATION_PRESETS.map((preset) => (
+									<SelectItem key={preset.value} value={preset.value}>
+										{preset.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</PropertyItemValue>
+				</PropertyItem>
+				{animationPreset !== "none" && (
+					<>
+						<PropertyItem direction="column">
+							<PropertyItemLabel>Duration</PropertyItemLabel>
+							<PropertyItemValue>
+								<div className="flex items-center gap-2">
+									<Slider
+										aria-label="Animation duration"
+										value={[animationDuration]}
+										min={0.1}
+										max={3}
+										step={0.1}
+										onValueChange={([value]) =>
+											updateTextElement(trackId, element.id, {
+												animation: {
+													preset: animationPreset,
+													...element.animation,
+													duration: value,
+												},
+											})
+										}
+										className="w-full"
+									/>
+									<span className="text-xs text-muted-foreground w-10 text-right">
+										{animationDuration.toFixed(1)}s
+									</span>
+								</div>
+							</PropertyItemValue>
+						</PropertyItem>
+						<PropertyItem direction="row">
+							<PropertyItemLabel>Animate out</PropertyItemLabel>
+							<PropertyItemValue>
+								<Switch
+									aria-label="Animate out"
+									checked={element.animation?.animateOut ?? false}
+									onCheckedChange={(checked) =>
+										updateTextElement(trackId, element.id, {
+											animation: {
+												preset: animationPreset,
+												...element.animation,
+												animateOut: checked,
+											},
+										})
+									}
+								/>
+							</PropertyItemValue>
+						</PropertyItem>
+					</>
+				)}
+			</PropertyGroup>
 		</div>
 	);
 }
+
+const TEXT_ANIMATION_PRESETS: {
+	value: TextAnimationPreset;
+	label: string;
+}[] = [
+	{ value: "none", label: "None" },
+	{ value: "fade", label: "Fade in" },
+	{ value: "slide-up", label: "Slide up" },
+	{ value: "slide-down", label: "Slide down" },
+	{ value: "pop", label: "Pop" },
+	{ value: "typewriter", label: "Typewriter" },
+];

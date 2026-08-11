@@ -342,6 +342,7 @@ export interface TimelineStore {
 				| "y"
 				| "rotation"
 				| "opacity"
+				| "animation"
 			>
 		>,
 		pushHistory?: boolean
