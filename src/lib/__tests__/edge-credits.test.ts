@@ -39,6 +39,22 @@ describe('edge credits shared helper', () => {
     );
   });
 
+  it('accepts a catalog row priced only by its credits column', () => {
+    expect(getCatalogCreditCost({}, 8, '$0.08 / images USD (partner)')).toBe(8);
+    expect(getGenerationCreditCost({
+      pricingMode: 'catalog-strict',
+      pricing: { raw: '2 credits', credits: 2 },
+      credits: 2,
+      pricingText: '2 credits',
+      modelId: 'fal-ai/flux/schnell',
+      resourceType: 'image',
+    })).toBe(2);
+  });
+
+  it('still refuses the known zero-credit placeholder rows', () => {
+    expect(() => getCatalogCreditCost({}, 1, '0 credits')).toThrowError(UnpricedModelError);
+  });
+
   it('refuses rate-priced models until rate-aware reserve exists', () => {
     expect(() => getCatalogCreditCost({ unit: 'per_second', usd: 0.4 })).toThrow(
       'rate-based pricing'
@@ -51,6 +67,31 @@ describe('edge credits shared helper', () => {
 
   it('floors a sub-cent per-request catalog price at one credit', () => {
     expect(getCatalogCreditCost({ unit: 'per_request', usd: 0.000001 })).toBe(1);
+  });
+
+  it('uses the resolved model price for an alias request', () => {
+    expect(getGenerationCreditCost({
+      pricingMode: 'catalog-strict',
+      pricing: { unit: 'per_request', usd: 0.08 },
+      modelId: 'fal-ai/nano-banana-2',
+      resourceType: 'image',
+    })).toBe(8);
+  });
+
+  it('does not require an unpriced fallback to reserve a priced primary', () => {
+    const primaryCost = getGenerationCreditCost({
+      pricingMode: 'catalog-strict',
+      pricing: { unit: 'per_request', usd: 0.2 },
+      modelId: 'fal-ai/nano-banana-2',
+      resourceType: 'image',
+    });
+    expect(primaryCost).toBe(20);
+    expect(() => getGenerationCreditCost({
+      pricingMode: 'catalog-strict',
+      pricing: {},
+      modelId: 'fal-ai/unknown-fallback',
+      resourceType: 'image',
+    })).toThrowError(UnpricedModelError);
   });
 
   it('reserves through the ledger RPC instead of legacy deduct_credits', async () => {

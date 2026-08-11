@@ -176,40 +176,54 @@ export class UnpricedModelError extends Error {
   }
 }
 
-export function getCatalogCreditCost(pricing: Record<string, unknown> | null | undefined): number {
-  const effectivePricing = pricing?.editor_billing &&
+export function getCatalogCreditCost(
+  pricing: Record<string, unknown> | null | undefined,
+  credits?: number,
+  pricingText?: string,
+): number {
+  const pricingCandidates = [
+    pricing?.editor_billing &&
     typeof pricing.editor_billing === 'object' &&
     !Array.isArray(pricing.editor_billing)
-    ? pricing.editor_billing as Record<string, unknown>
-    : pricing;
-  const unit = typeof effectivePricing?.unit === 'string' ? effectivePricing.unit : '';
-  if (unit !== 'per_request') {
-    if (unit) {
+      ? pricing.editor_billing as Record<string, unknown>
+      : null,
+    pricing,
+  ];
+
+  for (const candidate of pricingCandidates) {
+    const unit = typeof candidate?.unit === 'string' ? candidate.unit : '';
+    if (!unit) continue;
+    if (unit !== 'per_request') {
       throw new UnpricedModelError(
         'This model uses rate-based pricing and cannot be generated until rate-aware billing is available.'
       );
     }
-    throw new UnpricedModelError();
+
+    const usd = typeof candidate?.usd === 'number'
+      ? candidate.usd
+      : Number(candidate?.usd);
+    if (Number.isFinite(usd) && usd > 0) {
+      return Math.max(1, Math.ceil(usd * 100));
+    }
   }
 
-  const usd = typeof effectivePricing?.usd === 'number'
-    ? effectivePricing.usd
-    : Number(effectivePricing?.usd);
-  if (!Number.isFinite(usd) || usd <= 0) {
-    throw new UnpricedModelError();
+  if (typeof credits === 'number' && credits > 0 && pricingText !== '0 credits') {
+    return Math.max(1, Math.ceil(credits));
   }
 
-  return Math.max(1, Math.ceil(usd * 100));
+  throw new UnpricedModelError();
 }
 
 export function getGenerationCreditCost(input: {
   pricingMode?: 'catalog-strict';
   pricing?: Record<string, unknown> | null;
+  credits?: number;
+  pricingText?: string;
   modelId: string | null | undefined;
   resourceType: string;
 }): number {
   if (input.pricingMode === 'catalog-strict') {
-    return getCatalogCreditCost(input.pricing);
+    return getCatalogCreditCost(input.pricing, input.credits, input.pricingText);
   }
   return getCreditCostForModel(input.modelId, input.resourceType);
 }

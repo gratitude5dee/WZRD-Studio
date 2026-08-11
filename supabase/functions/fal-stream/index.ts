@@ -106,13 +106,6 @@ serve(async (req) => {
       );
     }
 
-    const catalogModel = strictPricing
-      ? await getCatalogModelById(modelId, { provider: 'fal-ai', enabledOnly: false })
-      : null;
-    if (strictPricing && !catalogModel) {
-      throw new UnpricedModelError();
-    }
-
     const falKey = Deno.env.get('FAL_KEY');
     if (!falKey) {
       return new Response(
@@ -144,22 +137,31 @@ serve(async (req) => {
       : hintedMediaType === 'audio' ? 'audio'
       : hintedMediaType === 'image' ? 'image'
       : 'generation';
+    const catalogModel = strictPricing
+      ? await getCatalogModelById(resolvedFromRequest.modelId, { provider: 'fal-ai', enabledOnly: false })
+      : null;
+    if (strictPricing && !catalogModel) {
+      throw new UnpricedModelError();
+    }
+
     const primaryCost = getGenerationCreditCost({
       pricingMode: strictPricing ? 'catalog-strict' : undefined,
       pricing: catalogModel?.pricing,
+      credits: catalogModel?.credits,
+      pricingText: catalogModel?.pricingText,
       modelId: resolvedFromRequest.modelId,
       resourceType: resourceTypeForBilling,
     });
-    const fallbackCatalogModel = strictPricing
-      ? await getCatalogModelById(fallbackCandidateId, { provider: 'fal-ai', enabledOnly: false })
-      : null;
-    const fallbackCost = getGenerationCreditCost({
-      pricingMode: strictPricing ? 'catalog-strict' : undefined,
-      pricing: fallbackCatalogModel?.pricing,
-      modelId: fallbackCandidateId,
-      resourceType: resourceTypeForBilling,
-    });
-    const reservedAmount = Math.max(primaryCost, fallbackCost);
+    let fallbackCost = 0;
+    if (!strictPricing) {
+      fallbackCost = getGenerationCreditCost({
+        modelId: fallbackCandidateId,
+        resourceType: resourceTypeForBilling,
+      });
+    }
+    const reservedAmount = strictPricing
+      ? primaryCost
+      : Math.max(primaryCost, fallbackCost);
     const creditReservation = await reserveCredits({
       supabase: supabaseClient,
       userId: claimsData.user.id,
@@ -298,6 +300,20 @@ serve(async (req) => {
           const shouldTryFallback = resolvedFromRequest.modelId !== fallbackCandidateId;
           if (shouldTryFallback) {
             try {
+              if (strictPricing) {
+                const fallbackCatalogModel = await getCatalogModelById(
+                  fallbackCandidateId,
+                  { provider: 'fal-ai', enabledOnly: false }
+                );
+                fallbackCost = getGenerationCreditCost({
+                  pricingMode: 'catalog-strict',
+                  pricing: fallbackCatalogModel?.pricing,
+                  credits: fallbackCatalogModel?.credits,
+                  pricingText: fallbackCatalogModel?.pricingText,
+                  modelId: fallbackCandidateId,
+                  resourceType: resourceTypeForBilling,
+                });
+              }
               sendSse(controller, encoder, {
                 type: 'fallback',
                 message: `Primary model failed, retrying with ${fallbackCandidateId}`,
