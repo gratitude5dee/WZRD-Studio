@@ -246,7 +246,8 @@ export async function makeFalRequest(
 			streamModelId,
 			payload,
 			undefined,
-			"catalog-strict"
+			"catalog-strict",
+			buildAbortSignal(options)
 		);
 		return new Response(JSON.stringify(result ?? {}), {
 			status: 200,

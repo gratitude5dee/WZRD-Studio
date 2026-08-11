@@ -5,6 +5,7 @@ vi.mock("../../core/fal-request", () => ({
 	getFalApiKeyAsync: vi.fn(),
 	makeFalRequest: vi.fn(),
 	generateJobId: vi.fn(() => "job_test_123"),
+	isBrowserFalStreamPath: vi.fn(() => false),
 }));
 
 vi.mock("../../core/polling", () => ({
@@ -190,6 +191,25 @@ describe("generateHeyGenTranslate", () => {
 			expect.objectContaining({
 				onProgress,
 			})
+		);
+	});
+
+	it("returns the inline result when the browser stream path completed the job", async () => {
+		const mockResponse = {
+			json: vi.fn().mockResolvedValue({
+				video: { url: "https://cdn.fal.ai/output/translated.mp4" },
+			}),
+		};
+		mockedMakeFalRequest.mockResolvedValue(mockResponse as unknown as Response);
+
+		const onProgress = vi.fn();
+		const result = await generateHeyGenTranslate(validRequest, onProgress);
+
+		expect(mockedPollQueueStatus).not.toHaveBeenCalled();
+		expect(result.status).toBe("completed");
+		expect(result.video_url).toBe("https://cdn.fal.ai/output/translated.mp4");
+		expect(onProgress).toHaveBeenCalledWith(
+			expect.objectContaining({ status: "completed", progress: 100 })
 		);
 	});
 

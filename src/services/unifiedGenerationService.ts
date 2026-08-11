@@ -408,7 +408,8 @@ export async function executeFalStream(
   modelId: string,
   inputs: Record<string, unknown>,
   onProgress?: OnProgress,
-  pricingMode?: GenerationMetadata['pricingMode']
+  pricingMode?: GenerationMetadata['pricingMode'],
+  signal?: AbortSignal
 ): Promise<{ result: unknown; resolvedModelId: string; fallbackUsed: boolean; fallbackReason?: string }> {
   const token = await getAuthToken();
   const canonical = buildCanonicalFalInputs(modelId, inputs);
@@ -424,6 +425,7 @@ export async function executeFalStream(
       inputs: canonical.inputs,
       ...(pricingMode ? { pricingMode } : {}),
     }),
+    signal,
   });
 
   if (!response.ok) {
