@@ -9,6 +9,7 @@ import { useEffectsStore } from "@qcut-app/stores/ai/effects-store";
 import {
 	applyEffectsToCanvas,
 	mergeEffectParameters,
+	resolveEffectParameters,
 } from "@qcut-app/lib/effects/effects-utils";
 import { applyAdvancedCanvasEffects } from "@qcut-app/lib/effects/effects-canvas-advanced";
 import { EFFECTS_ENABLED } from "@qcut-app/config/features";
@@ -216,7 +217,7 @@ async function renderMediaElement(
 
 	try {
 		if (mediaItem.type === "image") {
-			await renderImage(context, element, mediaItem);
+			await renderImage(context, element, mediaItem, timeOffset);
 		} else if (mediaItem.type === "video") {
 			await renderVideo(context, element, mediaItem, timeOffset);
 		}
@@ -229,7 +230,8 @@ async function renderMediaElement(
 export async function renderImage(
 	context: RenderContext,
 	element: TimelineElement,
-	mediaItem: MediaItem
+	mediaItem: MediaItem,
+	timeOffset = 0
 ): Promise<void> {
 	const { ctx, canvas } = context;
 
@@ -274,7 +276,9 @@ export async function renderImage(
 						if (enabledEffects.length > 0) {
 							ctx.save();
 							const mergedParams = mergeEffectParameters(
-								...enabledEffects.map((e) => e.parameters)
+								...enabledEffects.map((e) =>
+									resolveEffectParameters(e, timeOffset)
+								)
 							);
 							debugLog(
 								"🔨 EXPORT ENGINE: Applying effects to image canvas:",
@@ -446,7 +450,7 @@ async function renderVideoAttempt(
 
 					ctx.save();
 					const mergedParams = mergeEffectParameters(
-						...activeEffects.map((e) => e.parameters)
+						...activeEffects.map((e) => resolveEffectParameters(e, timeOffset))
 					);
 					debugLog(
 						"🔨 EXPORT ENGINE: Applying effects to video canvas:",

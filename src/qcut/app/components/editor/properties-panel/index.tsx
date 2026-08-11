@@ -166,7 +166,10 @@ export function PropertiesPanel() {
 									return (
 										<div key={elementId}>
 											{showEffects && (
-												<EffectsProperties elementId={element.id} />
+												<EffectsProperties
+													elementId={element.id}
+													element={element}
+												/>
 											)}
 											{showTransform && (
 												<TransformProperties

@@ -1,5 +1,32 @@
-import type { EffectParameters } from "@qcut-app/types/effects";
+import type {
+	EffectInstance,
+	EffectParameters,
+} from "@qcut-app/types/effects";
 import { generateUUID } from "@qcut-app/lib/utils";
+import { getAnimatedParameters } from "@qcut-app/lib/effects/effects-keyframes";
+
+/**
+ * Resolve an effect's parameters at a moment in time, applying any keyframe
+ * animations. Times are element-local seconds; when no time is given (or the
+ * effect has no animations) the static parameters are returned unchanged.
+ */
+export function resolveEffectParameters(
+	effect: EffectInstance,
+	elementTime?: number
+): EffectParameters {
+	if (
+		elementTime === undefined ||
+		!effect.animations ||
+		effect.animations.length === 0
+	) {
+		return effect.parameters;
+	}
+	return getAnimatedParameters(
+		effect.animations,
+		Math.max(0, elementTime),
+		effect.parameters
+	);
+}
 
 /**
  * Converts effect parameters to CSS filter string
