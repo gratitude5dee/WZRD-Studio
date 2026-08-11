@@ -111,6 +111,7 @@ export function ExportDialog() {
 				quality: string;
 				format: string;
 				filename: string;
+				engineType?: "auto" | "standard" | "ffmpeg" | "cli" | "muxer";
 			}) => {
 				const canvas = canvasRef.current?.getCanvas();
 				if (!canvas) throw new Error("No canvas available for export");
@@ -141,7 +142,8 @@ export function ExportDialog() {
 						quality: settings.quality as ExportQuality,
 						format: settings.format as ExportFormat,
 						filename: settings.filename,
-						engineType: "auto",
+						// WZRD-EDIT: allow automation to exercise the selected engine path.
+						engineType: settings.engineType ?? "auto",
 						resolution,
 						includeAudio: hasAudio,
 						audioCodec,

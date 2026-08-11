@@ -57,6 +57,8 @@ export class OptimizedExportEngine extends ExportEngine {
 		totalDuration: number
 	) {
 		super(canvas, settings, tracks, mediaItems, totalDuration);
+		// WZRD-EDIT: identify optimized exports for agent API results.
+		this.actualEngineType = "optimized";
 		this.initializeOptimizations();
 	}
 

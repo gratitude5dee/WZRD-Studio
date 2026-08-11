@@ -240,6 +240,15 @@ Both save paths go through it: `ExportEngine.downloadVideo` and `saveExportedVid
 the editor's export flow (`use-export-progress`) and the agent API actually call — the export history
 entry and the success toast report that same corrected name.
 
+<!-- WZRD-EDIT: document the agent export engine controls. -->
+The agent API export command accepts an optional `engineType` (`auto`, `standard`, `ffmpeg`, `cli`,
+or `muxer`) alongside its existing `preset`, `format`, and `filename` fields. It defaults to `auto`
+for compatibility. Engine selection uses the same muxer usability verdict as the editor, and the
+export command remains non-blocking as before: it returns `started`, `filename`, and the
+`requestedEngineType` immediately. Polling `getExportStatus` reports both the requested and actual
+engine, including when an unusable muxer is downgraded to Standard. The existing `format`
+parameter is already validated and remains unchanged.
+
 ### 2. FFmpeg WASM fallback: budget and isolation
 
 The browser load budget is now a flat 180 s with 5 s progress logging, and the timeout message says

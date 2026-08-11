@@ -7,7 +7,7 @@
  */
 
 import { ExportEngine } from "./export-engine";
-import type { ExportSettings } from "@qcut-app/types/export";
+import type { ExportSettingsWithAudio } from "@qcut-app/types/export";
 import type { TimelineTrack } from "@qcut-app/types/timeline";
 import type { MediaItem } from "@qcut-app/stores/media/media-store-types";
 // Type-only: mediabunny itself stays behind the dynamic import below.
@@ -95,6 +95,18 @@ export class ExportEngineMuxer extends ExportEngine {
 	private activeOutput: any = null;
 	/** Set once the codecs are negotiated; read by callers to label the result. */
 	encodingPlan: MuxerEncodingPlan | null = null;
+
+	constructor(
+		canvas: HTMLCanvasElement,
+		settings: ExportSettingsWithAudio,
+		tracks: TimelineTrack[],
+		mediaItems: MediaItem[],
+		totalDuration: number
+	) {
+		super(canvas, settings, tracks, mediaItems, totalDuration);
+		// WZRD-EDIT: identify muxer exports for agent API results.
+		this.actualEngineType = "muxer";
+	}
 
 	/** Override main export method with mediabunny pipeline. */
 	async export(progressCallback?: ProgressCallback): Promise<Blob> {

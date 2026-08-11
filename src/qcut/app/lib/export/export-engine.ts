@@ -64,6 +64,8 @@ interface ExportEngineOptions {
 
 // Export engine for rendering timeline to video
 export class ExportEngine {
+	// WZRD-EDIT: expose the engine that actually backs an export result.
+	public actualEngineType: string;
 	protected canvas: HTMLCanvasElement;
 	protected ctx: CanvasRenderingContext2D;
 	protected settings: ExportSettings;
@@ -105,6 +107,7 @@ export class ExportEngine {
 		// Check if we should use FFmpeg WASM export
 		this.useFFmpegExport =
 			options.useFFmpegExport ?? isFFmpegExportEnabled();
+		this.actualEngineType = this.useFFmpegExport ? "ffmpeg" : "standard";
 		debugLog(
 			`[ExportEngine] Using ${this.useFFmpegExport ? "FFmpeg WASM" : "MediaRecorder"} for export`
 		);
