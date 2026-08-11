@@ -18,7 +18,7 @@ import { corsHeaders, errorResponse, successResponse, handleCors } from '../_sha
 import {
   buildCreditIdempotencyKey,
   commitCredits,
-  getCatalogCreditCost,
+  getGenerationCreditCost,
   InsufficientCreditsError,
   insufficientCreditsResponse,
   releaseCredits,
@@ -37,6 +37,7 @@ interface RequestBody {
   mode?: 'sync' | 'queue';
   action?: 'submit' | 'poll';
   requestId?: string; // for polling
+  pricingMode?: 'catalog-strict';
   metadata?: {
     userId?: string;
     projectId?: string;
@@ -62,6 +63,7 @@ serve(async (req) => {
 
     const body: RequestBody = await req.json();
     const { modelId, inputs, action = 'submit', requestId, metadata } = body;
+    const strictPricing = body.pricingMode === 'catalog-strict';
 
     // ── Poll an existing request ────────────────────────────────────────
     if (action === 'poll') {
@@ -101,7 +103,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } },
     );
-    creditCost = getCatalogCreditCost(model.pricing);
+    creditCost = getGenerationCreditCost({
+      pricingMode: strictPricing ? 'catalog-strict' : undefined,
+      pricing: model.pricing,
+      modelId,
+      resourceType: resourceTypeForBilling,
+    });
     creditReservation = await reserveCredits({
       supabase: serviceClient,
       userId,

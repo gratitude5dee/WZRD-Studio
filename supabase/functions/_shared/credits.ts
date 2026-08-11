@@ -202,6 +202,18 @@ export function getCatalogCreditCost(pricing: Record<string, unknown> | null | u
   return Math.max(1, Math.ceil(usd * 100));
 }
 
+export function getGenerationCreditCost(input: {
+  pricingMode?: 'catalog-strict';
+  pricing?: Record<string, unknown> | null;
+  modelId: string | null | undefined;
+  resourceType: string;
+}): number {
+  if (input.pricingMode === 'catalog-strict') {
+    return getCatalogCreditCost(input.pricing);
+  }
+  return getCreditCostForModel(input.modelId, input.resourceType);
+}
+
 interface CreditSupabaseError {
   message?: string;
 }

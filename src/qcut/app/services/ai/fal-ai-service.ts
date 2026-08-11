@@ -31,6 +31,14 @@ function resolveWzrdProjectId(): string | undefined {
 	return getWzrdProjectContext(qcutProjectId)?.wzrdProjectId;
 }
 
+function editorGenerationMetadata(projectId?: string) {
+	return {
+		source: "editor" as const,
+		projectId,
+		pricingMode: "catalog-strict" as const,
+	};
+}
+
 async function handleGenerationError(error: unknown): Promise<void> {
 	const payload = await extractInsufficientCreditsError(error);
 	if (payload) {
@@ -68,8 +76,7 @@ export class FalAiService {
 					autoStore: true,
 				},
 				metadata: {
-					source: "editor",
-					projectId,
+					...editorGenerationMetadata(projectId),
 				},
 			});
 
@@ -113,8 +120,7 @@ export class FalAiService {
 					autoStore: true,
 				},
 				metadata: {
-					source: "editor",
-					projectId,
+					...editorGenerationMetadata(projectId),
 				},
 			});
 

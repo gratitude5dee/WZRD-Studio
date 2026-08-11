@@ -1,5 +1,8 @@
 -- Additive safety follow-up for 20260811000000_seed_qcut_catalog_pricing.sql.
--- New rows are quarantined from shared surfaces; existing rows are restored to their snapshot.
+-- The seed necessarily changed 38 pre-existing billing snapshots; this migration
+-- intentionally undoes those changes so existing rows retain their prior credits
+-- and pricing text, while preserving only an additive editor_billing marker.
+-- New rows are quarantined from shared surfaces; existing availability is untouched.
 -- Rate-priced rows cannot use the flat credits hold until rate-aware reserve exists.
 BEGIN;
 UPDATE public.ai_model_catalog

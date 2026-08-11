@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   getCatalogCreditCost,
   getCreditCostForModel,
+  getGenerationCreditCost,
   InsufficientCreditsError,
   reserveCredits,
   shouldSkipCreditBilling,
@@ -15,8 +16,20 @@ describe('edge credits shared helper', () => {
     expect(shouldSkipCreditBilling(headers)).toBe(false);
   });
 
-  it('charges at least one credit for GMI models', () => {
-    expect(getCreditCostForModel('gmi/unknown-free-model', 'text')).toBeGreaterThanOrEqual(1);
+  it('keeps the legacy path using its existing fallback billing', () => {
+    expect(getGenerationCreditCost({
+      modelId: 'gmi/unknown-free-model',
+      resourceType: 'text',
+    })).toBe(getCreditCostForModel('gmi/unknown-free-model', 'text'));
+  });
+
+  it('only applies the strict guard when the call opts into catalog pricing', () => {
+    expect(() => getGenerationCreditCost({
+      pricingMode: 'catalog-strict',
+      pricing: {},
+      modelId: 'gmi/unknown-free-model',
+      resourceType: 'text',
+    })).toThrow(UnpricedModelError);
   });
 
   it('refuses an unpriced catalog model', () => {

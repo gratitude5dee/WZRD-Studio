@@ -11,7 +11,7 @@ import {
 import {
   buildCreditIdempotencyKey,
   commitCredits,
-  getCatalogCreditCost,
+  getGenerationCreditCost,
   InsufficientCreditsError,
   insufficientCreditsResponse,
   releaseCredits,
@@ -23,6 +23,7 @@ interface RequestBody {
   modelId: string
   inputs: Record<string, any>
   mode?: 'sync' | 'queue'
+  pricingMode?: 'catalog-strict'
   metadata?: {
     userId?: string
     projectId?: string
@@ -48,6 +49,7 @@ serve(async (req) => {
 
     const body: RequestBody = await req.json();
     const { modelId, inputs, mode = 'queue', metadata } = body;
+    const strictPricing = body.pricingMode === 'catalog-strict';
 
     if (!modelId || typeof modelId !== 'string') {
       return errorResponse('Invalid model ID', 400);
@@ -60,7 +62,7 @@ serve(async (req) => {
     });
 
     const catalogModel = await getCatalogModelById(modelId, { enabledOnly: false });
-    if (!catalogModel) {
+    if (strictPricing && !catalogModel) {
       throw new UnpricedModelError();
     }
     billingModelId = modelId;
@@ -71,7 +73,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { persistSession: false } },
     );
-    creditCost = getCatalogCreditCost(catalogModel.pricing);
+    creditCost = getGenerationCreditCost({
+      pricingMode: strictPricing ? 'catalog-strict' : undefined,
+      pricing: catalogModel?.pricing,
+      modelId,
+      resourceType: billingResourceType,
+    });
     creditReservation = await reserveCredits({
       supabase: serviceClient,
       userId,

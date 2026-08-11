@@ -14,8 +14,7 @@ import { getCatalogModelById } from '../_shared/ai-model-catalog.ts';
 import {
   buildCreditIdempotencyKey,
   commitCredits,
-  getCatalogCreditCost,
-  getCreditCostForModel,
+  getGenerationCreditCost,
   InsufficientCreditsError,
   insufficientCreditsResponse,
   releaseCredits,
@@ -98,6 +97,7 @@ serve(async (req) => {
     const body = await req.json();
     const modelId = String(body?.modelId || '').trim();
     const rawInputs = (body?.inputs && typeof body.inputs === 'object') ? body.inputs : {};
+    const strictPricing = body?.pricingMode === 'catalog-strict';
 
     if (!modelId) {
       return new Response(
@@ -106,11 +106,10 @@ serve(async (req) => {
       );
     }
 
-    const catalogModel = await getCatalogModelById(modelId, {
-      provider: 'fal-ai',
-      enabledOnly: false,
-    });
-    if (!catalogModel) {
+    const catalogModel = strictPricing
+      ? await getCatalogModelById(modelId, { provider: 'fal-ai', enabledOnly: false })
+      : null;
+    if (strictPricing && !catalogModel) {
       throw new UnpricedModelError();
     }
 
@@ -145,14 +144,21 @@ serve(async (req) => {
       : hintedMediaType === 'audio' ? 'audio'
       : hintedMediaType === 'image' ? 'image'
       : 'generation';
-    const primaryCost = getCatalogCreditCost(catalogModel.pricing);
-    const fallbackCatalogModel = await getCatalogModelById(fallbackCandidateId, {
-      provider: 'fal-ai',
-      enabledOnly: false,
+    const primaryCost = getGenerationCreditCost({
+      pricingMode: strictPricing ? 'catalog-strict' : undefined,
+      pricing: catalogModel?.pricing,
+      modelId: resolvedFromRequest.modelId,
+      resourceType: resourceTypeForBilling,
     });
-    const fallbackCost = fallbackCatalogModel
-      ? getCatalogCreditCost(fallbackCatalogModel.pricing)
-      : primaryCost;
+    const fallbackCatalogModel = strictPricing
+      ? await getCatalogModelById(fallbackCandidateId, { provider: 'fal-ai', enabledOnly: false })
+      : null;
+    const fallbackCost = getGenerationCreditCost({
+      pricingMode: strictPricing ? 'catalog-strict' : undefined,
+      pricing: fallbackCatalogModel?.pricing,
+      modelId: fallbackCandidateId,
+      resourceType: resourceTypeForBilling,
+    });
     const reservedAmount = Math.max(primaryCost, fallbackCost);
     const creditReservation = await reserveCredits({
       supabase: supabaseClient,
