@@ -23,6 +23,8 @@ import { usePlaybackStore } from "@qcut-app/stores/editor/playback-store";
 import { useEditorStore } from "@qcut-app/stores/editor/editor-store";
 import { useProjectStore } from "@qcut-app/stores/project-store";
 import { useAspectRatio } from "@qcut-app/hooks/media/use-aspect-ratio";
+import { usePlatformCapability } from "@qcut-app/hooks/use-platform-capability";
+import { PlatformCapability } from "@qcut/platform-core";
 import { cn } from "@qcut-app/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@qcut-app/components/ui/toggle-group";
 import { formatTimeCode } from "@qcut-app/lib/time";
@@ -493,6 +495,11 @@ export function PreviewModeToggle({
 	value: string;
 	onValueChange: (mode: string) => void;
 }) {
+	const canUseMcp = usePlatformCapability(PlatformCapability.Mcp);
+	const canUseAgent = usePlatformCapability(PlatformCapability.Pty);
+
+	if (!canUseMcp && !canUseAgent) return null;
+
 	return (
 		<ToggleGroup
 			type="single"
@@ -509,22 +516,26 @@ export function PreviewModeToggle({
 				<MonitorPlay className="size-3" />
 				<span className="hidden sm:inline">Video</span>
 			</ToggleGroupItem>
-			<ToggleGroupItem
-				value="mcp"
-				aria-label="MCP app"
-				className="px-2 py-1 text-xs gap-1"
-			>
-				<AppWindow className="size-3" />
-				<span className="hidden sm:inline">MCP</span>
-			</ToggleGroupItem>
-			<ToggleGroupItem
-				value="agent"
-				aria-label="Agent terminal"
-				className="px-2 py-1 text-xs gap-1"
-			>
-				<Bot className="size-3" />
-				<span className="hidden sm:inline">Agent</span>
-			</ToggleGroupItem>
+			{canUseMcp && (
+				<ToggleGroupItem
+					value="mcp"
+					aria-label="MCP app"
+					className="px-2 py-1 text-xs gap-1"
+				>
+					<AppWindow className="size-3" />
+					<span className="hidden sm:inline">MCP</span>
+				</ToggleGroupItem>
+			)}
+			{canUseAgent && (
+				<ToggleGroupItem
+					value="agent"
+					aria-label="Agent terminal"
+					className="px-2 py-1 text-xs gap-1"
+				>
+					<Bot className="size-3" />
+					<span className="hidden sm:inline">Agent</span>
+				</ToggleGroupItem>
+			)}
 		</ToggleGroup>
 	);
 }

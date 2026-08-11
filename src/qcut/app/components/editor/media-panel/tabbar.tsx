@@ -1,7 +1,13 @@
 "use client";
 
 import { cn } from "@qcut-app/lib/utils";
-import { tabs, tabGroups, useMediaPanelStore, EditSubgroup } from "./store";
+import {
+	tabs,
+	tabGroups,
+	useMediaPanelStore,
+	isTabAvailable,
+	EditSubgroup,
+} from "./store";
 import { Button } from "@qcut-app/components/ui/button";
 import { ChevronRight, ChevronLeft } from "lucide-react";
 import { useRef, useEffect } from "react";
@@ -20,9 +26,9 @@ export function TabBar() {
 
 	const groupDef = tabGroups[activeGroup];
 	const subgroups = activeGroup === "edit" ? groupDef.subgroups : undefined;
-	const tabKeys = subgroups
-		? subgroups[activeEditSubgroup].tabs
-		: groupDef.tabs;
+	const tabKeys = (
+		subgroups ? subgroups[activeEditSubgroup].tabs : groupDef.tabs
+	).filter(isTabAvailable);
 	const activeIndex = tabKeys.indexOf(activeTab);
 	const hasPrev = activeIndex > 0;
 	const hasNext = activeIndex < tabKeys.length - 1;
