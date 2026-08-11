@@ -76,7 +76,13 @@ async function fetchImportedMedia(
 		const proxied = cached?.mediaUrl ?? cached?.path;
 		if (proxied) {
 			const response = await fetch(proxied);
-			if (response.ok) return toFile(await response.blob());
+			if (response.ok) {
+				const result = toFile(await response.blob());
+				// The proxy adapter mints its own object URL for the same bytes;
+				// without this it would pin a second copy for the whole session.
+				if (proxied.startsWith("blob:")) URL.revokeObjectURL(proxied);
+				return result;
+			}
 		}
 	} catch {
 		// Fall through to the placeholder.

@@ -211,7 +211,7 @@ export class ExportEngineMuxer extends ExportEngine {
 				await audioSource.add(audioData);
 			}
 
-			progressCallback?.(96, "Finalizing MP4...");
+			progressCallback?.(96, `Finalizing ${plan.container.toUpperCase()}...`);
 			await output.finalize();
 
 			if (!target.buffer) {
@@ -284,6 +284,7 @@ export class ExportEngineMuxer extends ExportEngine {
 			{ container: "webm", format: new deps.WebMOutputFormat() },
 		];
 
+		const plans: MuxerEncodingPlan[] = [];
 		for (const { container, format } of candidates) {
 			const videoCodec = await deps.getFirstEncodableVideoCodec(
 				format.getSupportedVideoCodecs(),
@@ -298,14 +299,22 @@ export class ExportEngineMuxer extends ExportEngine {
 					)
 				: null;
 
-			return {
+			const plan: MuxerEncodingPlan = {
 				container,
 				mimeType: format.mimeType,
 				fileExtension: format.fileExtension,
 				videoCodec,
 				audioCodec,
 			};
+
+			// Preferred container that also carries the audio — take it now.
+			if (!deps.needsAudio || audioCodec) return plan;
+			plans.push(plan);
 		}
+
+		// Every container that can encode video would have to drop the audio;
+		// keep the most preferred one and export video-only.
+		if (plans.length > 0) return plans[0];
 
 		throw new Error(
 			`This browser cannot encode video at ${this.settings.width}×${this.settings.height} in either MP4 or WebM. Try a smaller resolution or a different browser.`

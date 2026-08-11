@@ -322,6 +322,68 @@ describe("ExportEngineMuxer", () => {
 		);
 	});
 
+	it("prefers the container that can carry the audio over the preferred container", async () => {
+		const { canvas } = createMockCanvas();
+		// H.264 and VP9 both encodable, but no AAC — only WebM/Opus keeps sound.
+		mockFirstAudioCodec.mockImplementation(async (codecs: string[]) =>
+			codecs.includes("opus") ? "opus" : null
+		);
+
+		const engine = new ExportEngineMuxer(
+			canvas,
+			{
+				format: "mp4",
+				quality: "720p",
+				filename: "test.mp4",
+				width: 1280,
+				height: 720,
+			},
+			[],
+			[],
+			0.1
+		);
+		engine.extractTimelineAudio = async () => ({ duration: 0.1 });
+
+		const blob = await engine.export();
+
+		expect(blob.type).toBe("video/webm");
+		expect(engine.encodingPlan).toMatchObject({
+			container: "webm",
+			audioCodec: "opus",
+		});
+		expect(mockAddAudioTrack).toHaveBeenCalledOnce();
+	});
+
+	it("exports video-only when no container can encode the audio", async () => {
+		const { canvas } = createMockCanvas();
+		mockFirstAudioCodec.mockResolvedValue(null);
+
+		const engine = new ExportEngineMuxer(
+			canvas,
+			{
+				format: "mp4",
+				quality: "720p",
+				filename: "test.mp4",
+				width: 1280,
+				height: 720,
+			},
+			[],
+			[],
+			0.1
+		);
+		engine.extractTimelineAudio = async () => ({ duration: 0.1 });
+
+		const blob = await engine.export();
+
+		// Keeps the preferred container rather than downgrading for nothing.
+		expect(blob.type).toBe("video/mp4");
+		expect(engine.encodingPlan).toMatchObject({
+			container: "mp4",
+			audioCodec: null,
+		});
+		expect(mockAddAudioTrack).not.toHaveBeenCalled();
+	});
+
 	it("throws a resolution-aware error when no container can encode video", async () => {
 		const { canvas } = createMockCanvas();
 		mockFirstVideoCodec.mockResolvedValue(null);

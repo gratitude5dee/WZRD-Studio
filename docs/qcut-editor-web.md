@@ -197,9 +197,12 @@ output, using mediabunny's `getFirstEncodableVideoCodec` / `getFirstEncodableAud
 - MP4 is tried first, with whatever video codec of `Mp4OutputFormat.getSupportedVideoCodecs()` the
   browser can actually encode at the export resolution and bitrate;
 - WebM is the fallback container when no MP4 video codec is encodable (Firefox without H.264);
-- audio is probed **only when the timeline actually has audio**, and a timeline whose audio cannot
-  be encoded exports video-only with a progress message rather than rejecting. This is the specific
-  bug that made every Chromium-on-Linux export fail with `mp4a.40.2 … is not supported`.
+- audio is probed **only when the timeline actually has audio**. A container is preferred only if it
+  can carry both tracks, so a timeline with sound on a browser without AAC exports as WebM/Opus
+  rather than a silent MP4;
+- if *no* container can encode the audio, the most preferred video-capable container is used and the
+  export continues video-only with a progress message rather than rejecting. That rejection is the
+  specific bug that made every Chromium-on-Linux export fail with `mp4a.40.2 … is not supported`.
 
 The chosen plan is exposed as `engine.encodingPlan` (`{container, mimeType, fileExtension,
 videoCodec, audioCodec}`) and the blob is built with `plan.mimeType`, so the fallback is visible
