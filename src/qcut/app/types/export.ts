@@ -99,6 +99,11 @@ export const getSupportedFormats = (): ExportFormat[] => {
 	const supported: ExportFormat[] = [];
 
 	Object.entries(FORMAT_INFO).forEach(([format, info]) => {
+		// WZRD-EDIT: GIF is encoded by gif.js, not MediaRecorder.
+		if (format === ExportFormat.GIF) {
+			supported.push(ExportFormat.GIF);
+			return;
+		}
 		const isSupported = info.mimeTypes.some((mimeType) =>
 			MediaRecorder.isTypeSupported(mimeType)
 		);

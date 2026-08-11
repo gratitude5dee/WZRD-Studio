@@ -48,6 +48,10 @@ vi.mock("@qcut-app/lib/ffmpeg/ffmpeg-video-recorder", () => ({
 	isFFmpegExportEnabled: () => false,
 }));
 
+vi.mock("../export-engine-gif", () => ({
+	GifTimelineExportEngine: class GifTimelineExportEngine {},
+}));
+
 vi.mock("@qcut-app/types/export", () => ({
 	FORMAT_INFO: {
 		webm: { extension: "webm" },
@@ -539,6 +543,47 @@ describe("ExportEngineFactory", () => {
 
 			expect(engine).toBeDefined();
 			expect(engine.constructor.name).toBe("ExportEngineMuxer");
+		});
+
+		it("routes GIF format to the GIF engine in the browser", async () => {
+			const factory = ExportEngineFactory.getInstance();
+			const engine = await factory.createEngine(
+				createMockCanvas(),
+				{
+					format: "gif",
+					quality: "720p",
+					filename: "test.gif",
+					width: 1280,
+					height: 720,
+				},
+				[],
+				[],
+				1,
+				ExportEngineType.MUXER
+			);
+
+			expect(engine.constructor.name).toBe("GifTimelineExportEngine");
+		});
+
+		it("routes GIF format to the GIF engine in Electron", async () => {
+			mockPlatform.isElectron = true;
+			const factory = ExportEngineFactory.getInstance();
+			const engine = await factory.createEngine(
+				createMockCanvas(),
+				{
+					format: "gif",
+					quality: "720p",
+					filename: "test.gif",
+					width: 1280,
+					height: 720,
+				},
+				[],
+				[],
+				1,
+				ExportEngineType.CLI
+			);
+
+			expect(engine.constructor.name).toBe("GifTimelineExportEngine");
 		});
 
 		it("creates muxer engine for WEBCODECS type (legacy redirect)", async () => {

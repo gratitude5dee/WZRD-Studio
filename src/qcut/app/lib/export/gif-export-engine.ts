@@ -40,6 +40,11 @@ export class GifExportEngine {
 			quality: config.quality || DEFAULT_QUALITY,
 			width: config.width,
 			height: config.height,
+			// WZRD-EDIT: let Vite emit the worker from the installed gif.js package.
+			workerScript: new URL(
+				"gif.js/dist/gif.worker.js",
+				import.meta.url
+			).toString(),
 			repeat: config.loop ? 0 : -1,
 			dither: "FloydSteinberg",
 		});
