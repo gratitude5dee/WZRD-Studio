@@ -54,7 +54,8 @@ export function renderKaraokeCaptionToCanvas({
 		currentTime,
 		mode,
 		style.highlightColor ?? "#ffff00",
-		style.upcomingColor ?? "rgba(255, 255, 255, 0.5)"
+		// Same default as the preview's KaraokeRenderer.
+		style.upcomingColor ?? "#808080"
 	);
 	const visible = segments.filter((s) => s.state !== "hidden" || s.opacity > 0);
 	if (visible.length === 0) return false;

@@ -621,17 +621,17 @@ export function renderCaptionElement(
 	const style = resolveSubtitleStyle(element.style);
 
 	const karaokeWords = karaokeWordsForElement(element, currentTime);
-	if (
-		karaokeWords.length > 0 &&
-		currentTime !== undefined &&
+	if (karaokeWords.length > 0 && currentTime !== undefined) {
 		renderKaraokeCaptionToCanvas({
 			ctx,
 			canvas,
 			style,
 			words: karaokeWords,
 			currentTime,
-		})
-	) {
+		});
+		// Karaoke owns this caption for the whole element window; the preview
+		// renders nothing between words, so the export must not fall back to
+		// the full static caption.
 		return;
 	}
 	const fontWeight = style.bold ? "bold" : "normal";
