@@ -6,13 +6,19 @@ import { usePlaybackStore } from "@qcut-app/stores/editor/playback-store";
  * playback (see playback-store). This hook follows the per-frame
  * `playback-update` events while playing, and the store's `currentTime`
  * while paused/scrubbing, so time-dependent rendering stays smooth.
+ *
+ * Following the per-frame events re-renders the caller every frame during
+ * playback, so pass `enabled: false` when the caller has nothing
+ * time-dependent to render; the hook then just returns the store's
+ * `currentTime` without subscribing.
  */
-export function useLivePlaybackTime(): number {
+export function useLivePlaybackTime(enabled = true): number {
 	const currentTime = usePlaybackStore((s) => s.currentTime);
 	const isPlaying = usePlaybackStore((s) => s.isPlaying);
 	const [liveTime, setLiveTime] = useState(currentTime);
 
 	useEffect(() => {
+		if (!enabled) return;
 		if (!isPlaying) {
 			setLiveTime(currentTime);
 			return;
@@ -24,7 +30,8 @@ export function useLivePlaybackTime(): number {
 		};
 		window.addEventListener("playback-update", handleTick);
 		return () => window.removeEventListener("playback-update", handleTick);
-	}, [isPlaying, currentTime]);
+	}, [enabled, isPlaying, currentTime]);
 
+	if (!enabled) return currentTime;
 	return isPlaying ? liveTime : currentTime;
 }

@@ -169,7 +169,13 @@ export function PreviewElementRenderer({
 }: PreviewElementRendererProps): React.ReactNode {
 	// Text animations need per-frame time; the store's currentTime is frozen
 	// while playing (playback dispatches playback-update events instead).
-	const liveTime = useLivePlaybackTime();
+	// Only animated text pays the per-frame re-render cost — every other
+	// element type renders from the store's currentTime.
+	const needsLiveTime =
+		elementData.element.type === "text" &&
+		elementData.element.animation != null &&
+		elementData.element.animation.preset !== "none";
+	const liveTime = useLivePlaybackTime(needsLiveTime);
 	try {
 		const { element, mediaItem } = elementData;
 		const elementKey = `${element.id}-${elementData.track.id}`;
