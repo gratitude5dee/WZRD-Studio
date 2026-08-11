@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useExportStore } from "@qcut-app/stores/export-store";
 import { useTimelineStore } from "@qcut-app/stores/timeline/timeline-store";
 import {
@@ -21,6 +21,7 @@ export function useExportSettings() {
 		useExportStore();
 	const { getTotalDuration, tracks } = useTimelineStore();
 	const { isElectron } = useElectron();
+	const electron = isElectron();
 	const isExportUiActive = isDialogOpen || panelView === "export";
 
 	const [quality, setQuality] = useState<ExportQuality>(settings.quality);
@@ -30,9 +31,15 @@ export function useExportSettings() {
 	// MediaRecorder-based Standard engine records in real time and drops audio.
 	const webCodecsAvailable =
 		typeof VideoEncoder !== "undefined" && typeof VideoFrame !== "undefined";
+	// WZRD-EDIT: use API presence for the first render, then settle to the
+	// factory's asynchronous runtime verdict without touching state after unmount.
+	const [muxerAvailable, setMuxerAvailable] = useState(
+		!electron && webCodecsAvailable
+	);
 	const [engineType, setEngineType] = useState<
 		"standard" | "ffmpeg" | "cli" | "muxer"
-	>(isElectron() ? "cli" : webCodecsAvailable ? "muxer" : "standard");
+	>(electron ? "cli" : webCodecsAvailable ? "muxer" : "standard");
+	const userSelectedEngineRef = useRef(false);
 	const [ffmpegAvailable, setFfmpegAvailable] = useState(false);
 	const [engineRecommendation, setEngineRecommendation] = useState<
 		string | null
@@ -45,6 +52,50 @@ export function useExportSettings() {
 		QUALITY_SIZE_ESTIMATES[quality] ||
 		QUALITY_SIZE_ESTIMATES[ExportQuality.HIGH];
 	const timelineDuration = getTotalDuration();
+
+	useEffect(() => {
+		let cancelled = false;
+
+		if (!isExportUiActive) {
+			return () => {
+				cancelled = true;
+			};
+		}
+
+		if (electron || !webCodecsAvailable) {
+			setMuxerAvailable(false);
+			if (!electron && !userSelectedEngineRef.current) {
+				setEngineType("standard");
+			}
+			return () => {
+				cancelled = true;
+			};
+		}
+
+		import("@qcut-app/lib/export/export-engine-factory")
+			.then(({ ExportEngineFactory }) =>
+				ExportEngineFactory.getInstance().isMuxerUsable()
+			)
+			.then((usable) => {
+				if (cancelled) return;
+				setMuxerAvailable(usable);
+				if (!usable && !userSelectedEngineRef.current) {
+					setEngineType("standard");
+				}
+			})
+			.catch((error) => {
+				if (cancelled) return;
+				debugWarn("Muxer availability check failed:", error);
+				setMuxerAvailable(false);
+				if (!userSelectedEngineRef.current) {
+					setEngineType("standard");
+				}
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [electron, webCodecsAvailable, isExportUiActive]);
 
 	// Engine recommendation effect with multiple dependencies
 	useEffect(() => {
@@ -165,7 +216,11 @@ export function useExportSettings() {
 		handleQualityChange,
 		handleFormatChange,
 		handleFilenameChange,
-		setEngineType,
+		setEngineType: (type: "standard" | "ffmpeg" | "cli" | "muxer") => {
+			userSelectedEngineRef.current = true;
+			setEngineType(type);
+		},
+		muxerAvailable,
 		// Store integration
 		updateSettings,
 	};

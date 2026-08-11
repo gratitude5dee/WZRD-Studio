@@ -209,12 +209,22 @@ videoCodec, audioCodec}`) and the blob is built with `plan.mimeType`, so the fal
 rather than implied. If neither container is encodable the error names the resolution instead of the
 codec string.
 
-The export dialog now exposes the WebCodecs/mediabunny muxer and defaults to it in any browser that
-exposes `VideoEncoder` and `VideoFrame`. This matters because Standard uses `MediaRecorder` and
-records in real time: on Chromium, the same 4-second timeline produced a 102-second file with no
-audio stream, measured with `ffprobe`, while the muxer produced a 3.02-second file with an audio
-track. Electron still defaults to native CLI FFmpeg, and browsers without WebCodecs still use
-Standard.
+The export dialog now exposes the WebCodecs/mediabunny muxer and defaults to it in any browser where
+it is actually usable. This matters because Standard uses `MediaRecorder` and records in real time:
+on Chromium, the same 4-second timeline produced a 102-second file with no audio stream, measured
+with `ffprobe`, while the muxer produced a 3.02-second file with an audio track. Electron still
+defaults to native CLI FFmpeg, and browsers without WebCodecs still use Standard.
+
+"Usable" is the factory's verdict, not bare API presence: `ExportEngineFactory.isMuxerUsable()`
+checks the `qcut_force_webcodecs_off` localStorage kill-switch, rejects the iOS simulator (where the
+WebCodecs APIs exist but `CanvasSource` stalls), and runs `probeWebCodecsEncoder`, which configures a
+real encoder and requires it to drain 10 frames within 3 seconds. The verdict is memoized per page —
+the kill-switch is still read on every call so it takes effect without a reload. `useExportSettings`
+renders optimistically from API presence, then settles on that verdict once the export UI is open,
+hiding the option and falling back to Standard if it fails, without overriding an engine the user
+picked manually. `use-export-progress` re-checks the same verdict before constructing
+`ExportEngineMuxer`, so a stalling encoder downgrades to Standard instead of failing the export on
+the muxer's per-frame timeout.
 
 Container negotiation no longer trusts the audio codec list advertised by the output format.
 Mediabunny will mux Opus into MP4, while Chromium/Linux has no AAC encoder, so the naive probe could

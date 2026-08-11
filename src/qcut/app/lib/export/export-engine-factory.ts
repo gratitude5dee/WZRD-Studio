@@ -56,6 +56,8 @@ function readLocalStorageFlag(key: string): boolean {
 export class ExportEngineFactory {
 	private static instance: ExportEngineFactory;
 	private capabilities: BrowserCapabilities | null = null;
+	// WZRD-EDIT: share the encoder probe across UI, recommendation, and export.
+	private muxerUsabilityPromise: Promise<boolean> | null = null;
 
 	/** Get the singleton factory instance. */
 	static getInstance(): ExportEngineFactory {
@@ -127,11 +129,12 @@ export class ExportEngineFactory {
 		const forceRegularEngine = readLocalStorageFlag(
 			"qcut_force_regular_engine"
 		);
-		const forceWebCodecsOff = readLocalStorageFlag("qcut_force_webcodecs_off");
-
 		console.log("🔍 EXPORT ENGINE DEBUG - Starting engine selection:");
 		console.log("  - Force regular engine override:", forceRegularEngine);
-		console.log("  - Force WebCodecs off override:", forceWebCodecsOff);
+		console.log(
+			"  - Force WebCodecs off override:",
+			readLocalStorageFlag("qcut_force_webcodecs_off")
+		);
 		console.log("  - Is Electron environment:", this.isElectron());
 		console.log("  - Platform isElectron:", platform().isElectron);
 		console.log(
@@ -174,12 +177,7 @@ export class ExportEngineFactory {
 
 		// iPad/browser with WebCodecs → mediabunny muxer engine (MP4 via WebCodecs)
 		// Skip on simulator (WebCodecs APIs exist but CanvasSource stalls in WKWebView sim)
-		if (
-			!forceWebCodecsOff &&
-			capabilities.hasWebCodecs &&
-			!this.isSimulator() &&
-			(await this.probeWebCodecsEncoder())
-		) {
+		if (capabilities.hasWebCodecs && (await this.isMuxerUsable())) {
 			console.log(
 				"🚀 EXPORT ENGINE SELECTION: Muxer (mediabunny) chosen for WebCodecs-capable browser/iPad"
 			);
@@ -236,6 +234,16 @@ export class ExportEngineFactory {
 			estimatedPerformance:
 				capabilities.performanceScore >= 40 ? "medium" : "low",
 		};
+	}
+
+	// WZRD-EDIT: share the complete muxer verdict with UI and export paths.
+	async isMuxerUsable(): Promise<boolean> {
+		if (readLocalStorageFlag("qcut_force_webcodecs_off")) return false;
+		if (!this.detectWebCodecs() || this.isSimulator()) return false;
+		if (!this.muxerUsabilityPromise) {
+			this.muxerUsabilityPromise = this.probeWebCodecsEncoder();
+		}
+		return this.muxerUsabilityPromise;
 	}
 
 	/** Create an export engine instance based on recommendation or explicit type. */
@@ -691,6 +699,7 @@ export class ExportEngineFactory {
 	 * Real iPad: UA contains "iPad" or navigator.platform is "iPad".
 	 */
 	private isSimulator(): boolean {
+		if (typeof window === "undefined") return false;
 		const cap = (window as any).Capacitor;
 		if (!cap || cap.getPlatform() !== "ios") return false;
 		// Real iPad: "iPad" in platform/UA, or iPadOS 13+ which reports "MacIntel" with touch
