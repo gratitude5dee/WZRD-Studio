@@ -40,7 +40,6 @@ export function useExportSettings() {
 	const [engineType, setEngineType] = useState<
 		"standard" | "ffmpeg" | "cli" | "muxer"
 	>(electron ? "cli" : webCodecsAvailable ? "muxer" : "standard");
-	const userSelectedEngineRef = useRef(false);
 	const muxerFallbackNoticeShownRef = useRef(false);
 	const [ffmpegAvailable, setFfmpegAvailable] = useState(false);
 	const [engineRecommendation, setEngineRecommendation] = useState<
@@ -232,10 +231,7 @@ export function useExportSettings() {
 		handleQualityChange,
 		handleFormatChange,
 		handleFilenameChange,
-		setEngineType: (type: "standard" | "ffmpeg" | "cli" | "muxer") => {
-			userSelectedEngineRef.current = true;
-			setEngineType(type);
-		},
+		setEngineType,
 		muxerAvailable,
 		// Store integration
 		updateSettings,
