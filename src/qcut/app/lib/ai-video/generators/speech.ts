@@ -128,19 +128,12 @@ async function generateBrowserSpeech(
 		undefined,
 		"catalog-strict",
 	);
-	const audio = normalizeFalStreamSpeechResult(streamResult.result, defaults);
+	const audio = normalizeFalSpeechResult(streamResult.result, defaults);
 
 	return {
 		jobId,
 		...audio,
 	};
-}
-
-function normalizeFalStreamSpeechResult(
-	result: unknown,
-	defaults: { contentType: string; fileName: string },
-) {
-	return normalizeFalSpeechResult(result, defaults);
 }
 
 export interface CloneVoiceResult {
