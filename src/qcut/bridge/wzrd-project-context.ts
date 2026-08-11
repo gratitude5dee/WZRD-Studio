@@ -17,6 +17,36 @@ export type WzrdProjectContext = {
 };
 
 const qcutToWzrd = new Map<string, WzrdProjectContext>();
+const hydrationPending = new Set<string>();
+const hydrationDone = new Set<string>();
+
+/**
+ * While hydration is pending for a project, snapshot writes are suppressed so
+ * the just-loaded (still empty) local state can't overwrite the remote
+ * snapshot before it has been read back.
+ */
+export function markSnapshotHydrationPending(qcutProjectId: string) {
+	hydrationPending.add(qcutProjectId);
+}
+
+/** Clear the pending gate without marking hydration successful (error paths). */
+export function clearSnapshotHydrationPending(qcutProjectId: string) {
+	hydrationPending.delete(qcutProjectId);
+}
+
+export function markSnapshotHydrationDone(qcutProjectId: string) {
+	hydrationPending.delete(qcutProjectId);
+	hydrationDone.add(qcutProjectId);
+}
+
+export function isSnapshotHydrationPending(qcutProjectId: string): boolean {
+	return hydrationPending.has(qcutProjectId);
+}
+
+/** True once the remote snapshot has been read back this session. */
+export function isSnapshotHydrationDone(qcutProjectId: string): boolean {
+	return hydrationDone.has(qcutProjectId);
+}
 
 export function setWzrdProjectContext(ctx: WzrdProjectContext) {
 	qcutToWzrd.set(ctx.qcutProjectId, ctx);

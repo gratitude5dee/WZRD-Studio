@@ -6,6 +6,7 @@ import { useProjectStore } from "@qcut-app/stores/project-store";
 import { useSceneStore } from "@qcut-app/stores/timeline/scene-store";
 import { useTimelineStore } from "@qcut-app/stores/timeline/timeline-store";
 import type { TimelineTrack } from "@qcut-app/types/timeline";
+import { markSnapshotHydrationDone } from "./wzrd-project-context";
 
 const supabase = typedSupabase as any;
 
@@ -62,8 +63,12 @@ export async function maybeHydrateFromSnapshot({
 	wzrdProjectId: string;
 	qcutProjectId: string;
 }): Promise<{ hydrated: boolean }> {
+	const isStale = () =>
+		useProjectStore.getState().activeProject?.id !== qcutProjectId;
+
 	try {
 		if (timelineHasContent()) {
+			markSnapshotHydrationDone(qcutProjectId);
 			return { hydrated: false };
 		}
 
@@ -83,11 +88,13 @@ export async function maybeHydrateFromSnapshot({
 			| null
 			| undefined;
 		if (!snapshot || snapshot.version !== 1) {
+			markSnapshotHydrationDone(qcutProjectId);
 			return { hydrated: false };
 		}
 
 		const tracks = snapshot.timeline?.tracks;
 		if (!Array.isArray(tracks)) {
+			markSnapshotHydrationDone(qcutProjectId);
 			return { hydrated: false };
 		}
 		const hasElements = tracks.some(
@@ -96,6 +103,13 @@ export async function maybeHydrateFromSnapshot({
 				((track as { elements: unknown[] }).elements.length ?? 0) > 0
 		);
 		if (!hasElements) {
+			markSnapshotHydrationDone(qcutProjectId);
+			return { hydrated: false };
+		}
+
+		// The user may have switched projects while the snapshot was fetched;
+		// the stores are global, so hydrating now would inject the wrong project.
+		if (isStale()) {
 			return { hydrated: false };
 		}
 
@@ -111,6 +125,9 @@ export async function maybeHydrateFromSnapshot({
 		const snapshotItems = snapshot.media?.mediaItems;
 		if (Array.isArray(snapshotItems)) {
 			for (const raw of snapshotItems as SnapshotMediaItem[]) {
+				if (isStale()) {
+					return { hydrated: false };
+				}
 				const id = typeof raw?.id === "string" ? raw.id : undefined;
 				if (!id || existingIds.has(id)) continue;
 
@@ -158,6 +175,9 @@ export async function maybeHydrateFromSnapshot({
 
 		// Persist the snapshot tracks locally, then load through the store so
 		// normalization and main-track guarantees apply.
+		if (isStale()) {
+			return { hydrated: false };
+		}
 		const activeProject = useProjectStore.getState().activeProject;
 		const sceneId =
 			useSceneStore.getState().currentScene?.id ??
@@ -172,6 +192,7 @@ export async function maybeHydrateFromSnapshot({
 			sceneId,
 		});
 
+		markSnapshotHydrationDone(qcutProjectId);
 		return { hydrated: true };
 	} catch (error) {
 		debugError("[WZRD/QCut] Snapshot hydration failed", error);

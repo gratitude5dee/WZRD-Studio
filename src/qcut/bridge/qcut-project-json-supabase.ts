@@ -2,10 +2,24 @@ import { supabase as typedSupabase } from "@/integrations/supabase/client";
 import { buildQcutSnapshotV1 } from "./qcut-snapshot";
 import {
 	getWzrdProjectContext,
+	isSnapshotHydrationDone,
+	isSnapshotHydrationPending,
 	updateLastKnownUpdatedAt,
 } from "./wzrd-project-context";
 
 const supabase = typedSupabase as any;
+
+function snapshotHasTimelineElements(snapshot: unknown): boolean {
+	const tracks = (
+		snapshot as { timeline?: { tracks?: unknown } } | null | undefined
+	)?.timeline?.tracks;
+	if (!Array.isArray(tracks)) return false;
+	return tracks.some(
+		(track) =>
+			Array.isArray((track as { elements?: unknown[] })?.elements) &&
+			(track as { elements: unknown[] }).elements.length > 0
+	);
+}
 
 /**
  * Persist the current QCut state snapshot into `projects.qcut_project_json`.
@@ -17,6 +31,12 @@ export async function writeQcutSnapshotToSupabase(qcutProjectId: string): Promis
 	const ctx = getWzrdProjectContext(qcutProjectId);
 	if (!ctx) {
 		// Not a WZRD-backed project (or bridge hasn't initialized yet).
+		return;
+	}
+
+	if (isSnapshotHydrationPending(qcutProjectId)) {
+		// The editor hasn't read the remote snapshot back yet; writing now would
+		// overwrite it with the still-empty local state.
 		return;
 	}
 
@@ -45,6 +65,25 @@ export async function writeQcutSnapshotToSupabase(qcutProjectId: string): Promis
 	};
 
 	try {
+		// Until the remote snapshot has been read back this session, never
+		// replace stored timeline content with an empty snapshot — an empty
+		// write during load would destroy the user's work. After hydration,
+		// empty writes are legitimate (the user cleared the timeline).
+		if (
+			!isSnapshotHydrationDone(qcutProjectId) &&
+			!snapshotHasTimelineElements(snapshot)
+		) {
+			const existing = await supabase
+				.from("projects")
+				.select("qcut_project_json")
+				.eq("id", wzrdProjectId)
+				.maybeSingle();
+			if (existing.error) throw existing.error;
+			if (snapshotHasTimelineElements(existing.data?.qcut_project_json)) {
+				return;
+			}
+		}
+
 		let { data, error } = await attemptUpdate(expectedUpdatedAt);
 		if (error) {
 			throw error;
