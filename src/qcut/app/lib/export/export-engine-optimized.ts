@@ -5,6 +5,7 @@ import type { MediaItem } from "@qcut-app/stores/media/media-store";
 import { handleExportError } from "@qcut-app/lib/debug/error-handler";
 import { TEST_MEDIA_ID } from "@qcut-app/constants/timeline-constants";
 import { stripMarkdownSyntax } from "@qcut-app/lib/markdown";
+import { renderTextElement } from "./export-engine-renderer";
 
 // Frame cache entry
 interface CachedFrame {
@@ -285,7 +286,7 @@ export class OptimizedExportEngine extends ExportEngine {
 
 		// Batch render text
 		if (textBatch.length > 0) {
-			this.renderTextBatch(textBatch, renderCtx);
+			this.renderTextBatch(textBatch, renderCtx, currentTime);
 		}
 
 		// Copy from offscreen canvas to main canvas if using offscreen
@@ -379,39 +380,14 @@ export class OptimizedExportEngine extends ExportEngine {
 	// Batch render text elements
 	private renderTextBatch(
 		textBatch: TimelineElement[],
-		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+		ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+		currentTime: number
 	): void {
-		// Group by similar styling to reduce context changes
-		const styleGroups = new Map<string, TimelineElement[]>();
-
+		// The shared renderer applies animation presets (opacity/scale/offset/
+		// typewriter), so exported text matches the preview.
 		for (const element of textBatch) {
 			if (element.type !== "text") continue;
-
-			const styleKey = `${element.fontFamily}-${element.fontSize}-${element.color}`;
-			if (!styleGroups.has(styleKey)) {
-				styleGroups.set(styleKey, []);
-			}
-			styleGroups.get(styleKey)!.push(element);
-		}
-
-		// Render each style group
-		for (const [styleKey, elements] of styleGroups) {
-			const firstElement = elements[0];
-			if (firstElement.type !== "text") continue;
-
-			// Set style once for the group
-			ctx.fillStyle = firstElement.color || "#ffffff";
-			ctx.font = `${firstElement.fontSize || 24}px ${firstElement.fontFamily || "Arial"}`;
-			ctx.textAlign = "left";
-			ctx.textBaseline = "top";
-
-			// Render all elements with this style
-			for (const element of elements) {
-				if (element.type !== "text" || !element.content?.trim()) continue;
-				const x = element.x || 50;
-				const y = element.y || 50;
-				ctx.fillText(element.content, x, y);
-			}
+			renderTextElement(ctx, element, currentTime - element.startTime);
 		}
 
 		for (const element of textBatch) {

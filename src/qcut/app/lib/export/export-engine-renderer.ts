@@ -564,7 +564,7 @@ export async function renderOverlayStickers(
 
 /** Render text element */
 export function renderTextElement(
-	ctx: CanvasRenderingContext2D,
+	ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
 	element: TimelineElement,
 	elementTime?: number
 ): void {
