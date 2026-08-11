@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import {
 	ExportFormat,
 	isValidGifFrameRate,
@@ -6,7 +6,12 @@ import {
 	GIF_SIZE_PRESETS,
 	GIF_FRAME_RATES,
 	DEFAULT_GIF_CONFIG,
+	getSupportedFormats,
 } from "../export";
+
+afterEach(() => {
+	vi.unstubAllGlobals();
+});
 
 describe("GIF export types", () => {
 	describe("ExportFormat", () => {
@@ -85,6 +90,18 @@ describe("GIF export types", () => {
 			expect(DEFAULT_GIF_CONFIG.loop).toBe(true);
 			expect(DEFAULT_GIF_CONFIG.sizePreset).toBe("medium");
 			expect(DEFAULT_GIF_CONFIG.quality).toBe(10);
+		});
+	});
+
+	describe("supported formats", () => {
+		it("offers WebM fallback alongside GIF when no video MIME is supported", () => {
+			vi.stubGlobal("MediaRecorder", {
+				isTypeSupported: vi.fn().mockReturnValue(false),
+			});
+
+			expect(getSupportedFormats()).toEqual(
+				expect.arrayContaining([ExportFormat.WEBM, ExportFormat.GIF])
+			);
 		});
 	});
 });

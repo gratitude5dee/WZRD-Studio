@@ -14,6 +14,9 @@ import {
 	QUALITY_RESOLUTIONS,
 	FORMAT_INFO,
 	EXPORT_PRESETS,
+	GIF_SIZE_PRESETS,
+	calculateGifDimensions,
+	type GifSizePreset,
 	type ExportPreset,
 } from "@qcut-app/types/export";
 
@@ -130,6 +133,9 @@ export interface GifOptionsCardProps {
 	onLoopChange: (loop: boolean) => void;
 	quality: number;
 	onQualityChange: (q: number) => void;
+	sizePreset: GifSizePreset;
+	onSizePresetChange: (preset: GifSizePreset) => void;
+	sourceDimensions: { width: number; height: number };
 	isExporting: boolean;
 }
 
@@ -498,7 +504,7 @@ export function DetailsCard({
 }
 
 // ---------------------------------------------------------------------------
-// GIF Options Card — frame rate, loop, quality
+// GIF Options Card — frame rate, loop, quality, and size
 // ---------------------------------------------------------------------------
 
 const GIF_FPS_OPTIONS = [15, 20, 25, 30] as const;
@@ -510,9 +516,18 @@ export function GifOptionsCard({
 	onLoopChange,
 	quality,
 	onQualityChange,
+	sizePreset,
+	onSizePresetChange,
+	sourceDimensions,
 	isExporting,
 }: GifOptionsCardProps) {
 	const [open, setOpen] = useState(true);
+	// WZRD-EDIT: show the actual output dimensions for the selected GIF preset.
+	const gifDimensions = calculateGifDimensions(
+		sourceDimensions.width,
+		sourceDimensions.height,
+		sizePreset
+	);
 
 	return (
 		<SettingRow
@@ -577,6 +592,37 @@ export function GifOptionsCard({
 					/>
 					<p className="text-[10px] text-muted-foreground">
 						Lower = better visual quality, slower encode
+					</p>
+				</div>
+
+				{/* Size */}
+				<div className="space-y-1.5">
+					<Label className="text-xs text-muted-foreground">Size</Label>
+					<RadioGroup
+						value={sizePreset}
+						onValueChange={(value) =>
+							onSizePresetChange(value as GifSizePreset)
+						}
+						className="flex flex-wrap gap-2"
+						disabled={isExporting}
+					>
+						{Object.entries(GIF_SIZE_PRESETS).map(([preset, info]) => (
+							<Label
+								key={preset}
+								className={cn(
+									"flex items-center gap-1.5 text-xs cursor-pointer px-2 py-1 rounded border transition-colors",
+									sizePreset === preset
+										? "border-primary bg-primary/5"
+										: "border-border/50 hover:bg-muted/40"
+								)}
+							>
+								<RadioGroupItem value={preset} className="sr-only" />
+								{info.label}
+							</Label>
+						))}
+					</RadioGroup>
+					<p className="text-[10px] text-muted-foreground">
+						Output: {gifDimensions.width}×{gifDimensions.height}
 					</p>
 				</div>
 			</div>

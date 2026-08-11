@@ -304,7 +304,9 @@ browser edits persist exactly like desktop ones.
   adapter regardless of the selected video engine, including in Electron. It samples the shared
   timeline renderer at the configured GIF frame rate, honors the GIF loop, quality, and size preset,
   and produces an `image/gif` blob with no audio. The dialog calls out that the engine selection and
-  audio setting do not apply to GIF. `gif.js` uses a Vite asset URL for
+  audio setting do not apply to GIF. GIF defaults to the Medium (720p-capped) size preset because
+  gif.js retains each `copy: true` frame until encoding, so full-resolution long GIFs can consume
+  substantial memory; users can select Medium, Large, or Original. `gif.js` uses a Vite asset URL for
   `gif.js/dist/gif.worker.js`, so the worker stays pinned to the installed package version. The
   production preview emitted and served the hashed worker asset with HTTP 200, and a real encode
   completed with an `image/gif` blob.
