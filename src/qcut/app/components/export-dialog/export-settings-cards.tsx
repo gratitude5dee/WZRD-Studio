@@ -101,6 +101,7 @@ export interface QualityCardProps {
 export interface EngineCardProps {
 	engineType: "standard" | "ffmpeg" | "cli" | "muxer";
 	webCodecsAvailable: boolean;
+	muxerAvailable: boolean;
 	ffmpegAvailable: boolean;
 	isElectron: boolean;
 	onEngineTypeChange: (type: "standard" | "ffmpeg" | "cli" | "muxer") => void;
@@ -318,6 +319,7 @@ const ENGINE_LABELS: Record<string, string> = {
 export function EngineCard({
 	engineType,
 	webCodecsAvailable,
+	muxerAvailable,
 	ffmpegAvailable,
 	isElectron,
 	onEngineTypeChange,
@@ -341,7 +343,7 @@ export function EngineCard({
 				}}
 				disabled={isExporting}
 			>
-				{webCodecsAvailable && (
+				{webCodecsAvailable && muxerAvailable && (
 					<div className="flex items-start space-x-2 py-1">
 						<RadioGroupItem value="muxer" id="muxer" className="mt-0.5" />
 						<Label

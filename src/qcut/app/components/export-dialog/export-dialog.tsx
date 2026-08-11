@@ -394,6 +394,7 @@ export function ExportDialog() {
 				<EngineCard
 					engineType={exportSettings.engineType}
 					webCodecsAvailable={exportSettings.webCodecsAvailable}
+					muxerAvailable={exportSettings.muxerAvailable}
 					ffmpegAvailable={exportSettings.ffmpegAvailable}
 					isElectron={isElectron()}
 					onEngineTypeChange={exportSettings.setEngineType}

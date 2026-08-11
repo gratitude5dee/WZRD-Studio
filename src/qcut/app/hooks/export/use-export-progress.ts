@@ -22,6 +22,33 @@ import { lockForExport, unlockFromExport } from "@qcut-app/lib/media/blob-manage
 import { saveExportedVideo } from "@qcut-app/lib/export/export-output";
 import { resolveExportFilename } from "@qcut-app/lib/export/export-filename";
 
+type EngineSelection = "auto" | "cli" | "ffmpeg" | "standard" | "muxer";
+
+// WZRD-EDIT: keep explicit muxer selection behind the same runtime verdict
+// used by the settings UI, protecting exports from stale async state.
+export async function resolveSelectedEngineType(
+	engineSelection: EngineSelection,
+	electron: boolean,
+	factory: Pick<ExportEngineFactory, "isMuxerUsable">,
+	engineTypes: {
+		STANDARD: ExportEngineType;
+		FFMPEG: ExportEngineType;
+		CLI: ExportEngineType;
+		MUXER: ExportEngineType;
+	}
+): Promise<ExportEngineType | undefined> {
+	if (electron || engineSelection === "auto") return undefined;
+	if (engineSelection === "cli") return engineTypes.CLI;
+	if (engineSelection === "ffmpeg") return engineTypes.FFMPEG;
+	if (engineSelection === "standard") return engineTypes.STANDARD;
+	if (await factory.isMuxerUsable()) return engineTypes.MUXER;
+
+	debugWarn(
+		"[ExportPanel] WebCodecs muxer is no longer usable; falling back to Standard"
+	);
+	return engineTypes.STANDARD;
+}
+
 export function useExportProgress() {
 	const { progress, updateProgress, setError, resetExport, addToHistory } =
 		useExportStore();
@@ -56,8 +83,6 @@ export function useExportProgress() {
 			}, 1000);
 		}
 	};
-
-	type EngineSelection = "auto" | "cli" | "ffmpeg" | "standard" | "muxer";
 
 	const handleExport = async (
 		canvas: HTMLCanvasElement,
@@ -118,22 +143,12 @@ export function useExportProgress() {
 				selectedEngineType = undefined; // Let factory decide
 			} else {
 				console.log("  🌐 Browser mode - using user selection");
-				if (exportSettings.engineType === "auto") {
-					console.log("    - Auto mode: letting factory decide");
-					selectedEngineType = undefined;
-				} else if (exportSettings.engineType === "cli") {
-					console.log("    - CLI mode selected");
-					selectedEngineType = ExportEngineType.CLI;
-				} else if (exportSettings.engineType === "ffmpeg") {
-					console.log("    - FFmpeg WASM mode selected");
-					selectedEngineType = ExportEngineType.FFMPEG;
-				} else if (exportSettings.engineType === "muxer") {
-					console.log("    - WebCodecs muxer mode selected");
-					selectedEngineType = ExportEngineType.MUXER;
-				} else {
-					console.log("    - Standard Canvas mode selected");
-					selectedEngineType = ExportEngineType.STANDARD;
-				}
+				selectedEngineType = await resolveSelectedEngineType(
+					exportSettings.engineType,
+					false,
+					factory,
+					ExportEngineType
+				);
 			}
 
 			debugLog("[ExportPanel] 🎬 Creating export engine with settings:", {
