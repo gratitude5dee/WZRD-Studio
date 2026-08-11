@@ -311,6 +311,10 @@ const exportSchema = z.object({
 	preset: z.enum(["1080p", "720p", "480p"]).default("720p"),
 	format: z.enum(["mp4", "mov", "gif"]).default("mp4"),
 	filename: z.string().optional(),
+	// WZRD-EDIT: expose the same validated engine choices as the export picker.
+	engineType: z
+		.enum(["auto", "standard", "ffmpeg", "cli", "muxer"])
+		.default("auto"),
 });
 
 async function executeLogged(
@@ -742,14 +746,15 @@ async function executeInternal(command: EditorCommandName, args: unknown): Promi
 						? parsed.filename.trim()
 						: `wzrd-export-${new Date().toISOString().replace(/[:.]/g, "-")}.${parsed.format}`;
 
-				// Fire-and-forget; status can be tracked via getExportStatus.
-				void (window as any).__exportActions.export({
+				// WZRD-EDIT: await the export so the result reports the engine that ran.
+				const execution = await (window as any).__exportActions.export({
 					quality: parsed.preset,
 					format: parsed.format,
 					filename,
+					engineType: parsed.engineType,
 				});
 
-				return ok({ started: true, filename });
+				return ok({ started: true, filename, ...execution });
 			}
 
 			case "getExportStatus": {

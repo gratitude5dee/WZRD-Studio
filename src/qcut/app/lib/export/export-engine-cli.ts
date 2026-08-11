@@ -85,6 +85,8 @@ export class CLIExportEngine extends ExportEngine {
 		effectsStore?: EffectsStore
 	) {
 		super(canvas, settings, tracks, mediaItems, totalDuration);
+		// WZRD-EDIT: identify CLI exports for agent API results.
+		this.actualEngineType = "cli";
 		this.effectsStore = effectsStore;
 		this.audioOptions = {
 			includeAudio: settings.includeAudio,

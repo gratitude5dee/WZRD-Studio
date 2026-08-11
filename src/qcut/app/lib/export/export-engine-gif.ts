@@ -56,6 +56,8 @@ export class GifTimelineExportEngine extends ExportEngine {
 			mediaItems,
 			totalDuration
 		);
+		// WZRD-EDIT: identify GIF exports for agent API results.
+		this.actualEngineType = "gif";
 
 		this.fps = gifConfig.frameRate;
 		this.gifEncoder = new GifExportEngine({

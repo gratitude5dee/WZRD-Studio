@@ -24,6 +24,16 @@ import { resolveExportFilename } from "@qcut-app/lib/export/export-filename";
 
 type EngineSelection = "auto" | "cli" | "ffmpeg" | "standard" | "muxer";
 
+// WZRD-EDIT: return the requested and actual engines to automation callers.
+export interface ExportExecutionResult {
+	success: boolean;
+	filename: string;
+	format: ExportFormat;
+	requestedEngineType: EngineSelection;
+	engineType?: ExportEngineType;
+	error?: string;
+}
+
 // WZRD-EDIT: keep explicit muxer selection behind the same runtime verdict
 // used by the settings UI, protecting exports from stale async state.
 export async function resolveSelectedEngineType(
@@ -111,6 +121,7 @@ export function useExportProgress() {
 		// This prevents ERR_FILE_NOT_FOUND errors when export takes longer than 10 minutes
 		lockForExport();
 
+		let actualEngineType: ExportEngineType | undefined;
 		try {
 			if (totalDuration === 0) {
 				debugWarn("[ExportPanel] ❌ cannot export: timeline duration is 0");
@@ -181,6 +192,7 @@ export function useExportProgress() {
 
 			// Store engine reference for cancellation
 			currentEngineRef.current = exportEngine;
+			actualEngineType = exportEngine.actualEngineType as ExportEngineType;
 
 			debugLog(
 				"[ExportPanel] 🚀 Starting export with engine:",
@@ -282,6 +294,14 @@ export function useExportProgress() {
 
 			// Clean up engine reference
 			currentEngineRef.current = null;
+
+			return {
+				success: true,
+				filename: savedFilename,
+				format: exportSettings.format,
+				requestedEngineType: exportSettings.engineType,
+				engineType: actualEngineType,
+			} satisfies ExportExecutionResult;
 		} catch (error: unknown) {
 			const message = error instanceof Error ? error.message : String(error);
 			debugError("[ExportPanel] Export failed:", message);
@@ -323,6 +343,15 @@ export function useExportProgress() {
 			toast.error("Export failed", {
 				description: message,
 			});
+
+			return {
+				success: false,
+				filename: exportSettings.filename,
+				format: exportSettings.format,
+				requestedEngineType: exportSettings.engineType,
+				engineType: actualEngineType,
+				error: message,
+			} satisfies ExportExecutionResult;
 		} finally {
 			// ALWAYS release the export lock, even on error
 			// This ensures blob URLs can be cleaned up after export completes/fails

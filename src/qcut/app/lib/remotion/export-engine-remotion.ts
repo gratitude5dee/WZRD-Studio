@@ -177,6 +177,8 @@ export class RemotionExportEngine extends ExportEngine {
 		remotionConfig?: Partial<RemotionExportConfig>
 	) {
 		super(canvas, settings, tracks, mediaItems, totalDuration);
+		// WZRD-EDIT: identify Remotion exports for agent API results.
+		this.actualEngineType = "remotion";
 
 		this.remotionConfig = {
 			...DEFAULT_REMOTION_EXPORT_CONFIG,
