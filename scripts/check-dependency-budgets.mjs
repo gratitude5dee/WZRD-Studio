@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
@@ -13,23 +12,48 @@ const BUNDLE_BUDGET_BYTES = 30 * 1024 * 1024;
 
 const failures = [];
 
-function findPackageCopies(pkg) {
-	const pattern = `*/node_modules/${pkg}/package.json`;
+// Walk a node_modules directory with plain fs calls (no shell) so a scan
+// failure surfaces as an error instead of silently passing the check.
+function collectPackageCopies(nodeModulesDir, pkg, copies) {
+	let entries;
 	try {
-		const out = execSync(
-			`find node_modules -path "${pattern}" -not -path "*/.bin/*" 2>/dev/null`,
-			{ encoding: "utf8" }
-		).trim();
-		const nested = out ? out.split("\n") : [];
-		const top = existsSync(`node_modules/${pkg}/package.json`)
-			? [`node_modules/${pkg}/package.json`]
-			: [];
-		return [...top, ...nested];
-	} catch {
-		return existsSync(`node_modules/${pkg}/package.json`)
-			? [`node_modules/${pkg}/package.json`]
-			: [];
+		entries = readdirSync(nodeModulesDir, { withFileTypes: true });
+	} catch (error) {
+		throw new Error(`cannot read ${nodeModulesDir}: ${error.message}`);
 	}
+	const packageDirs = [];
+	for (const entry of entries) {
+		if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
+		if (entry.name === ".bin" || entry.name === ".cache") continue;
+		const fullPath = path.join(nodeModulesDir, entry.name);
+		if (entry.name.startsWith("@")) {
+			for (const scoped of readdirSync(fullPath, { withFileTypes: true })) {
+				if (!scoped.isDirectory() || scoped.isSymbolicLink()) continue;
+				packageDirs.push({
+					name: `${entry.name}/${scoped.name}`,
+					dir: path.join(fullPath, scoped.name),
+				});
+			}
+		} else {
+			packageDirs.push({ name: entry.name, dir: fullPath });
+		}
+	}
+	for (const { name, dir } of packageDirs) {
+		const manifest = path.join(dir, "package.json");
+		if (name === pkg && existsSync(manifest)) {
+			copies.push(manifest);
+		}
+		const nested = path.join(dir, "node_modules");
+		if (existsSync(nested)) {
+			collectPackageCopies(nested, pkg, copies);
+		}
+	}
+}
+
+function findPackageCopies(pkg) {
+	const copies = [];
+	collectPackageCopies("node_modules", pkg, copies);
+	return copies;
 }
 
 function checkSingletons() {
