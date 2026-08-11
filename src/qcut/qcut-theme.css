@@ -14,7 +14,7 @@
 	color-scheme: dark;
 
 	/* Map QCut's shadcn-style CSS variables onto WZRD's dark chrome */
-	--background: 228 12% 5%;
+	--background: 228 14% 4%;
 	--foreground: 220 20% 95%;
 
 	--card: 228 12% 9%;
@@ -42,9 +42,11 @@
 	--input: 228 12% 12%;
 	--ring: 25 95% 53%;
 
-	/* QCut panel surfaces (media panel, timeline, properties, tab bar) */
-	--panel: 228 12% 7%;
-	--panel-accent: 228 12% 11%;
+	/* QCut panel surfaces (media panel, timeline, properties, tab bar).
+	 * One full surface step between them so the tab bar and toolbars read
+	 * as distinct strata, matching --surface-1/--surface-3 in the app. */
+	--panel: 228 12% 8%;
+	--panel-accent: 228 12% 13%;
 
 	--radius: 0.75rem;
 }
@@ -53,4 +55,100 @@
 .qcut-root {
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+	/* Timecodes, durations and frame counters line up like a broadcast deck */
+	font-variant-numeric: tabular-nums;
+}
+
+/*
+ * WZRD-EDIT (Phase 6 polish): editor chrome craft, all scoped to `.qcut-root`
+ * and purely visual — no layout, spacing or behavior changes.
+ */
+
+/* --- Panel depth ------------------------------------------------------- */
+/* Kanvas-style hairline (white-alpha) edge plus a faint top highlight so
+ * panels read as raised plates on the darker app canvas, the way the
+ * dither-kit charts cap their fills with a soft outline. */
+.qcut-root .bg-panel {
+	box-shadow:
+		inset 0 1px 0 hsl(0 0% 100% / 0.04),
+		0 0 0 1px hsl(0 0% 100% / 0.05);
+}
+
+/* The dither-kit texture cue: an ordered 2px micro-checker at whisper alpha
+ * gives panel surfaces the tactile grain of the rest of WZRD without an
+ * image asset. Backgrounds only — content sits above it untouched. */
+.qcut-root .bg-panel,
+.qcut-root .bg-panel-accent {
+	background-image: repeating-conic-gradient(
+		hsl(0 0% 100% / 0.012) 0% 25%,
+		transparent 0% 50%
+	);
+	background-size: 4px 4px;
+}
+
+/* --- Accent & interaction --------------------------------------------- */
+/* Ember glow on primary actions — the same lift dither-kit buttons do on
+ * hover, expressed as a soft bloom rather than a color jump. */
+.qcut-root .bg-primary {
+	box-shadow: 0 0 14px hsl(var(--primary) / 0.22);
+}
+.qcut-root .bg-primary:hover {
+	box-shadow: 0 0 20px hsl(var(--primary) / 0.35);
+}
+
+/* Text selection inside the editor picks up the brand ember */
+.qcut-root ::selection {
+	background: hsl(var(--primary) / 0.3);
+}
+
+/* --- Legacy QCut yellow → WZRD ember ----------------------------------- */
+/* The vendored tree hardcodes QCut's old `yellow-500` brand on primary
+ * actions (header Export, nano-edit CTAs, spinner). Remap those utilities
+ * to the ember primary inside the editor scope so one accent runs through
+ * the whole surface. Warning alerts keep their softer amber tints. */
+.qcut-root .bg-yellow-500 {
+	background-color: hsl(var(--primary));
+}
+.qcut-root .hover\:bg-yellow-400:hover {
+	background-color: hsl(25 95% 60%);
+}
+.qcut-root .text-yellow-500 {
+	color: hsl(38 92% 55%); /* WZRD amber for warning/status glyphs */
+}
+.qcut-root .shadow-yellow-500\/20 {
+	--tw-shadow-color: hsl(var(--primary) / 0.2);
+}
+.qcut-root .focus\:ring-yellow-500:focus {
+	--tw-ring-color: hsl(var(--primary));
+}
+.qcut-root .focus\:border-yellow-500:focus {
+	border-color: hsl(var(--primary));
+}
+
+/* --- Scrollbars --------------------------------------------------------- */
+/* Thin, rounded, track-less — matches the Kanvas rails instead of the
+ * chunky native chrome. */
+.qcut-root ::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+.qcut-root ::-webkit-scrollbar-track {
+	background: transparent;
+}
+.qcut-root ::-webkit-scrollbar-thumb {
+	background: hsl(228 10% 24%);
+	border-radius: 9999px;
+	border: 2px solid transparent;
+	background-clip: content-box;
+}
+.qcut-root ::-webkit-scrollbar-thumb:hover {
+	background: hsl(228 10% 32%);
+	background-clip: content-box;
+}
+.qcut-root ::-webkit-scrollbar-corner {
+	background: transparent;
+}
+.qcut-root * {
+	scrollbar-width: thin;
+	scrollbar-color: hsl(228 10% 24%) transparent;
 }
