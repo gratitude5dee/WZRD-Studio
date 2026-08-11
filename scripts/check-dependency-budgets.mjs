@@ -23,8 +23,9 @@ const failures = [];
 function isDirectory(fullPath) {
 	try {
 		return statSync(fullPath).isDirectory();
-	} catch {
-		return false; // dangling symlink
+	} catch (error) {
+		if (error.code === "ENOENT" || error.code === "ELOOP") return false; // dangling/cyclic symlink
+		throw new Error(`cannot stat ${fullPath}: ${error.message}`);
 	}
 }
 
