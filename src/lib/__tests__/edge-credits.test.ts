@@ -94,6 +94,54 @@ describe('edge credits shared helper', () => {
     )).toBe(100);
   });
 
+  it('computes per-second rates from suffixed duration strings', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_second', usd: 0.4 },
+      undefined,
+      undefined,
+      { duration: '8s' },
+    )).toBe(320);
+    expect(getCatalogCreditCost(
+      { unit: 'per_second', usd: 0.4 },
+      undefined,
+      undefined,
+      { duration: '5s' },
+    )).toBe(200);
+    expect(getCatalogCreditCost(
+      { unit: 'per_second', usd: 0.4 },
+      undefined,
+      undefined,
+      { duration: '4.5s' },
+    )).toBe(180);
+  });
+
+  it('keeps numeric duration quantities working', () => {
+    expect(getCatalogCreditCost(
+      { unit: 'per_second', usd: 0.4 },
+      undefined,
+      undefined,
+      { duration: 2.5 },
+    )).toBe(100);
+  });
+
+  it('refuses junk duration strings', () => {
+    expect(() => getCatalogCreditCost(
+      { unit: 'per_second', usd: 0.4 },
+      undefined,
+      undefined,
+      { duration: 'eight seconds' },
+    )).toThrow('request quantity could not be determined');
+  });
+
+  it('does not parse suffixed strings for non-duration quantities', () => {
+    expect(() => getCatalogCreditCost(
+      { unit: 'per_image', usd: 0.05 },
+      undefined,
+      undefined,
+      { num_images: '8s' },
+    )).toThrow('request quantity could not be determined');
+  });
+
   it('computes per-minute rates from duration in seconds', () => {
     expect(getCatalogCreditCost(
       { unit: 'per_minute', usd: 0.6 },
