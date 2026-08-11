@@ -233,7 +233,7 @@ export function getCatalogRateQuantity(
 ): number | undefined {
   switch (unit) {
     case 'per_image':
-      return getFiniteInputNumber(inputs, ['num_images']);
+      return getFiniteInputNumber(inputs, ['max_images', 'num_images']);
     case 'per_second':
     case 'per_minute': {
       const duration = getFiniteInputNumber(inputs, ['duration', 'duration_seconds', 'durationSeconds']);
