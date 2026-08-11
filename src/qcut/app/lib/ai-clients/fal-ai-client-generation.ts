@@ -1,3 +1,5 @@
+import { platform } from "@qcut/platform-core";
+import { executeFalStream } from "@/services/unifiedGenerationService";
 import {
 	TEXT2IMAGE_MODELS,
 	type Text2ImageModel,
@@ -305,6 +307,39 @@ export function convertSettingsToParams(
 	return params;
 }
 
+const FAL_ENDPOINT_PATTERN = /^https:\/\/(?:queue\.)?fal\.run\/(.+)$/;
+
+/** Extract the Fal model id from a `fal.run` endpoint URL. */
+export function falModelIdFromEndpoint(endpoint: string): string | undefined {
+	return FAL_ENDPOINT_PATTERN.exec(endpoint)?.[1];
+}
+
+function shouldUseBrowserFalStream(model: Text2ImageModel): boolean {
+	if (falModelIdFromEndpoint(model.endpoint) === undefined) return false;
+	try {
+		return !platform().isElectron;
+	} catch {
+		return false;
+	}
+}
+
+async function generateBrowserImage(
+	model: Text2ImageModel,
+	params: Record<string, unknown>
+): Promise<FalImageResponse> {
+	const modelId = falModelIdFromEndpoint(model.endpoint);
+	if (!modelId) {
+		throw new Error(`Model endpoint is not a Fal endpoint: ${model.endpoint}`);
+	}
+	const { result } = await executeFalStream(
+		modelId,
+		params,
+		undefined,
+		"catalog-strict"
+	);
+	return result as FalImageResponse;
+}
+
 /** Generate an image using the specified model and settings. */
 export async function generateWithModel(
 	delegate: FalAIClientRequestDelegate,
@@ -328,11 +363,11 @@ export async function generateWithModel(
 			params,
 		});
 
-		const response = await delegate.makeRequest<FalImageResponse>(
-			model.endpoint,
-			params,
-			{ modelKey }
-		);
+		const response = shouldUseBrowserFalStream(model)
+			? await generateBrowserImage(model, params)
+			: await delegate.makeRequest<FalImageResponse>(model.endpoint, params, {
+					modelKey,
+				});
 
 		let image: { url: string; width: number; height: number };
 

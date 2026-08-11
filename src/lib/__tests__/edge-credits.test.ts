@@ -37,6 +37,46 @@ describe('edge credits shared helper', () => {
     expect(resolution.fallbackUsed).toBe(false);
   });
 
+  it.each([
+    'fal-ai/bytedance/seedream/v3/text-to-image',
+    'fal-ai/bytedance/seedream/v4/text-to-image',
+    'fal-ai/bytedance/seedream/v4.5/text-to-image',
+    'fal-ai/flux-2-flex',
+    'fal-ai/imagen4/preview/ultra',
+    'fal-ai/nano-banana',
+    'openai/gpt-image-2',
+    'fal-ai/gpt-image-1.5',
+    'fal-ai/wan/v2.7/text-to-image',
+    'fal-ai/wan/v2.7/pro/text-to-image',
+    'fal-ai/wan/v2.7/edit',
+    'fal-ai/wan/v2.7/pro/edit',
+    'fal-ai/qwen-image',
+    'fal-ai/reve/text-to-image',
+    'fal-ai/z-image/turbo',
+    'fal-ai/phota',
+  ])('resolves editor image endpoint %s directly without fallback', (modelId) => {
+    const resolution = resolveFalModelOrFallback(modelId, {
+      mediaTypeHint: inferFalMediaType(modelId),
+      uiGroup: 'generation',
+    });
+
+    expect(resolution.model.id).toBe(modelId);
+    expect(resolution.fallbackUsed).toBe(false);
+  });
+
+  it('prices a canonical image model from its image count in strict mode', () => {
+    expect(getGenerationCreditCost({
+      pricingMode: 'catalog-strict',
+      catalogModel: {
+        pricing: { unit: 'per_image', usd: 0.06 },
+        pricingText: '$0.06 / per image USD',
+      },
+      modelId: 'fal-ai/qwen-image',
+      resourceType: 'image',
+      inputs: { prompt: 'a fox', num_images: 1 },
+    })).toBe(6);
+  });
+
   it('keeps the explicit non-strict audio default despite generation TTS entries', () => {
     expect(getDefaultFalModelForMedia('audio', 'generation').id)
       .toBe('fal-ai/ffmpeg-api/merge-audios');
