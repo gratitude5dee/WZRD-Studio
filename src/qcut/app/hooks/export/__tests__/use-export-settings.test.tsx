@@ -37,8 +37,13 @@ vi.mock("@qcut/platform-core", () => ({
 }));
 
 vi.mock("@qcut-app/lib/debug/debug-config", () => ({
-  debugLog: vi.fn(),
-  debugWarn: vi.fn(),
+	debugLog: vi.fn(),
+	debugWarn: vi.fn(),
+}));
+vi.mock("sonner", () => ({
+	toast: {
+		warning: vi.fn(),
+	},
 }));
 
 vi.mock("@qcut-app/lib/export/export-engine-factory", () => ({
@@ -70,6 +75,7 @@ vi.mock("@qcut-app/types/export", async () => {
 });
 
 import { useExportSettings } from "../use-export-settings";
+import { toast } from "sonner";
 
 describe("useExportSettings muxer verdict", () => {
   beforeEach(() => {
@@ -85,6 +91,7 @@ describe("useExportSettings muxer verdict", () => {
 
     await waitFor(() => expect(result.current.muxerAvailable).toBe(false));
     expect(result.current.engineType).toBe("standard");
+    expect(toast.warning).toHaveBeenCalledOnce();
   });
 
   it("keeps muxer defaulted and visible when the probe succeeds", async () => {
@@ -94,15 +101,30 @@ describe("useExportSettings muxer verdict", () => {
     expect(result.current.engineType).toBe("muxer");
   });
 
-  it("preserves an explicit engine selection after the async verdict", async () => {
+  it("resets an explicit muxer selection after a negative verdict", async () => {
     mocks.usable = false;
     const { result } = renderHook(() => useExportSettings());
 
     act(() => {
-      result.current.setEngineType("standard");
+      result.current.setEngineType("muxer");
     });
 
     await waitFor(() => expect(result.current.muxerAvailable).toBe(false));
     expect(result.current.engineType).toBe("standard");
   });
+
+  it.each(["standard", "ffmpeg"] as const)(
+    "preserves an explicit %s selection after the async verdict",
+    async (selection) => {
+      mocks.usable = false;
+      const { result } = renderHook(() => useExportSettings());
+
+      act(() => {
+        result.current.setEngineType(selection);
+      });
+
+      await waitFor(() => expect(result.current.muxerAvailable).toBe(false));
+      expect(result.current.engineType).toBe(selection);
+    },
+  );
 });
