@@ -183,3 +183,95 @@ imported on the server.
 
 Not a defect, but relevant to the Phase 5 bundle budget: the route mounts the entire Vite SPA shell,
 not just the editor.
+
+## Phase 2 — browser render and export
+
+Phase 2 fixes the Phase 1 findings on the currently vendored code (no re-vendor yet). What changed
+and why, in the order of the ranked root causes above:
+
+### 1. Codec negotiation instead of a hard-coded MP4/AAC pipeline
+
+`ExportEngineMuxer` now negotiates a container and codecs against the browser before it builds the
+output, using mediabunny's `getFirstEncodableVideoCodec` / `getFirstEncodableAudioCodec`:
+
+- MP4 is tried first, with whatever video codec of `Mp4OutputFormat.getSupportedVideoCodecs()` the
+  browser can actually encode at the export resolution and bitrate;
+- WebM is the fallback container when no MP4 video codec is encodable (Firefox without H.264);
+- audio is probed **only when the timeline actually has audio**. A container is preferred only if it
+  can carry both tracks, so a timeline with sound on a browser without AAC exports as WebM/Opus
+  rather than a silent MP4;
+- if *no* container can encode the audio, the most preferred video-capable container is used and the
+  export continues video-only with a progress message rather than rejecting. That rejection is the
+  specific bug that made every Chromium-on-Linux export fail with `mp4a.40.2 … is not supported`.
+
+The chosen plan is exposed as `engine.encodingPlan` (`{container, mimeType, fileExtension,
+videoCodec, audioCodec}`) and the blob is built with `plan.mimeType`, so the fallback is visible
+rather than implied. If neither container is encodable the error names the resolution instead of the
+codec string.
+
+`ExportEngine.downloadVideo` derives the extension from the blob's MIME type, not from the requested
+format, so a WebM fallback is saved as `.webm`. MOV keeps its label because MOV and MP4 share a MIME
+type and only a genuine mismatch rewrites the extension.
+
+### 2. FFmpeg WASM fallback: budget and isolation
+
+The browser load budget is now a flat 180 s with 5 s progress logging, and the timeout message says
+what is slow (fetching and compiling a ~32 MB core). The old budget branched on
+`hasSharedArrayBuffer` and gave the *shorter* 60 s to the isolated path — which is exactly the path
+Firefox took when it timed out.
+
+`getFfmpegWasmFallbackState()` no longer requires cross-origin isolation by default. The self-hosted
+core is single-threaded, so isolation was gating a capability it does not need; callers that ship a
+multi-threaded core can still pass `requireCrossOriginIsolation: true`.
+
+### 3. COOP/COEP posture: `require-corp` removed
+
+`next.config.ts` keeps `Cross-Origin-Opener-Policy: same-origin` on the editor routes and drops
+`Cross-Origin-Embedder-Policy: require-corp`. Evidence for the decision:
+
+- `public/ffmpeg/ffmpeg-core.js` has zero `SharedArrayBuffer` / `pthread` references — single
+  threaded, no shared memory, no isolation requirement;
+- the WebCodecs/mediabunny path never needed isolation;
+- `require-corp` blocked every third-party media element, font and provider asset that does not send
+  CORP (measured in both Chromium and Firefox in Phase 1).
+
+So isolation cost every remote asset and bought nothing. `credentialless` was not needed: with COEP
+gone there is nothing left to relax. Should a multi-threaded core ever be adopted, this decision
+reverses and the fallback must opt back in via `requireCrossOriginIsolation`.
+
+### 4. Media import downloads real bytes
+
+`importMediaByUrl` fetches the URL into a real `File` instead of registering a zero-byte placeholder
+— directly first, then through `platform.mediaImport.cacheRemoteMedia` (which the Vercel adapter
+routes to `/api/media/proxy`) for origins without CORS. The resulting object URL is same-origin, so
+drawing the frame during export does not taint the canvas. An unreachable URL still lands on the
+timeline as a placeholder, but now warns instead of silently exporting a blank frame.
+
+### 5. Storage: IndexedDB with quota errors and persistence
+
+`createVercelAdapter()` replaces the localStorage-backed `platform.storage` with
+`src/qcut/platform/vercel/storage.ts`: an IndexedDB key-value store that migrates existing `qcut:`
+localStorage entries once (skipping keys IndexedDB already owns, so a value written this session
+wins), raises a typed `StorageQuotaError` with an actionable message instead of returning `false`,
+and requests `navigator.storage.persist()` on adapter creation.
+
+Note that QCut's own `StorageService` (projects, media blobs, timelines) was already on
+IndexedDB + OPFS; `platform.storage` is the smaller preferences/state surface that was still capped
+at ~5 MB.
+
+### 6. `projectJson.write` is no longer a silent null
+
+The Vercel adapter implements `projectJson.write` with the same
+`writeQcutSnapshotToSupabase` used by the desktop adapter — it is plain PostgREST against
+`projects.qcut_project_json`, with the existing `updated_at` optimistic-concurrency guard, so
+browser edits persist exactly like desktop ones.
+
+### Still open after Phase 2
+
+- **Firefox never activates a project** (`getProjectState` returns `project: null`) — under
+  investigation; it blocks the Firefox half of the export matrix.
+- **Render offload polling.** `exportVideoCLI` still queues a `web_render_jobs` row and returns
+  `success: false`; the client-side export path is now the supported one.
+- **Safari** remains unverified (Playwright WebKit crashes on this VM's GStreamer).
+- The additive project-snapshot migration and the remaining adapter overrides (fal, transcription,
+  license/credits) are still to come.
