@@ -5,6 +5,7 @@ import { VideoPlayer } from "@qcut-app/components/ui/video-player";
 import { TEST_MEDIA_ID } from "@qcut-app/constants/timeline-constants";
 import { FONT_CLASS_MAP } from "@qcut-app/lib/font-config";
 import { getTextAnimationState } from "@qcut-app/lib/text/text-animation";
+import { useLivePlaybackTime } from "@qcut-app/hooks/use-live-playback-time";
 import type { VideoSource } from "@qcut-app/lib/media/media-source";
 import type { TextElementDragState } from "@qcut-app/types/editor";
 import type { TProject } from "@qcut-app/types/project";
@@ -166,6 +167,9 @@ export function PreviewElementRenderer({
 	onElementSelect,
 	onElementResize,
 }: PreviewElementRendererProps): React.ReactNode {
+	// Text animations need per-frame time; the store's currentTime is frozen
+	// while playing (playback dispatches playback-update events instead).
+	const liveTime = useLivePlaybackTime();
 	try {
 		const { element, mediaItem } = elementData;
 		const elementKey = `${element.id}-${elementData.track.id}`;
@@ -177,7 +181,7 @@ export function PreviewElementRenderer({
 			const scaleRatio = previewDimensions.width / canvasSize.width;
 			const animationState = getTextAnimationState(
 				element.animation,
-				currentTime - element.startTime,
+				liveTime - element.startTime,
 				element.duration - element.trimStart - element.trimEnd,
 				element.content.length
 			);
@@ -211,7 +215,7 @@ export function PreviewElementRenderer({
 					style={{
 						left: `${50 + (displayX / canvasSize.width) * 100}%`,
 						top: `${50 + (displayY / canvasSize.height) * 100}%`,
-						transform: `translate(-50%, -50%) translate(${animationState.offsetX}px, ${animationState.offsetY}px) rotate(${element.rotation}deg) scale(${scaleRatio * animationState.scale})`,
+						transform: `translate(-50%, -50%) translate(${animationState.offsetX * scaleRatio}px, ${animationState.offsetY * scaleRatio}px) rotate(${element.rotation}deg) scale(${scaleRatio * animationState.scale})`,
 						opacity: element.opacity * animationState.opacity,
 						zIndex: 100 + index,
 					}}
