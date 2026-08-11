@@ -596,16 +596,21 @@ export function renderTextElement(
 
 	ctx.save();
 	ctx.globalAlpha *= animationState.opacity;
-	if (animationState.scale !== 1) {
-		ctx.translate(x, y);
-		ctx.scale(animationState.scale, animationState.scale);
-		ctx.translate(-x, -y);
-	}
 
 	ctx.fillStyle = element.color || "#ffffff";
 	ctx.font = `${element.fontSize || 24}px ${element.fontFamily || "Arial"}`;
 	ctx.textAlign = "left";
 	ctx.textBaseline = "top";
+
+	if (animationState.scale !== 1) {
+		// Scale about the visual center of the text so the exported motion
+		// matches the preview, whose CSS transform origin is the text center.
+		const centerX = x + ctx.measureText(content).width / 2;
+		const centerY = y + (element.fontSize || 24) / 2;
+		ctx.translate(centerX, centerY);
+		ctx.scale(animationState.scale, animationState.scale);
+		ctx.translate(-centerX, -centerY);
+	}
 
 	ctx.fillText(content, x, y);
 	ctx.restore();
