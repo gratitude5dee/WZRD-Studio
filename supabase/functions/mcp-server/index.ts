@@ -62,7 +62,11 @@ const tools: Tool[] = [
     },
     handler: async (args) => {
       const sb = svc();
-      let q = sb.from('ai_model_catalog').select('id,name,provider,media_type,credits,pricing_text,description').eq('enabled', true);
+      let q = sb
+        .from('ai_model_catalog')
+        .select('id,name,provider,media_type,credits,pricing_text,description')
+        .eq('enabled', true)
+        .or('pricing->>editor_only.is.null,pricing->>editor_only.neq.true');
       if (typeof args.mediaType === 'string') q = q.eq('media_type', args.mediaType);
       if (typeof args.provider === 'string') q = q.eq('provider', args.provider);
       const { data, error } = await q.order('sort_rank', { ascending: true }).limit(200);
