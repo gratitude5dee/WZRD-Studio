@@ -24,7 +24,6 @@ export const TEXT2IMAGE_MODELS: Record<string, Text2ImageModel> = {
 // so exposing it in the picker would produce confusing auth/URL failures.
 export const TEXT2IMAGE_MODEL_ORDER = [
 	"gpt-image-2-fal",
-	"gemini-3-pro",
 	"gpt-image-1-5",
 	"phota",
 	"nano-banana",
@@ -35,7 +34,6 @@ export const TEXT2IMAGE_MODEL_ORDER = [
 	"wan-v2-7-pro-t2i",
 	"seeddream-v4",
 	"reve-text-to-image",
-	"wan-v2-2",
 	"imagen4-ultra",
 	"qwen-image",
 	"flux-pro-v11-ultra",
