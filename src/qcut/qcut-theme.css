@@ -67,8 +67,12 @@
 /* --- Panel depth ------------------------------------------------------- */
 /* Kanvas-style hairline (white-alpha) edge plus a faint top highlight so
  * panels read as raised plates on the darker app canvas, the way the
- * dither-kit charts cap their fills with a soft outline. */
-.qcut-root .bg-panel {
+ * dither-kit charts cap their fills with a soft outline. Only the rounded
+ * top-level panel containers get the edge — interior strips that share the
+ * panel background (timeline header row, media search header) must not
+ * draw boxes inside the plate. */
+.qcut-root .bg-panel.rounded-lg,
+.qcut-root .bg-panel.rounded-sm {
 	box-shadow:
 		inset 0 1px 0 hsl(0 0% 100% / 0.04),
 		0 0 0 1px hsl(0 0% 100% / 0.05);
@@ -88,11 +92,13 @@
 
 /* --- Accent & interaction --------------------------------------------- */
 /* Ember glow on primary actions — the same lift dither-kit buttons do on
- * hover, expressed as a soft bloom rather than a color jump. */
-.qcut-root .bg-primary {
+ * hover, expressed as a soft bloom rather than a color jump. Buttons only:
+ * the playhead line, drag handles and cache strips also paint bg-primary
+ * and must stay crisp. */
+.qcut-root button.bg-primary {
 	box-shadow: 0 0 14px hsl(var(--primary) / 0.22);
 }
-.qcut-root .bg-primary:hover {
+.qcut-root button.bg-primary:hover {
 	box-shadow: 0 0 20px hsl(var(--primary) / 0.35);
 }
 
@@ -103,13 +109,14 @@
 
 /* --- Legacy QCut yellow → WZRD ember ----------------------------------- */
 /* The vendored tree hardcodes QCut's old `yellow-500` brand on primary
- * actions (header Export, nano-edit CTAs, spinner). Remap those utilities
- * to the ember primary inside the editor scope so one accent runs through
- * the whole surface. Warning alerts keep their softer amber tints. */
-.qcut-root .bg-yellow-500 {
+ * actions (header Export, nano-edit CTAs). Those CTAs all pair the fill
+ * with `text-black`, so keying on that pair remaps only the brand buttons
+ * — yellow status dots, progress phases and warning tints keep their
+ * semantic color. */
+.qcut-root .bg-yellow-500.text-black {
 	background-color: hsl(var(--primary));
 }
-.qcut-root .hover\:bg-yellow-400:hover {
+.qcut-root .hover\:bg-yellow-400.text-black:hover {
 	background-color: hsl(25 95% 60%);
 }
 .qcut-root .text-yellow-500 {
