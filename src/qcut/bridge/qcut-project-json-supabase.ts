@@ -116,11 +116,13 @@ export async function writeQcutSnapshotToSupabase(qcutProjectId: string): Promis
 			updateLastKnownUpdatedAt(qcutProjectId, updatedAt);
 		}
 
-		if (data && data.length > 0) {
+		if (data && data.length > 0 && !isSnapshotHydrationPending(qcutProjectId)) {
 			// A snapshot write was confirmed to match a row, so the local state
 			// is now the stored lineage (or the remote was verified empty); a
 			// later empty write is an intentional clear even if the initial
-			// hydration read never succeeded.
+			// hydration read never succeeded. If the project re-entered the
+			// load path while this write was in flight, the pending gate must
+			// stay armed until that hydration reads the snapshot back.
 			markSnapshotHydrationDone(qcutProjectId);
 		}
 	} catch (err) {
