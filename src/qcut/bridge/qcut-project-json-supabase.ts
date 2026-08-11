@@ -4,6 +4,7 @@ import {
 	getWzrdProjectContext,
 	isSnapshotHydrationDone,
 	isSnapshotHydrationPending,
+	markSnapshotHydrationDone,
 	updateLastKnownUpdatedAt,
 } from "./wzrd-project-context";
 
@@ -64,15 +65,19 @@ export async function writeQcutSnapshotToSupabase(qcutProjectId: string): Promis
 		return await query;
 	};
 
+	const snapshotHasElements = snapshotHasTimelineElements(snapshot);
+
 	try {
 		// Until the remote snapshot has been read back this session, never
 		// replace stored timeline content with an empty snapshot — an empty
-		// write during load would destroy the user's work. After hydration,
-		// empty writes are legitimate (the user cleared the timeline).
-		if (
-			!isSnapshotHydrationDone(qcutProjectId) &&
-			!snapshotHasTimelineElements(snapshot)
-		) {
+		// write during load would destroy the user's work. After hydration
+		// (or once a non-empty snapshot has been written this session, which
+		// makes the local state the authoritative lineage), empty writes are
+		// legitimate: the user cleared the timeline. If the verification read
+		// itself fails we keep refusing — an unverifiable empty write is not
+		// worth risking the stored timeline over; the debounced autosave will
+		// retry on the next change.
+		if (!isSnapshotHydrationDone(qcutProjectId) && !snapshotHasElements) {
 			const existing = await supabase
 				.from("projects")
 				.select("qcut_project_json")
@@ -82,6 +87,7 @@ export async function writeQcutSnapshotToSupabase(qcutProjectId: string): Promis
 			if (snapshotHasTimelineElements(existing.data?.qcut_project_json)) {
 				return;
 			}
+			// Remote is empty too, so this empty write can't destroy anything.
 		}
 
 		let { data, error } = await attemptUpdate(expectedUpdatedAt);
@@ -108,6 +114,14 @@ export async function writeQcutSnapshotToSupabase(qcutProjectId: string): Promis
 		const updatedAt = data?.[0]?.updated_at;
 		if (typeof updatedAt === "string") {
 			updateLastKnownUpdatedAt(qcutProjectId, updatedAt);
+		}
+
+		if (data && data.length > 0) {
+			// A snapshot write was confirmed to match a row, so the local state
+			// is now the stored lineage (or the remote was verified empty); a
+			// later empty write is an intentional clear even if the initial
+			// hydration read never succeeded.
+			markSnapshotHydrationDone(qcutProjectId);
 		}
 	} catch (err) {
 		// Best-effort logging (avoid crashing the editor)
