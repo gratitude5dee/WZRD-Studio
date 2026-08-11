@@ -9,6 +9,7 @@ import {
   normalizeWzrdProviderConfig,
   validateWzrdBlueprintContract,
 } from '../_shared/wzrdAgentContract.ts';
+import { filterWorkflowCatalogRows } from '../_shared/editor-only-catalog.ts';
 
 type WorkflowMode = 'legacy' | 'plan' | 'materialize' | 'repair' | 'health';
 
@@ -465,14 +466,16 @@ function legacyBlueprint(prompt: string, settings?: WorkflowSettings): WorkflowB
 async function fetchEnabledModelIds(supabaseAdmin: any) {
   const { data, error } = await supabaseAdmin
     .from('ai_model_catalog')
-    .select('id, endpoint_id, enabled')
+    .select('id, endpoint_id, enabled, pricing')
     .eq('enabled', true);
   if (error) {
     safeLog('warn', 'wzrd.model_catalog.load_failed', { error });
     return new Set<string>();
   }
   const ids = new Set<string>();
-  for (const model of (data ?? []) as Array<{ id?: unknown; endpoint_id?: unknown }>) {
+  for (const model of filterWorkflowCatalogRows(
+    (data ?? []) as Array<{ id?: unknown; endpoint_id?: unknown; pricing?: unknown }>,
+  )) {
     if (typeof model.id === 'string') ids.add(model.id);
     if (typeof model.endpoint_id === 'string') ids.add(model.endpoint_id);
   }
