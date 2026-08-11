@@ -4,6 +4,7 @@ import {
   getCatalogCreditCost,
   getCreditCostForModel,
   getGenerationCreditCost,
+  getGenerationReservationAmount,
   InsufficientCreditsError,
   reserveCredits,
   shouldSkipCreditBilling,
@@ -26,7 +27,7 @@ describe('edge credits shared helper', () => {
   it('only applies the strict guard when the call opts into catalog pricing', () => {
     expect(() => getGenerationCreditCost({
       pricingMode: 'catalog-strict',
-      pricing: {},
+      catalogModel: { pricing: {} },
       modelId: 'gmi/unknown-free-model',
       resourceType: 'text',
     })).toThrow(UnpricedModelError);
@@ -43,9 +44,11 @@ describe('edge credits shared helper', () => {
     expect(getCatalogCreditCost({}, 8, '$0.08 / images USD (partner)')).toBe(8);
     expect(getGenerationCreditCost({
       pricingMode: 'catalog-strict',
-      pricing: { raw: '2 credits', credits: 2 },
-      credits: 2,
-      pricingText: '2 credits',
+      catalogModel: {
+        pricing: { raw: '2 credits', credits: 2 },
+        credits: 2,
+        pricingText: '2 credits',
+      },
       modelId: 'fal-ai/flux/schnell',
       resourceType: 'image',
     })).toBe(2);
@@ -72,7 +75,7 @@ describe('edge credits shared helper', () => {
   it('uses the resolved model price for an alias request', () => {
     expect(getGenerationCreditCost({
       pricingMode: 'catalog-strict',
-      pricing: { unit: 'per_request', usd: 0.08 },
+      catalogModel: { pricing: { unit: 'per_request', usd: 0.08 } },
       modelId: 'fal-ai/nano-banana-2',
       resourceType: 'image',
     })).toBe(8);
@@ -81,17 +84,25 @@ describe('edge credits shared helper', () => {
   it('does not require an unpriced fallback to reserve a priced primary', () => {
     const primaryCost = getGenerationCreditCost({
       pricingMode: 'catalog-strict',
-      pricing: { unit: 'per_request', usd: 0.2 },
+      catalogModel: { pricing: { unit: 'per_request', usd: 0.2 } },
       modelId: 'fal-ai/nano-banana-2',
       resourceType: 'image',
     });
     expect(primaryCost).toBe(20);
     expect(() => getGenerationCreditCost({
       pricingMode: 'catalog-strict',
-      pricing: {},
+      catalogModel: { pricing: {} },
       modelId: 'fal-ai/unknown-fallback',
       resourceType: 'image',
     })).toThrowError(UnpricedModelError);
+  });
+
+  it('reserves the higher priced fallback when it is eligible', () => {
+    expect(getGenerationReservationAmount(8, 20)).toBe(20);
+  });
+
+  it('leaves an unpriced fallback ineligible without reducing the primary hold', () => {
+    expect(getGenerationReservationAmount(8)).toBe(8);
   });
 
   it('reserves through the ledger RPC instead of legacy deduct_credits', async () => {

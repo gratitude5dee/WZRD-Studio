@@ -216,16 +216,31 @@ export function getCatalogCreditCost(
 
 export function getGenerationCreditCost(input: {
   pricingMode?: 'catalog-strict';
-  pricing?: Record<string, unknown> | null;
-  credits?: number;
-  pricingText?: string;
+  catalogModel?: {
+    pricing?: Record<string, unknown> | null;
+    credits?: number;
+    pricingText?: string;
+  } | null;
   modelId: string | null | undefined;
   resourceType: string;
 }): number {
   if (input.pricingMode === 'catalog-strict') {
-    return getCatalogCreditCost(input.pricing, input.credits, input.pricingText);
+    return getCatalogCreditCost(
+      input.catalogModel?.pricing,
+      input.catalogModel?.credits,
+      input.catalogModel?.pricingText,
+    );
   }
   return getCreditCostForModel(input.modelId, input.resourceType);
+}
+
+export function getGenerationReservationAmount(
+  primaryCost: number,
+  fallbackCost?: number,
+): number {
+  return fallbackCost === undefined
+    ? primaryCost
+    : Math.max(primaryCost, fallbackCost);
 }
 
 interface CreditSupabaseError {
