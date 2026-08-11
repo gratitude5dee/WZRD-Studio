@@ -35,6 +35,8 @@ vi.stubEnv('VITE_SUPABASE_URL', 'https://test.supabase.co');
 
 import {
   unifiedGenerationService,
+  executeFalStream,
+  normalizeFalSpeechResult,
   GenerationError,
   InsufficientCreditsError,
   type GenerationInput,
@@ -56,6 +58,107 @@ describe('unifiedGenerationService', () => {
       status: 404,
       statusText: 'Not Found',
       text: async () => 'Not Found',
+    });
+  });
+
+  describe('executeFalStream()', () => {
+    function streamResponse(events: unknown[]): Response {
+      const body = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            new TextEncoder().encode(
+              events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join('')
+            )
+          );
+          controller.close();
+        },
+      });
+      return new Response(body, { status: 200 });
+    }
+
+    it('sends strict pricing mode and rejects an SSE error event', async () => {
+      (globalThis as any).fetch = vi.fn().mockResolvedValue(
+        streamResponse([{ type: 'error', error: 'provider failed' }])
+      );
+
+      await expect(
+        executeFalStream(
+          'fal-ai/chatterbox/text-to-speech',
+          { text: 'hello' },
+          undefined,
+          'catalog-strict'
+        )
+      ).rejects.toMatchObject({ code: 'provider_error' });
+
+      const request = (globalThis.fetch as any).mock.calls[0][1];
+      expect(JSON.parse(request.body)).toEqual({
+        modelId: 'fal-ai/chatterbox/text-to-speech',
+        inputs: { text: 'hello' },
+        pricingMode: 'catalog-strict',
+      });
+    });
+
+    it('rejects a stream that ends without a done event', async () => {
+      (globalThis as any).fetch = vi.fn().mockResolvedValue(
+        streamResponse([{ type: 'progress', event: { progress: 0.5 } }])
+      );
+
+      await expect(
+        executeFalStream('fal-ai/chatterbox/text-to-speech', { text: 'hello' })
+      ).rejects.toMatchObject({ code: 'no_result' });
+    });
+
+    it('routes insufficient-credit responses to billing', async () => {
+      window.history.pushState({}, '', '/projects/test');
+      const listener = vi.fn();
+      window.addEventListener('billing:insufficient-credits', listener);
+      (globalThis as any).fetch = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            code: 'insufficient_credits',
+            required: 7,
+            available: 2,
+            top_up_url: '/settings/billing',
+          }),
+          { status: 402 }
+        )
+      );
+
+      await expect(
+        executeFalStream('fal-ai/chatterbox/text-to-speech', { text: 'hello' })
+      ).rejects.toBeInstanceOf(InsufficientCreditsError);
+      expect(listener).toHaveBeenCalledTimes(1);
+      window.removeEventListener('billing:insufficient-credits', listener);
+    });
+  });
+
+  describe('normalizeFalSpeechResult()', () => {
+    it('normalizes nested audio results', () => {
+      expect(
+        normalizeFalSpeechResult(
+          { audio: { url: 'https://audio.test/a.wav', content_type: 'audio/wav', file_name: 'a.wav' } },
+          { contentType: 'audio/wav', fileName: 'output.wav' }
+        )
+      ).toMatchObject({
+        audioUrl: 'https://audio.test/a.wav',
+        contentType: 'audio/wav',
+        fileName: 'a.wav',
+      });
+    });
+
+    it('normalizes top-level audio results and preserves Qwen metadata', () => {
+      expect(
+        normalizeFalSpeechResult(
+          { url: 'https://audio.test/qwen.wav', duration: 1.5, sample_rate: 24000 },
+          { contentType: 'audio/wav', fileName: 'output.wav' }
+        )
+      ).toMatchObject({
+        audioUrl: 'https://audio.test/qwen.wav',
+        contentType: 'audio/wav',
+        fileName: 'output.wav',
+        duration: 1.5,
+        sampleRate: 24000,
+      });
     });
   });
 

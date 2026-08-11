@@ -12,6 +12,11 @@ import {
 } from '../_shared/falai-client.ts';
 import { getCatalogModelById } from '../_shared/ai-model-catalog.ts';
 import {
+  assertStrictFalModelResolution,
+  strictModelResolutionResponse,
+  StrictModelResolutionError,
+} from '../_shared/fal-stream-strict.ts';
+import {
   buildCreditIdempotencyKey,
   commitCredits,
   getGenerationCreditCost,
@@ -127,6 +132,9 @@ serve(async (req) => {
       mediaTypeHint: hintedMediaType,
       uiGroup: 'generation',
     });
+    if (strictPricing) {
+      assertStrictFalModelResolution(modelId, resolution);
+    }
 
     const resolvedFromRequest = mergeFalModelInputs(resolution.model.id, rawInputs);
     const normalizedRequestedModel = normalizeFalModelId(modelId);
@@ -320,6 +328,7 @@ serve(async (req) => {
           const primaryMessage = primaryError instanceof Error ? primaryError.message : 'Fal execution failed';
 
           const shouldTryFallback =
+            !strictPricing &&
             resolvedFromRequest.modelId !== fallbackCandidateId &&
             fallbackEligible;
           if (shouldTryFallback) {
@@ -419,6 +428,9 @@ serve(async (req) => {
         JSON.stringify({ error: error.message, code: error.code }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+    if (error instanceof StrictModelResolutionError) {
+      return strictModelResolutionResponse(error, corsHeaders);
     }
     console.error('fal-stream request processing error:', error?.message, error?.stack);
     return new Response(

@@ -10,8 +10,84 @@ import {
   shouldSkipCreditBilling,
   UnpricedModelError,
 } from '../../../supabase/functions/_shared/credits.ts';
+import {
+  getDefaultFalModelForMedia,
+  inferFalMediaType,
+  resolveFalModelOrFallback,
+} from '../../../supabase/functions/_shared/falai-client.ts';
+import {
+  assertStrictFalModelResolution,
+  strictModelResolutionResponse,
+  StrictModelResolutionError,
+} from '../../../supabase/functions/_shared/fal-stream-strict.ts';
 
 describe('edge credits shared helper', () => {
+  it.each([
+    'fal-ai/chatterbox/text-to-speech',
+    'fal-ai/chatterbox/text-to-speech/turbo',
+    'fal-ai/elevenlabs/tts/eleven-v3',
+    'fal-ai/qwen-3-tts/text-to-speech/1.7b',
+  ])('resolves %s directly without fallback', (modelId) => {
+    const resolution = resolveFalModelOrFallback(modelId, {
+      mediaTypeHint: inferFalMediaType(modelId),
+      uiGroup: 'generation',
+    });
+
+    expect(resolution.model.id).toBe(modelId);
+    expect(resolution.fallbackUsed).toBe(false);
+  });
+
+  it('keeps the explicit non-strict audio default despite generation TTS entries', () => {
+    expect(getDefaultFalModelForMedia('audio', 'generation').id)
+      .toBe('fal-ai/ffmpeg-api/merge-audios');
+    expect(getDefaultFalModelForMedia('image', 'generation').id)
+      .toBe('fal-ai/flux/schnell');
+    expect(getDefaultFalModelForMedia('video', 'generation').id)
+      .toBe('fal-ai/kling-video/v3/pro/image-to-video');
+  });
+
+  it('rejects unknown models before strict Fal execution can substitute a default', () => {
+    const resolution = resolveFalModelOrFallback('fal-ai/unknown-tts', {
+      mediaTypeHint: 'audio',
+      uiGroup: 'generation',
+    });
+
+    expect(() => assertStrictFalModelResolution('fal-ai/unknown-tts', resolution))
+      .toThrow('catalog-strict rejected model substitution');
+    expect(() => assertStrictFalModelResolution('fal-ai/unknown-tts', resolution))
+      .toThrow('unknown_model:fal-ai/unknown-tts');
+  });
+
+  it('returns a 400 response with a code for strict model substitution refusal', async () => {
+    const error = new StrictModelResolutionError(
+      'fal-ai/unknown-tts',
+      'fal-ai/ffmpeg-api/merge-audios',
+      'unknown_model:fal-ai/unknown-tts',
+    );
+    const response = strictModelResolutionResponse(error, {
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      error: 'catalog-strict rejected model substitution: requested "fal-ai/unknown-tts" resolved to "fal-ai/ffmpeg-api/merge-audios" (unknown_model:fal-ai/unknown-tts)',
+      code: 'strict_model_resolution',
+    });
+  });
+
+  it('prices a canonical TTS model from its text quantity in strict mode', () => {
+    expect(getGenerationCreditCost({
+      pricingMode: 'catalog-strict',
+      catalogModel: {
+        pricing: { unit: 'per_1k_characters', usd: 0.025 },
+        pricingText: '$0.025 / per 1k characters USD',
+      },
+      modelId: 'fal-ai/chatterbox/text-to-speech',
+      resourceType: 'audio',
+      inputs: { text: 'a'.repeat(2000) },
+    })).toBe(5);
+  });
+
   it('never lets request headers bypass billing', () => {
     const headers = new Headers({ 'x-credit-billing': 'upstream' });
     expect(shouldSkipCreditBilling(headers)).toBe(false);
