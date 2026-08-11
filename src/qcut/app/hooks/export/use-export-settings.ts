@@ -56,6 +56,12 @@ export function useExportSettings() {
 	useEffect(() => {
 		let cancelled = false;
 
+		if (!isExportUiActive) {
+			return () => {
+				cancelled = true;
+			};
+		}
+
 		if (electron || !webCodecsAvailable) {
 			setMuxerAvailable(false);
 			if (!electron && !userSelectedEngineRef.current) {
@@ -89,7 +95,7 @@ export function useExportSettings() {
 		return () => {
 			cancelled = true;
 		};
-	}, [electron, webCodecsAvailable]);
+	}, [electron, webCodecsAvailable, isExportUiActive]);
 
 	// Engine recommendation effect with multiple dependencies
 	useEffect(() => {

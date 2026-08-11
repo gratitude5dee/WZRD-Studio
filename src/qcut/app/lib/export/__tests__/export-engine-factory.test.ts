@@ -224,6 +224,37 @@ describe("ExportEngineFactory", () => {
 
 			await expect(factory.isMuxerUsable()).resolves.toBe(true);
 		});
+
+		it("memoizes the muxer probe result across callers", async () => {
+			(globalThis as any).VideoEncoder = {};
+			(globalThis as any).VideoDecoder = class {};
+			(globalThis as any).VideoFrame = class {};
+			const factory = ExportEngineFactory.getInstance();
+			const probe = vi
+				.spyOn(factory as any, "probeWebCodecsEncoder")
+				.mockResolvedValue(true);
+
+			await expect(factory.isMuxerUsable()).resolves.toBe(true);
+			await expect(factory.isMuxerUsable()).resolves.toBe(true);
+
+			expect(probe).toHaveBeenCalledOnce();
+		});
+
+		it("honors the kill-switch after the muxer verdict is cached", async () => {
+			(globalThis as any).VideoEncoder = {};
+			(globalThis as any).VideoDecoder = class {};
+			(globalThis as any).VideoFrame = class {};
+			const factory = ExportEngineFactory.getInstance();
+			const probe = vi
+				.spyOn(factory as any, "probeWebCodecsEncoder")
+				.mockResolvedValue(true);
+
+			await expect(factory.isMuxerUsable()).resolves.toBe(true);
+			localStorage.setItem("qcut_force_webcodecs_off", "true");
+
+			await expect(factory.isMuxerUsable()).resolves.toBe(false);
+			expect(probe).toHaveBeenCalledOnce();
+		});
 		it("recommends CLI engine in Electron", async () => {
 			mockPlatform.isElectron = true;
 			const factory = ExportEngineFactory.getInstance();

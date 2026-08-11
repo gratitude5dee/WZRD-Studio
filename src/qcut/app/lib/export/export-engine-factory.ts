@@ -56,6 +56,8 @@ function readLocalStorageFlag(key: string): boolean {
 export class ExportEngineFactory {
 	private static instance: ExportEngineFactory;
 	private capabilities: BrowserCapabilities | null = null;
+	// WZRD-EDIT: share the encoder probe across UI, recommendation, and export.
+	private muxerUsabilityPromise: Promise<boolean> | null = null;
 
 	/** Get the singleton factory instance. */
 	static getInstance(): ExportEngineFactory {
@@ -238,7 +240,10 @@ export class ExportEngineFactory {
 	async isMuxerUsable(): Promise<boolean> {
 		if (readLocalStorageFlag("qcut_force_webcodecs_off")) return false;
 		if (!this.detectWebCodecs() || this.isSimulator()) return false;
-		return this.probeWebCodecsEncoder();
+		if (!this.muxerUsabilityPromise) {
+			this.muxerUsabilityPromise = this.probeWebCodecsEncoder();
+		}
+		return this.muxerUsabilityPromise;
 	}
 
 	/** Create an export engine instance based on recommendation or explicit type. */

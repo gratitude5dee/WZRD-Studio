@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@qcut-app/stores/export-store", () => ({
   useExportStore: () => ({
     isDialogOpen: false,
-    panelView: "properties",
+    panelView: "export",
     settings: {
       format: "mp4",
       quality: "720p",
