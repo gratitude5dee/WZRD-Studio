@@ -57,7 +57,7 @@ export function KeyframeTimeline({
 	className,
 }: KeyframeTimelineProps) {
 	const { getElementEffects, updateEffectAnimations } = useEffectsStore();
-	const { currentTime, isPlaying, toggle, setCurrentTime } = usePlaybackStore();
+	const { currentTime, isPlaying, toggle, seek } = usePlaybackStore();
 	const timelineRef = useRef<HTMLDivElement>(null);
 
 	const [selectedParameter, setSelectedParameter] =
@@ -314,11 +314,11 @@ export function KeyframeTimeline({
 			}
 
 			if (targetKeyframe) {
-				setCurrentTime(targetKeyframe.time + elementStartTime);
+				seek(targetKeyframe.time + elementStartTime);
 				setSelectedKeyframe(targetKeyframe);
 			}
 		},
-		[animation, localTime, elementStartTime, setCurrentTime]
+		[animation, localTime, elementStartTime, seek]
 	);
 
 	// Get appropriate range for parameter type
