@@ -1,4 +1,17 @@
-import { describe, it, expect } from "vitest";
+import { beforeEach, describe, it, expect, vi } from "vitest";
+
+const { mockGetSession, mockRpc } = vi.hoisted(() => ({
+	mockGetSession: vi.fn(),
+	mockRpc: vi.fn(),
+}));
+
+vi.mock("@/integrations/supabase/client", () => ({
+	supabase: {
+		auth: { getSession: mockGetSession },
+		rpc: mockRpc,
+	},
+}));
+
 import { createWebAdapter } from "../index";
 import {
 	PlatformCapability,
@@ -7,6 +20,11 @@ import {
 
 describe("createWebAdapter", () => {
 	const adapter = createWebAdapter();
+
+	beforeEach(() => {
+		mockGetSession.mockReset();
+		mockRpc.mockReset();
+	});
 
 	it("reports platform as web", () => {
 		expect(adapter.platform).toBe("web");
@@ -117,10 +135,52 @@ describe("createWebAdapter", () => {
 	});
 
 	describe("license interface", () => {
-		it("check returns free plan", async () => {
+		it("reports the authenticated Supabase balance", async () => {
+			mockGetSession.mockResolvedValue({
+				data: { session: { user: { id: "user-1" } } },
+			});
+			mockRpc.mockResolvedValue({
+				data: {
+					wallet: {
+						plan_code: "pro",
+						monthly_remaining: 80,
+						topup_remaining: 15,
+						available_total: 95,
+						reset_at: "2026-08-01T00:00:00Z",
+					},
+				},
+				error: null,
+			});
+
 			const info = await adapter.license.check();
-			expect(info.plan).toBe("free");
-			expect(info.status).toBe("active");
+			expect(info?.plan).toBe("pro");
+			expect(info?.status).toBe("active");
+			expect(info?.credits).toEqual({
+				planCredits: 80,
+				topUpCredits: 15,
+				totalCredits: 95,
+				planCreditsResetAt: "2026-08-01T00:00:00Z",
+			});
+			expect(mockRpc).toHaveBeenCalledWith("credits_get_balance");
+		});
+
+		it("reports an unknown balance when signed out", async () => {
+			mockGetSession.mockResolvedValue({ data: { session: null } });
+
+			await expect(adapter.license.check()).resolves.toBeNull();
+			expect(mockRpc).not.toHaveBeenCalled();
+		});
+
+		it("reports an unknown balance when the Supabase read fails", async () => {
+			mockGetSession.mockResolvedValue({
+				data: { session: { user: { id: "user-1" } } },
+			});
+			mockRpc.mockResolvedValue({
+				data: null,
+				error: new Error("balance unavailable"),
+			});
+
+			await expect(adapter.license.check()).resolves.toBeNull();
 		});
 
 		it("activate returns false", async () => {

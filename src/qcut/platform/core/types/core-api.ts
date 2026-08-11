@@ -134,7 +134,7 @@ export interface LicenseInfo {
 }
 
 export interface PlatformLicenseAPI {
-	check(): Promise<LicenseInfo>;
+	check(): Promise<LicenseInfo | null>;
 	activate(token: string): Promise<boolean>;
 	deactivate(): Promise<boolean>;
 	trackUsage(type: "ai_generation" | "export" | "render"): Promise<boolean>;

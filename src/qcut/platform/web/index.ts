@@ -45,6 +45,8 @@ import {
 	type ThemeSource,
 	type LicenseInfo,
 } from "@qcut/platform-core";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchCreditBalancePayload } from "@/lib/credit-balance";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -312,24 +314,58 @@ const apiKeysAdapter: PlatformApiKeysAPI = {
 };
 
 // ---------------------------------------------------------------------------
-// License — Free tier (no server auth on web)
+// License — read-only view of the authenticated Supabase credit balance.
 // ---------------------------------------------------------------------------
 
-const FREE_LICENSE: LicenseInfo = {
-	plan: "free",
-	status: "active",
-	credits: {
-		planCredits: 0,
-		topUpCredits: 0,
-		totalCredits: 0,
-		planCreditsResetAt: "",
-	},
-	user: null,
-};
+function asRecord(value: unknown): Record<string, unknown> {
+	if (value && typeof value === "object" && !Array.isArray(value)) {
+		return value as Record<string, unknown>;
+	}
+	return {};
+}
+
+function asNumber(value: unknown, fallback = 0): number {
+	if (typeof value === "number" && Number.isFinite(value)) return value;
+	if (typeof value === "string") {
+		const parsed = Number(value);
+		if (Number.isFinite(parsed)) return parsed;
+	}
+	return fallback;
+}
+
+function asString(value: unknown, fallback = ""): string {
+	return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+
+function toLicensePlan(planCode: string): LicenseInfo["plan"] {
+	if (planCode === "pro" || planCode === "team") return planCode;
+	return "free";
+}
 
 const licenseAdapter: PlatformLicenseAPI = {
 	async check() {
-		return FREE_LICENSE;
+		try {
+			const { data } = await supabase.auth.getSession();
+			if (!data.session) return null;
+
+			const payload = asRecord(await fetchCreditBalancePayload());
+			const wallet = asRecord(payload.wallet);
+			if (Object.keys(wallet).length === 0) return null;
+
+			return {
+				plan: toLicensePlan(asString(wallet.plan_code, "free")),
+				status: "active",
+				credits: {
+					planCredits: asNumber(wallet.monthly_remaining),
+					topUpCredits: asNumber(wallet.topup_remaining),
+					totalCredits: asNumber(wallet.available_total),
+					planCreditsResetAt: asString(wallet.reset_at),
+				},
+				user: null,
+			};
+		} catch {
+			return null;
+		}
 	},
 	async activate() {
 		return false;
