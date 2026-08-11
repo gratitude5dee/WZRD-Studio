@@ -20,6 +20,7 @@ import { useElectron } from "@qcut-app/hooks/useElectron";
 import { debugLog, debugError, debugWarn } from "@qcut-app/lib/debug/debug-config";
 import { lockForExport, unlockFromExport } from "@qcut-app/lib/media/blob-manager";
 import { saveExportedVideo } from "@qcut-app/lib/export/export-output";
+import { resolveExportFilename } from "@qcut-app/lib/export/export-filename";
 
 export function useExportProgress() {
 	const { progress, updateProgress, setError, resetExport, addToHistory } =
@@ -213,13 +214,21 @@ export function useExportProgress() {
 			// Calculate export duration
 			const exportDuration = Date.now() - startTime.getTime();
 
+			// WZRD-EDIT: the browser may have fallen back to another container, so
+			// report and save the name the user actually gets.
+			const savedFilename = resolveExportFilename(
+				blob,
+				exportSettings.filename,
+				exportSettings.format
+			);
+
 			// Add to history
 			addToHistory({
-				filename: exportSettings.filename,
+				filename: savedFilename,
 				settings: {
 					quality: exportSettings.quality,
 					format: exportSettings.format,
-					filename: exportSettings.filename,
+					filename: savedFilename,
 					width: exportSettings.resolution.width,
 					height: exportSettings.resolution.height,
 				},
@@ -232,14 +241,18 @@ export function useExportProgress() {
 			setExportStartTime(null);
 
 			// Save/download via platform-aware output
-			const saveResult = await saveExportedVideo(blob, exportSettings.filename);
+			const saveResult = await saveExportedVideo(
+				blob,
+				savedFilename,
+				exportSettings.format
+			);
 			if (!saveResult.success) {
 				debugWarn("[ExportPanel] Save issue:", saveResult.error);
 			}
 
 			// Show success message
 			toast.success("Export completed successfully!", {
-				description: `${exportSettings.filename} has been downloaded`,
+				description: `${savedFilename} has been downloaded`,
 			});
 
 			// Reset export state

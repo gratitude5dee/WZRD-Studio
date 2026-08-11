@@ -150,8 +150,12 @@ export const indexedDbStorage = {
 			await withStore("readwrite", (store) => store.put(data, key));
 			return true;
 		} catch (error) {
+			// Quota is actionable and the UI has a message for it, so surface it.
+			// Everything else keeps PlatformStorageAPI's contract of resolving
+			// `false` — callers only check the boolean.
 			if (isQuotaError(error)) throw new StorageQuotaError(key, error);
-			throw error;
+			console.warn(`[QCut/vercel] Failed to persist "${key}":`, error);
+			return false;
 		}
 	},
 
@@ -163,8 +167,13 @@ export const indexedDbStorage = {
 
 	async remove(key: string): Promise<boolean> {
 		await ensureMigrated();
-		await withStore("readwrite", (store) => store.delete(key));
-		return true;
+		try {
+			await withStore("readwrite", (store) => store.delete(key));
+			return true;
+		} catch (error) {
+			console.warn(`[QCut/vercel] Failed to remove "${key}":`, error);
+			return false;
+		}
 	},
 
 	async list(): Promise<string[]> {
@@ -175,7 +184,12 @@ export const indexedDbStorage = {
 
 	async clear(): Promise<boolean> {
 		await ensureMigrated();
-		await withStore("readwrite", (store) => store.clear());
-		return true;
+		try {
+			await withStore("readwrite", (store) => store.clear());
+			return true;
+		} catch (error) {
+			console.warn("[QCut/vercel] Failed to clear storage:", error);
+			return false;
+		}
 	},
 };

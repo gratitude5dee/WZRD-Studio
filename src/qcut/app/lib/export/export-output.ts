@@ -6,6 +6,9 @@
  * - Web fallback: Browser download via <a> element
  */
 
+import type { ExportFormat } from "@qcut-app/types/export";
+import { resolveExportFilename } from "./export-filename";
+
 /** Result of a save operation */
 export interface SaveResult {
 	success: boolean;
@@ -18,19 +21,26 @@ export interface SaveResult {
  *
  * @param blob - The video MP4/WebM blob
  * @param filename - Desired filename (e.g. "export-2026-03-11.mp4")
+ * @param requestedFormat - The container the export asked for; the blob may be
+ *   another one when the browser could not encode it.
  */
 export async function saveExportedVideo(
 	blob: Blob,
-	filename: string
+	filename: string,
+	requestedFormat?: ExportFormat
 ): Promise<SaveResult> {
+	// WZRD-EDIT: the engine falls back to another container when the browser
+	// cannot encode the requested one, so save under the real extension.
+	const resolved = resolveExportFilename(blob, filename, requestedFormat);
+
 	// On iPad, navigator.share is the most memory-efficient way (avoids base64 conversion)
-	const file = new File([blob], filename, { type: blob.type });
+	const file = new File([blob], resolved, { type: blob.type });
 	if (
 		typeof navigator.share === "function" &&
 		navigator.canShare?.({ files: [file] })
 	) {
 		try {
-			await navigator.share({ files: [file], title: filename });
+			await navigator.share({ files: [file], title: resolved });
 			return { success: true };
 		} catch {
 			// Share was cancelled or failed, proceed to other methods
@@ -39,11 +49,11 @@ export async function saveExportedVideo(
 
 	// Try Capacitor filesystem (iPad)
 	if (isCapacitorAvailable()) {
-		return saveViaCapacitor(blob, filename);
+		return saveViaCapacitor(blob, resolved);
 	}
 
 	// Browser fallback: download via <a> tag
-	return saveViaBrowserDownload(blob, filename);
+	return saveViaBrowserDownload(blob, resolved);
 }
 
 /**
