@@ -88,6 +88,11 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				// QCut editor panel surfaces (vars defined on `.qcut-root`)
+				panel: {
+					DEFAULT: 'hsl(var(--panel))',
+					accent: 'hsl(var(--panel-accent))'
+				},
 				// NEW: Teal & Amber Accent Colors
 				teal: {
 					DEFAULT: 'hsl(var(--teal))',
