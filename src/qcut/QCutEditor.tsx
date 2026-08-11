@@ -258,11 +258,14 @@ export function QCutEditor({ projectId }: { projectId: string }) {
 		const maybeImportRemoteTimeline = async () => {
 			if (useLocalProjectData) return;
 			try {
-				const { hydrated } = await maybeHydrateFromSnapshot({
+				const { hydrated, stale } = await maybeHydrateFromSnapshot({
 					wzrdProjectId,
 					qcutProjectId,
 				});
-				if (hydrated) return;
+				// A stale result means the user switched projects mid-hydration;
+				// the global stores now belong to another project, so importing
+				// this project's legacy timeline would pollute the active one.
+				if (hydrated || stale) return;
 				await maybeImportLegacyTimeline({ wzrdProjectId, qcutProjectId });
 			} finally {
 				// Lift the snapshot-write suppression even if hydration failed, so

@@ -62,7 +62,7 @@ export async function maybeHydrateFromSnapshot({
 }: {
 	wzrdProjectId: string;
 	qcutProjectId: string;
-}): Promise<{ hydrated: boolean }> {
+}): Promise<{ hydrated: boolean; stale?: boolean }> {
 	const isStale = () =>
 		useProjectStore.getState().activeProject?.id !== qcutProjectId;
 
@@ -110,7 +110,7 @@ export async function maybeHydrateFromSnapshot({
 		// The user may have switched projects while the snapshot was fetched;
 		// the stores are global, so hydrating now would inject the wrong project.
 		if (isStale()) {
-			return { hydrated: false };
+			return { hydrated: false, stale: true };
 		}
 
 		debugLog("[WZRD/QCut] Hydrating editor state from snapshot", {
@@ -123,10 +123,25 @@ export async function maybeHydrateFromSnapshot({
 		const mediaStore = useMediaStore.getState();
 		const existingIds = new Set(mediaStore.mediaItems.map((m) => m.id));
 		const snapshotItems = snapshot.media?.mediaItems;
+		const addedMediaIds: string[] = [];
+		const rollbackAddedMedia = async () => {
+			const store = useMediaStore.getState();
+			for (const addedId of addedMediaIds) {
+				try {
+					await store.removeMediaItem(qcutProjectId, addedId);
+				} catch (rollbackError) {
+					debugError(
+						"[WZRD/QCut] Failed to roll back hydrated media item",
+						rollbackError
+					);
+				}
+			}
+		};
 		if (Array.isArray(snapshotItems)) {
 			for (const raw of snapshotItems as SnapshotMediaItem[]) {
 				if (isStale()) {
-					return { hydrated: false };
+					await rollbackAddedMedia();
+					return { hydrated: false, stale: true };
 				}
 				const id = typeof raw?.id === "string" ? raw.id : undefined;
 				if (!id || existingIds.has(id)) continue;
@@ -170,13 +185,15 @@ export async function maybeHydrateFromSnapshot({
 							: { source: "qcut-snapshot" },
 				});
 				existingIds.add(id);
+				addedMediaIds.push(id);
 			}
 		}
 
 		// Persist the snapshot tracks locally, then load through the store so
 		// normalization and main-track guarantees apply.
 		if (isStale()) {
-			return { hydrated: false };
+			await rollbackAddedMedia();
+			return { hydrated: false, stale: true };
 		}
 		const activeProject = useProjectStore.getState().activeProject;
 		const sceneId =
