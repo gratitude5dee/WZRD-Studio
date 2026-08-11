@@ -16,7 +16,7 @@ describe('edge credits shared helper', () => {
     expect(shouldSkipCreditBilling(headers)).toBe(false);
   });
 
-  it('keeps the legacy path using its existing fallback billing', () => {
+  it('keeps legacy billing when the catalog row is absent', () => {
     expect(getGenerationCreditCost({
       modelId: 'gmi/unknown-free-model',
       resourceType: 'text',

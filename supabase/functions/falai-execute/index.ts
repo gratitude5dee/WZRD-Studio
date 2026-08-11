@@ -66,7 +66,7 @@ serve(async (req) => {
       throw new UnpricedModelError();
     }
     billingModelId = modelId;
-    billingResourceType = catalogModel.mediaType || 'generation';
+    billingResourceType = catalogModel?.mediaType || 'generation';
 
     const serviceClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
