@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useEffectsStore } from "@qcut-app/stores/ai/effects-store";
 import { Slider } from "@qcut-app/components/ui/slider";
 import { Switch } from "@qcut-app/components/ui/switch";
@@ -11,7 +11,9 @@ import {
 	SelectValue,
 } from "@qcut-app/components/ui/select";
 import { PropertyGroup } from "@qcut-app/components/editor/properties-panel/property-item";
-import { Trash2, Copy } from "lucide-react";
+import { KeyframeTimeline } from "@qcut-app/components/editor/timeline/keyframe-timeline";
+import { Trash2, Copy, Diamond } from "lucide-react";
+import type { TimelineElement } from "@qcut-app/types/timeline";
 import { getParameterRange } from "@qcut-app/constants/effect-parameter-ranges";
 import type { EffectInstance, EffectParameters } from "@qcut-app/types/effects";
 
@@ -97,9 +99,16 @@ const PARAMETER_LABELS: Partial<Record<keyof EffectParameters, string>> = {
 
 interface EffectsPropertiesProps {
 	elementId: string;
+	element?: TimelineElement;
 }
 
-export function EffectsProperties({ elementId }: EffectsPropertiesProps) {
+export function EffectsProperties({
+	elementId,
+	element,
+}: EffectsPropertiesProps) {
+	const [keyframesOpenFor, setKeyframesOpenFor] = useState<string | null>(
+		null
+	);
 	const {
 		updateEffectParameters,
 		toggleEffect,
@@ -324,6 +333,43 @@ export function EffectsProperties({ elementId }: EffectsPropertiesProps) {
 
 					{/* Parameter Controls - Dynamically rendered based on effect parameters */}
 					{renderEffectParameters(effect)}
+
+					{element && (
+						<div className="mt-4 space-y-2">
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() =>
+									setKeyframesOpenFor((open) =>
+										open === effect.id ? null : effect.id
+									)
+								}
+							>
+								<Diamond
+									className="w-3 h-3 mr-1"
+									aria-hidden="true"
+									focusable="false"
+								/>
+								{keyframesOpenFor === effect.id
+									? "Hide Keyframes"
+									: "Keyframes"}
+							</Button>
+							{keyframesOpenFor === effect.id && (
+								<KeyframeTimeline
+									elementId={elementId}
+									effectId={effect.id}
+									duration={Math.max(
+										0,
+										element.duration -
+											element.trimStart -
+											element.trimEnd
+									)}
+									elementStartTime={element.startTime}
+								/>
+							)}
+						</div>
+					)}
 				</PropertyGroup>
 			))}
 		</div>

@@ -44,6 +44,8 @@ interface KeyframeTimelineProps {
 	elementId: string;
 	effectId: string;
 	duration: number;
+	/** Timeline start of the owning element; keyframe times are element-local. */
+	elementStartTime?: number;
 	className?: string;
 }
 
@@ -51,6 +53,7 @@ export function KeyframeTimeline({
 	elementId,
 	effectId,
 	duration,
+	elementStartTime = 0,
 	className,
 }: KeyframeTimelineProps) {
 	const { getElementEffects, updateEffectAnimations } = useEffectsStore();
@@ -74,6 +77,12 @@ export function KeyframeTimeline({
 	const pixelsPerSecond = (zoom / 100) * 50;
 	const timelineWidth = duration * pixelsPerSecond;
 
+	// Keyframe times are element-local seconds.
+	const localTime = Math.min(
+		Math.max(0, currentTime - elementStartTime),
+		duration
+	);
+
 	// Add keyframe at current time
 	const handleAddKeyframe = useCallback(() => {
 		const value = effect?.parameters[selectedParameter] || 0;
@@ -81,7 +90,7 @@ export function KeyframeTimeline({
 		if (animation) {
 			const updatedAnimation = addKeyframe(
 				animation,
-				currentTime,
+				localTime,
 				value as number
 			);
 			updateEffectAnimations(elementId, effectId, updatedAnimation);
@@ -89,14 +98,14 @@ export function KeyframeTimeline({
 			// Create new animation
 			const newAnimation: AnimatedParameter = {
 				parameter: selectedParameter,
-				keyframes: [{ time: currentTime, value: value as number }],
+				keyframes: [{ time: localTime, value: value as number }],
 				interpolation: "linear",
 			};
 			updateEffectAnimations(elementId, effectId, newAnimation);
 		}
 	}, [
 		animation,
-		currentTime,
+		localTime,
 		effect?.parameters,
 		selectedParameter,
 		elementId,
@@ -296,20 +305,20 @@ export function KeyframeTimeline({
 
 			if (direction === "prev") {
 				targetKeyframe =
-					sortedKeyframes.reverse().find((kf) => kf.time < currentTime) ||
+					sortedKeyframes.reverse().find((kf) => kf.time < localTime) ||
 					sortedKeyframes[sortedKeyframes.length - 1];
 			} else {
 				targetKeyframe =
-					sortedKeyframes.find((kf) => kf.time > currentTime) ||
+					sortedKeyframes.find((kf) => kf.time > localTime) ||
 					sortedKeyframes[0];
 			}
 
 			if (targetKeyframe) {
-				setCurrentTime(targetKeyframe.time);
+				setCurrentTime(targetKeyframe.time + elementStartTime);
 				setSelectedKeyframe(targetKeyframe);
 			}
 		},
-		[animation, currentTime, setCurrentTime]
+		[animation, localTime, elementStartTime, setCurrentTime]
 	);
 
 	// Get appropriate range for parameter type
@@ -556,7 +565,7 @@ export function KeyframeTimeline({
 					{/* Playhead */}
 					<div
 						className="absolute top-4 bottom-0 w-0.5 bg-primary pointer-events-none"
-						style={{ left: `${currentTime * pixelsPerSecond}px` }}
+						style={{ left: `${localTime * pixelsPerSecond}px` }}
 					/>
 				</div>
 			</div>

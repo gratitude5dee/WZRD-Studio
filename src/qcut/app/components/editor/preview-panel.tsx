@@ -343,7 +343,8 @@ export function PreviewPanel() {
 
 	const { filterStyle, hasEffects: hasEnabledEffects } = useEffectsRendering(
 		currentMediaElement?.element.id ?? null,
-		EFFECTS_ENABLED
+		EFFECTS_ENABLED,
+		currentMediaElement?.element.startTime ?? 0
 	);
 
 	useEffect(() => {
