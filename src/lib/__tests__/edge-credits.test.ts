@@ -37,6 +37,16 @@ describe('edge credits shared helper', () => {
     expect(resolution.fallbackUsed).toBe(false);
   });
 
+  it('resolves fal-ai/whisper directly without fallback', () => {
+    const resolution = resolveFalModelOrFallback('fal-ai/whisper', {
+      mediaTypeHint: inferFalMediaType('fal-ai/whisper'),
+      uiGroup: 'generation',
+    });
+
+    expect(resolution.model.id).toBe('fal-ai/whisper');
+    expect(resolution.fallbackUsed).toBe(false);
+  });
+
   it.each([
     'fal-ai/bytedance/seedream/v3/text-to-image',
     'fal-ai/bytedance/seedream/v4/text-to-image',
