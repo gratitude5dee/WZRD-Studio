@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useEffectsStore } from "@qcut-app/stores/ai/effects-store";
 import { usePlaybackStore } from "@qcut-app/stores/editor/playback-store";
-import { useLivePlaybackTime } from "@qcut-app/hooks/use-live-playback-time";
 import { cn } from "@qcut-app/lib/utils";
 import {
 	Diamond,
@@ -58,10 +57,14 @@ export function KeyframeTimeline({
 	className,
 }: KeyframeTimelineProps) {
 	const { getElementEffects, updateEffectAnimations } = useEffectsStore();
-	const { isPlaying, toggle, seek } = usePlaybackStore();
-	// Per-frame time while playing; the store's currentTime is frozen then.
-	const currentTime = useLivePlaybackTime();
+	const { currentTime, isPlaying, toggle, seek } = usePlaybackStore();
 	const timelineRef = useRef<HTMLDivElement>(null);
+	const playheadRef = useRef<HTMLDivElement>(null);
+	// Live time is tracked in a ref (and applied to the playhead DOM node
+	// directly) rather than React state: the store's currentTime is frozen
+	// during playback by design, and re-rendering this subtree per frame
+	// would defeat that throttling.
+	const liveTimeRef = useRef(currentTime);
 
 	const [selectedParameter, setSelectedParameter] =
 		useState<keyof EffectParameters>("brightness");
@@ -81,19 +84,37 @@ export function KeyframeTimeline({
 	const timelineWidth = duration * pixelsPerSecond;
 
 	// Keyframe times are element-local seconds.
-	const localTime = Math.min(
-		Math.max(0, currentTime - elementStartTime),
-		duration
+	const toLocalTime = useCallback(
+		(time: number) =>
+			Math.min(Math.max(0, time - elementStartTime), duration),
+		[elementStartTime, duration]
 	);
+	const localTime = toLocalTime(currentTime);
+
+	useEffect(() => {
+		liveTimeRef.current = currentTime;
+		if (!isPlaying) return;
+		const handleTick = (e: Event) => {
+			const time = (e as CustomEvent).detail?.time;
+			if (time == null) return;
+			liveTimeRef.current = time;
+			if (playheadRef.current) {
+				playheadRef.current.style.left = `${toLocalTime(time) * pixelsPerSecond}px`;
+			}
+		};
+		window.addEventListener("playback-update", handleTick);
+		return () => window.removeEventListener("playback-update", handleTick);
+	}, [isPlaying, currentTime, toLocalTime, pixelsPerSecond]);
 
 	// Add keyframe at current time
 	const handleAddKeyframe = useCallback(() => {
 		const value = effect?.parameters[selectedParameter] || 0;
+		const keyframeTime = toLocalTime(liveTimeRef.current);
 
 		if (animation) {
 			const updatedAnimation = addKeyframe(
 				animation,
-				localTime,
+				keyframeTime,
 				value as number
 			);
 			updateEffectAnimations(elementId, effectId, updatedAnimation);
@@ -101,14 +122,14 @@ export function KeyframeTimeline({
 			// Create new animation
 			const newAnimation: AnimatedParameter = {
 				parameter: selectedParameter,
-				keyframes: [{ time: localTime, value: value as number }],
+				keyframes: [{ time: keyframeTime, value: value as number }],
 				interpolation: "linear",
 			};
 			updateEffectAnimations(elementId, effectId, newAnimation);
 		}
 	}, [
 		animation,
-		localTime,
+		toLocalTime,
 		effect?.parameters,
 		selectedParameter,
 		elementId,
@@ -305,14 +326,15 @@ export function KeyframeTimeline({
 				(a, b) => a.time - b.time
 			);
 			let targetKeyframe: EffectKeyframe | null = null;
+			const referenceTime = toLocalTime(liveTimeRef.current);
 
 			if (direction === "prev") {
 				targetKeyframe =
-					sortedKeyframes.reverse().find((kf) => kf.time < localTime) ||
+					sortedKeyframes.reverse().find((kf) => kf.time < referenceTime) ||
 					sortedKeyframes[sortedKeyframes.length - 1];
 			} else {
 				targetKeyframe =
-					sortedKeyframes.find((kf) => kf.time > localTime) ||
+					sortedKeyframes.find((kf) => kf.time > referenceTime) ||
 					sortedKeyframes[0];
 			}
 
@@ -321,7 +343,7 @@ export function KeyframeTimeline({
 				setSelectedKeyframe(targetKeyframe);
 			}
 		},
-		[animation, localTime, elementStartTime, seek]
+		[animation, toLocalTime, elementStartTime, seek]
 	);
 
 	// Get appropriate range for parameter type
@@ -565,8 +587,9 @@ export function KeyframeTimeline({
 						</TooltipProvider>
 					))}
 
-					{/* Playhead */}
+					{/* Playhead (position driven by direct DOM updates during playback) */}
 					<div
+						ref={playheadRef}
 						className="absolute top-4 bottom-0 w-0.5 bg-primary pointer-events-none"
 						style={{ left: `${localTime * pixelsPerSecond}px` }}
 					/>
