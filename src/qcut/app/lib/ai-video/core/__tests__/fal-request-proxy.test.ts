@@ -4,6 +4,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 const mockGetAuthToken = vi.fn();
 vi.mock("@qcut/platform-core", () => ({
 	platform: () => ({
+		isElectron: true,
 		license: {
 			getAuthToken: mockGetAuthToken,
 		},
