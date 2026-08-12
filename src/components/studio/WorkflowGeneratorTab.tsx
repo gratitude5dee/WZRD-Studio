@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { Send, Loader2, Music, Disc3, Mic2, Megaphone, Film, Wand2, ChevronRight, Sparkles, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 import { PixelLoader } from '@/components/craft/PixelLoader';
+import { Composer, ComposerContextChip } from '@/components/craft/Composer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useWorkflowGeneration } from '@/hooks/studio/useWorkflowGeneration';
@@ -339,33 +340,76 @@ export function WorkflowGeneratorTab({
           </div>
         </div>
 
-        <div className={cn('border border-[rgba(249,115,22,0.10)] bg-[#121212]', isPopup ? 'rounded-[24px] p-4' : 'rounded-[22px] p-4')}>
-          <div className="mb-3 flex items-center justify-between">
-            <div className="text-[11px] uppercase tracking-[0.22em] text-zinc-500">
-              {isPopup ? 'Message' : 'Examples'}
+        <div className="space-y-3">
+          <Composer
+            className={cn(
+              'dark',
+              prompt.trim() ? (isPopup ? 'rounded-[24px]' : 'rounded-[22px]') : 'rounded-xl',
+            )}
+            disabled={isGenerating}
+            busy={isGenerating}
+            context={
+              <>
+                <ComposerContextChip>
+                  {phase === 'ready_to_run' ? 'Ready' : 'Nodes only'}
+                </ComposerContextChip>
+                {isPopup ? <ComposerContextChip>New workflow</ComposerContextChip> : null}
+                {selectedNodeLabel ? (
+                  <ComposerContextChip accent>{selectedNodeLabel}</ComposerContextChip>
+                ) : null}
+              </>
+            }
+            leading={
+              <WorkflowSettingsMenu
+                settings={settings}
+                onSettingsChange={setSettings}
+              />
+            }
+            trailing={
+              <button
+                type="button"
+                onClick={primaryAction}
+                disabled={!canSubmit}
+                aria-label={primaryLabel}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isGenerating ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : hasQuestions ? (
+                  <CheckCircle2 className="size-4" />
+                ) : (
+                  <Send className="size-4" />
+                )}
+                <span>{primaryLabel}</span>
+              </button>
+            }
+          >
+            <div className="relative">
+              <WorkflowPromptAutocomplete
+                query={prompt}
+                visible={showAutocomplete && !isGenerating}
+                onSelect={handleSuggestionSelect}
+              />
+              <textarea
+                value={prompt}
+                onChange={handlePromptChange}
+                onKeyDown={wrappedHandleKeyDown}
+                onFocus={handlePromptFocus}
+                onBlur={handlePromptBlur}
+                placeholder="Describe the workflow you want to create..."
+                className={cn(
+                  'w-full resize-none bg-transparent px-1 py-1 text-sm text-foreground placeholder:text-muted-foreground outline-none',
+                  isPopup ? 'min-h-[108px]' : 'min-h-[96px]'
+                )}
+                disabled={isGenerating}
+              />
             </div>
-            <WorkflowSettingsMenu settings={settings} onSettingsChange={setSettings} />
-          </div>
-          <div className="relative">
-            <WorkflowPromptAutocomplete
-              query={prompt}
-              visible={showAutocomplete && !isGenerating}
-              onSelect={handleSuggestionSelect}
-            />
-            <textarea
-              value={prompt}
-              onChange={handlePromptChange}
-              onKeyDown={wrappedHandleKeyDown}
-              onFocus={handlePromptFocus}
-              onBlur={handlePromptBlur}
-              placeholder="Describe the workflow you want to create..."
-              className={cn(
-                'w-full resize-none rounded-[20px] border border-[rgba(249,115,22,0.12)] bg-[#171717] px-4 py-3 text-sm text-white placeholder:text-zinc-500 focus:outline-none focus:ring-0',
-                isPopup ? 'min-h-[132px]' : 'min-h-[120px]'
-              )}
-              disabled={isGenerating}
-            />
-          </div>
+          </Composer>
+          {isPopup ? (
+            <p className="px-1 text-[11px] text-muted-foreground">
+              Uses your current canvas context
+            </p>
+          ) : null}
           {assistantMessage ? (
             <div className="mt-3 rounded-[18px] border border-[rgba(249,115,22,0.12)] bg-[#171717] px-3 py-3 text-xs leading-5 text-zinc-300">
               {assistantMessage}
@@ -411,14 +455,6 @@ export function WorkflowGeneratorTab({
               ))}
             </div>
           ) : null}
-          {isPopup ? (
-            <div className="mt-3 flex items-center gap-2 text-[11px] text-zinc-500">
-              <span className="rounded-full border border-[rgba(249,115,22,0.10)] bg-[#171717] px-2.5 py-1 text-zinc-300">
-                {phase === 'ready_to_run' ? 'Ready' : 'Nodes only'}
-              </span>
-              <span>Uses your current canvas context</span>
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -439,16 +475,7 @@ export function WorkflowGeneratorTab({
             </motion.div>
           ) : null}
         </AnimatePresence>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={primaryAction}
-            disabled={!canSubmit}
-            className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-white px-4 text-xs font-medium text-black transition-colors hover:bg-zinc-200 disabled:cursor-not-allowed disabled:bg-zinc-700 disabled:text-zinc-400"
-          >
-            {isGenerating ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : hasQuestions ? <CheckCircle2 className="mr-2 h-3.5 w-3.5" /> : <Send className="mr-2 h-3.5 w-3.5" />}
-            {primaryLabel}
-          </button>
+        <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={resetAgent}
