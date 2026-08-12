@@ -17,6 +17,12 @@ import rnbBlueRoom from '@/assets/generated/kanvas/starter/v2/music/rnb-blue-roo
 import technoWarehouse from '@/assets/generated/kanvas/starter/v2/music/techno-warehouse-v02.jpg';
 import headphonesCobalt from '@/assets/generated/kanvas/starter/v2/ecommerce/headphones-cobalt-v02.jpg';
 import vinylMerch from '@/assets/generated/kanvas/starter/v2/ecommerce/vinyl-merch-v02.jpg';
+import afrobeatsRooftop from '@/assets/generated/kanvas/starter/v3/music/afrobeats-rooftop-v03.jpg';
+import indieGreenhouse from '@/assets/generated/kanvas/starter/v3/music/indie-greenhouse-v03.jpg';
+import latinPopCourtyard from '@/assets/generated/kanvas/starter/v3/music/latin-pop-courtyard-v03.jpg';
+import automotiveBlueHour from '@/assets/generated/kanvas/starter/v3/ecommerce/automotive-blue-hour-v03.jpg';
+import beautyCrimson from '@/assets/generated/kanvas/starter/v3/ecommerce/beauty-crimson-v03.jpg';
+import streetwearSneaker from '@/assets/generated/kanvas/starter/v3/ecommerce/streetwear-sneaker-v03.jpg';
 import { staticAssetUrl } from '@/lib/staticAsset';
 
 export type KanvasStarterAsset = {
@@ -64,9 +70,15 @@ export const kanvasStarterAssets = {
     rnb: example('KANVAS-MUSIC-RNB-v02', rnbBlueRoom, 'R&B singer in a midnight-blue performance room with a vintage microphone.'),
     country: example('KANVAS-MUSIC-COUNTRY-v02', countryBlueHour, 'Country artist performing at a desert roadhouse during blue hour.'),
     techno: example('KANVAS-MUSIC-TECHNO-v02', technoWarehouse, 'Techno DJ at a modular synthesizer in a concrete warehouse rave.'),
+    afrobeats: example('KANVAS-MUSIC-AFROBEATS-v03', afrobeatsRooftop, 'Afrobeats singer on a sunlit rooftop with live percussion and a coastal city skyline.'),
+    latinPop: example('KANVAS-MUSIC-LATINPOP-v03', latinPopCourtyard, 'Latin pop artist in a rain-glossed courtyard under warm carnival bulbs.'),
+    indie: example('KANVAS-MUSIC-INDIE-v03', indieGreenhouse, 'Indie guitarist performing in a candlelit greenhouse after rain.'),
   },
   ecommerce: {
     headphones: example('KANVAS-ECOM-HEADPHONES-v02', headphonesCobalt, 'Matte black headphones displayed on a chrome plinth in a cobalt fashion set.'),
     vinylMerch: example('KANVAS-ECOM-VINYL-v02', vinylMerch, 'Vinyl record and fragrance bottle staged as a premium backstage merch campaign.'),
+    streetwear: example('KANVAS-ECOM-STREETWEAR-v03', streetwearSneaker, 'Black and cobalt sneaker floating inside a brutalist concrete campaign set.'),
+    beauty: example('KANVAS-ECOM-BEAUTY-v03', beautyCrimson, 'Rose-glass perfume and lipstick on a crimson lacquer pedestal.'),
+    automotive: example('KANVAS-ECOM-AUTO-v03', automotiveBlueHour, 'Silver performance coupe at an empty desert gas station during blue hour.'),
   },
 } as const;
