@@ -23,6 +23,8 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
+
+import { PixelLoader } from '@/components/craft/PixelLoader';
 import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
@@ -361,7 +363,7 @@ const KanvasRemix = () => {
       <div className="flex min-h-screen flex-col bg-black text-white">
         <KanvasLyricsHeader />
         <div className="flex flex-1 items-center justify-center">
-          <Loader2 className="h-6 w-6 animate-spin text-[#f97316]" />
+          <PixelLoader className="dark" label="Loading remix" showElapsed />
         </div>
       </div>
     );

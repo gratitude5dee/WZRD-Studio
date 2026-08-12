@@ -1,5 +1,7 @@
 import { useCallback, useState } from 'react';
 import { Send, Loader2, Music, Disc3, Mic2, Megaphone, Film, Wand2, ChevronRight, Sparkles, X, CheckCircle2, AlertTriangle } from 'lucide-react';
+
+import { PixelLoader } from '@/components/craft/PixelLoader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useWorkflowGeneration } from '@/hooks/studio/useWorkflowGeneration';
@@ -427,10 +429,13 @@ export function WorkflowGeneratorTab({
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 6 }}
-              className="mb-3 flex items-center gap-2 rounded-[18px] border border-[#f97316]/15 bg-[#1c1510] px-3 py-3 text-sm text-[#fdba74]"
+              className="mb-3 flex items-center gap-2 rounded-[18px] border border-[#f97316]/15 bg-[#1c1510] px-3 py-3"
             >
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>{phase === 'materializing' ? 'Creating WZRD nodes…' : 'WZRD is planning the graph…'}</span>
+              <PixelLoader
+                className="dark"
+                label={phase === 'materializing' ? 'Creating WZRD nodes' : 'WZRD is planning the graph'}
+                showElapsed
+              />
             </motion.div>
           ) : null}
         </AnimatePresence>

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle2, Circle, Copy, Film, Loader2, Play, RefreshCw, Scissors, TriangleAlert, Video } from 'lucide-react';
+
+import { PixelLoader } from '@/components/craft/PixelLoader';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -411,10 +413,9 @@ const DirectorCutPage = () => {
           {job?.status === 'processing' && (
             <div className="rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-6">
               <div className="flex items-center gap-3">
-                <Loader2 className="h-5 w-5 animate-spin text-cyan-300" />
                 <div>
-                  <p className="font-medium text-cyan-100">Generating Director&apos;s Cut...</p>
-                  <p className="text-sm text-cyan-200/70">
+                  <PixelLoader className="dark" label="Generating Director's Cut" showElapsed />
+                  <p className="mt-1 text-sm text-cyan-200/70">
                     Stage: {STAGE_LABELS[job.stage] || 'Processing'}
                     {' · '}Provider: {job.provider || 'fal'}
                     {job.providerStatus ? ` (${job.providerStatus})` : ''}

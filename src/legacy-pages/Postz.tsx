@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { CalendarDays, ChevronLeft, ChevronRight, Loader2, Plus } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+
+import { PixelLoader } from "@/components/craft/PixelLoader";
 import { endOfMonth, endOfWeek, startOfMonth, startOfWeek } from "date-fns";
 import { toast } from "sonner";
 
@@ -327,8 +329,8 @@ export default function Postz() {
           <section className="grid gap-5 xl:grid-cols-[1fr_340px]">
             <div className="space-y-4">
               {postsQuery.isLoading ? (
-                <div className="flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] py-16 text-zinc-500">
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                <div className="flex items-center justify-center rounded-lg border border-white/10 bg-white/[0.03] py-16">
+                  <PixelLoader className="dark" label="Loading posts" showElapsed />
                 </div>
               ) : postsQuery.isError ? (
                 <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-5 text-sm text-red-200">
@@ -381,8 +383,8 @@ export default function Postz() {
                 </div>
 
                 {finalizedLoading ? (
-                  <div className="flex items-center justify-center py-8 text-zinc-500">
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                  <div className="flex items-center justify-center py-8">
+                    <PixelLoader className="dark" label="Loading assets" />
                   </div>
                 ) : finalizedAssets && finalizedAssets.length > 0 ? (
                   <div className="space-y-2">

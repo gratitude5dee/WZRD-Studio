@@ -10,6 +10,8 @@ import {
   RotateCcw,
   XCircle,
 } from 'lucide-react';
+
+import { PixelLoader } from '@/components/craft/PixelLoader';
 import { toast } from 'sonner';
 import { cancelRemixJob, getRemixJob, retryRemixRender } from '@/features/remix/service';
 import type { RemixJobWithRenders, RemixRender } from '@/features/remix/types';
@@ -89,7 +91,7 @@ const KanvasRemixJobs = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black text-white">
-        <Loader2 className="h-6 w-6 animate-spin text-cyan-300" />
+        <PixelLoader className="dark" label="Loading jobs" showElapsed />
       </div>
     );
   }
