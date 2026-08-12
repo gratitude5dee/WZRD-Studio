@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, PanelLeft, PanelRight, Monitor } from 'lucide-react';
+import { PanelLeft, PanelRight, Monitor } from 'lucide-react';
+
+import { PixelLoader } from '@/components/craft/PixelLoader';
 import { useAppStore } from '@/store/appStore';
 import AppHeader from '@/components/AppHeader';
 import StudioSidebar from '@/components/studio/StudioSidebar';
@@ -284,10 +286,7 @@ const StudioPage = () => {
             <div className="flex-1 flex bg-[#0a0a0a]">
               {isLoading ? (
                 <div className="flex-1 flex items-center justify-center bg-black">
-                  <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-8 h-8 animate-spin text-[#d4a574]" />
-                    <p className="text-sm text-zinc-400">Loading project...</p>
-                  </div>
+                  <PixelLoader className="dark" label="Loading project" showElapsed />
                 </div>
               ) : (
                 <StudioCanvas

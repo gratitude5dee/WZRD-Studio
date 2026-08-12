@@ -30,6 +30,7 @@ import {
   Wand2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { PixelLoader } from "@/components/craft/PixelLoader";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import {
   Tooltip,
@@ -1595,10 +1596,7 @@ export default function KanvasPage() {
             <Suspense
               fallback={
                 <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-white/10 bg-white/[0.03]">
-                  <div className="text-center">
-                    <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-kanvas-accent" />
-                    <p className="text-sm font-semibold text-white">Loading {KANVAS_STUDIO_META[studio].label}</p>
-                  </div>
+                  <PixelLoader className="dark" label={`Loading ${KANVAS_STUDIO_META[studio].label}`} showElapsed />
                 </div>
               }
             >
@@ -1760,8 +1758,7 @@ export default function KanvasPage() {
           {pageLoading && (
             <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
               <div className="rounded-kanvas-xl border border-white/10 bg-kanvas-bg/90 px-8 py-6 text-center text-white shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
-                <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-kanvas-accent" />
-                <p className="text-sm font-semibold text-white">Loading Kanvas shell</p>
+                <PixelLoader className="dark mx-auto mb-3" label="Loading Kanvas shell" />
                 <p className="mt-1 text-xs text-kanvas-text-muted">Fetching models, assets, and history.</p>
               </div>
             </div>

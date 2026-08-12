@@ -2,7 +2,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle } from 'lucide-react';
+
+import { PixelLoader } from '@/components/craft/PixelLoader';
 import { ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppHeader from '@/components/AppHeader';
@@ -358,8 +360,7 @@ const StoryboardPage = () => {
   if (isLoading && !projectDetails) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#0A0A0F] text-white">
-        <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
-        <span className="ml-3">Loading Storyboard...</span>
+        <PixelLoader className="dark" label="Loading Storyboard" showElapsed />
       </div>
     );
   }

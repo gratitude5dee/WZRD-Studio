@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, HelpCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, HelpCircle } from 'lucide-react';
+
+import { PixelLoader } from '@/components/craft/PixelLoader';
 import { toast } from 'sonner';
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 
@@ -623,7 +625,7 @@ const KanvasLyrics = () => {
       <div className="min-h-screen bg-[#050506] text-white">
         <KanvasLyricsHeader />
         <div className="flex items-center justify-center py-32">
-          <Loader2 className="h-6 w-6 animate-spin text-[#f97316]" />
+          <PixelLoader className="dark" label="Loading lyrics studio" showElapsed />
         </div>
       </div>
     );
@@ -723,8 +725,7 @@ const KanvasLyrics = () => {
       {saving && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="rounded-2xl border border-[#f97316]/30 bg-[#0F1116] p-6 text-center">
-            <Loader2 className="mx-auto h-6 w-6 animate-spin text-[#f97316]" />
-            <p className="mt-3 text-xs uppercase tracking-[0.22em] text-zinc-300">Saving template…</p>
+            <PixelLoader className="dark mx-auto" label="Saving template" />
           </div>
         </div>
       )}

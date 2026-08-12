@@ -2,7 +2,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { PanelImperativeHandle } from 'react-resizable-panels';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Plus, Loader2, AlertCircle, Film, Sparkles, CircleStop, Scissors } from 'lucide-react';
+import { Plus, AlertCircle, Film, Sparkles, CircleStop, Scissors } from 'lucide-react';
+
+import { PixelLoader } from '@/components/craft/PixelLoader';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { DitherGradient } from '@/components/dither-kit';
 import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
@@ -776,8 +778,7 @@ const StoryboardPage = () => {
   if (isLoading && !projectDetails) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#090909] text-white">
-        <Loader2 className="h-8 w-8 animate-spin text-[#d4a574]" />
-        <span className="ml-3">Loading Storyboard...</span>
+        <PixelLoader className="dark" label="Loading Storyboard" showElapsed />
       </div>
     );
   }
