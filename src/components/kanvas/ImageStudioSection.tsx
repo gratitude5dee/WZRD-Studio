@@ -94,6 +94,27 @@ const USE_CASE_CARDS = [
     image: kanvasStarterAssets.ecommerce.vinylMerch.src,
     alt: kanvasStarterAssets.ecommerce.vinylMerch.alt,
   },
+  {
+    label: 'Streetwear Campaign',
+    subtitle: 'Place footwear, apparel, and drops into high-energy editorial worlds.',
+    style: 'Brutalist product film',
+    image: kanvasStarterAssets.ecommerce.streetwear.src,
+    alt: kanvasStarterAssets.ecommerce.streetwear.alt,
+  },
+  {
+    label: 'Beauty Campaign',
+    subtitle: 'Build glossy beauty product imagery with cinematic color and texture.',
+    style: 'Luxury still life',
+    image: kanvasStarterAssets.ecommerce.beauty.src,
+    alt: kanvasStarterAssets.ecommerce.beauty.alt,
+  },
+  {
+    label: 'Automotive Placement',
+    subtitle: 'Stage cars and premium objects inside atmospheric commercial locations.',
+    style: 'Blue-hour editorial',
+    image: kanvasStarterAssets.ecommerce.automotive.src,
+    alt: kanvasStarterAssets.ecommerce.automotive.alt,
+  },
 ];
 
 const ASPECT_RATIOS = ["1:1", "3:4", "4:3", "16:9", "9:16"] as const;
