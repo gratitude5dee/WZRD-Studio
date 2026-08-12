@@ -18,7 +18,7 @@ import technoWarehouse from '@/assets/generated/kanvas/starter/v2/music/techno-w
 import headphonesCobalt from '@/assets/generated/kanvas/starter/v2/ecommerce/headphones-cobalt-v02.jpg';
 import vinylMerch from '@/assets/generated/kanvas/starter/v2/ecommerce/vinyl-merch-v02.jpg';
 import afrobeatsRooftop from '@/assets/generated/kanvas/starter/v3/music/afrobeats-rooftop-v03.jpg';
-import indieGreenhouse from '@/assets/generated/kanvas/starter/v3/music/indie-greenhouse-v03.jpg';
+import indieGreenhouse from '@/assets/generated/kanvas/starter/v3/music/indie-greenhouse-v03.png';
 import latinPopCourtyard from '@/assets/generated/kanvas/starter/v3/music/latin-pop-courtyard-v03.jpg';
 import automotiveBlueHour from '@/assets/generated/kanvas/starter/v3/ecommerce/automotive-blue-hour-v03.jpg';
 import beautyCrimson from '@/assets/generated/kanvas/starter/v3/ecommerce/beauty-crimson-v03.jpg';
