@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle2, Circle, Copy, Film, Loader2, Play, RefreshCw, Scissors, TriangleAlert, Video } from 'lucide-react';
+import { AlertTriangle, Copy, Film, Loader2, Play, RefreshCw, Scissors, TriangleAlert, Video } from 'lucide-react';
 
 import { PixelLoader } from '@/components/craft/PixelLoader';
+import { ThinkingTrace } from '@/components/craft/ThinkingTrace';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -58,37 +59,17 @@ const stageIndex = (stage: DirectorCutStage): number =>
 const StageIndicator = ({ currentStage }: { currentStage: DirectorCutStage }) => {
   const activeIdx = stageIndex(currentStage);
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {PIPELINE_STAGES.map((stage, idx) => {
-        const isActive = idx === activeIdx;
-        const isDone = idx < activeIdx;
-        const isPending = idx > activeIdx;
-        return (
-          <div key={stage} className="flex items-center gap-1.5">
-            {isDone ? (
-              <CheckCircle2 className="h-4 w-4 text-orange-400" />
-            ) : isActive ? (
-              <Loader2 className="h-4 w-4 animate-spin text-cyan-300" />
-            ) : (
-              <Circle className={cn('h-4 w-4', isPending ? 'text-zinc-600' : 'text-zinc-400')} />
-            )}
-            <span
-              className={cn(
-                'text-xs whitespace-nowrap',
-                isDone && 'text-orange-300/80',
-                isActive && 'text-cyan-200 font-medium',
-                isPending && 'text-zinc-600'
-              )}
-            >
-              {STAGE_LABELS[stage]}
-            </span>
-            {idx < PIPELINE_STAGES.length - 1 && (
-              <span className={cn('text-xs mx-1', isDone ? 'text-orange-500/50' : 'text-zinc-700')}>›</span>
-            )}
-          </div>
-        );
-      })}
-    </div>
+    <ThinkingTrace
+      className="dark"
+      label="Rendering the Director's Cut"
+      doneLabel="Director's Cut rendered"
+      working={currentStage !== 'completed'}
+      steps={PIPELINE_STAGES.map((stage, idx) => ({
+        id: stage,
+        label: STAGE_LABELS[stage],
+        status: idx < activeIdx ? 'done' : idx === activeIdx ? 'active' : 'pending',
+      }))}
+    />
   );
 };
 
