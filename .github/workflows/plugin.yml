@@ -42,9 +42,10 @@ jobs:
           set -euo pipefail
           for dir in plugin/skills/*/; do
             name="$(basename "$dir")"
-            diff -q "plugin/skills/$name/SKILL.md" "dist-plugin/skills/$name/SKILL.md"
+            diff -q "plugin/skills/$name/SKILL.md" "dist/skills/$name/SKILL.md"
+            diff -q "plugin/skills/$name/SKILL.md" "dist/wzrd-studio/skills/$name/SKILL.md"
           done
-          test -z "$(find dist-plugin/skills -mindepth 3 -name SKILL.md)"
+          test -z "$(find dist/skills -mindepth 3 -name SKILL.md)"
 
       - name: Assert .well-known/agents.json is regenerated
         run: |
@@ -133,13 +134,13 @@ jobs:
         run: |
           set -euo pipefail
           tag="${GITHUB_REF_NAME#v}"
-          version="$(node -p "require('./plugin/plugin.json').version")"
+          version="$(node -p "require('./plugin/src/plugin.meta.json').version")"
           test "$tag" = "$version" || { echo "tag $tag != plugin version $version"; exit 1; }
 
       - name: Build the tarball
         run: |
           bun run plugin:build
-          tar -czf "wzrd-studio-plugin-${GITHUB_REF_NAME}.tgz" -C dist-plugin .
+          cp "dist/wzrd-studio-${GITHUB_REF_NAME#v}.tgz" "wzrd-studio-plugin-${GITHUB_REF_NAME}.tgz"
 
       # marketplace.json is published at the repo-root path Claude Code expects,
       # so `/plugin marketplace add gratitude5dee/WZRD-Studio` resolves it.

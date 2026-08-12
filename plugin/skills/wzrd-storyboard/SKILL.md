@@ -43,9 +43,9 @@ credit you eventually spend is only as good as the storyboard you spent it on.
 
 ## Optimistic concurrency
 
-`storyboard_commit` rejects a stale revision with `revision_mismatch` and returns
-`expected_revision`. That is another agent (or the user in the web app) having
-committed first — **never** retry blindly. Re-read with `get_storyboard`, re-diff,
+`storyboard_commit` rejects a stale revision with `-32006` whose data carries
+`code: "revision_mismatch"` and `expected_revision`. That is another agent (or the
+user in the web app) having committed first — **never** retry blindly. Re-read with `get_storyboard`, re-diff,
 show the user what changed, then commit again.
 
 ## Continuity graph
@@ -58,7 +58,7 @@ location inherits **that** scene's last frame, not the previous shot's.
 Override per shot when the derivation is wrong:
 
 ```
-update_shot { projectId, shotId, continuity: {
+update_shot { shotId, continuity: {
   characters: ["Mara"], locations: ["rooftop"], props: ["brass key"],
   predecessorShotId: "<shot-uuid>",   // force the graph predecessor
   reset: true                          // or declare a hard continuity break

@@ -13,6 +13,7 @@
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { AuthError, INTERNAL_ACTOR_HEADER, INTERNAL_SECRET_HEADER, resolveRequestIdentity } from '../_shared/auth.ts';
 import {
   type CharacterNode,
   type ContinuityEdge,
@@ -36,7 +37,7 @@ const supabase = createClient(
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': `authorization, x-client-info, apikey, content-type, ${INTERNAL_ACTOR_HEADER}, ${INTERNAL_SECRET_HEADER}`,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -47,20 +48,19 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function isInternalRequest(req: Request): boolean {
-  const apiKey = req.headers.get('apikey') ?? req.headers.get('x-internal-key');
-  return !!apiKey && apiKey === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-}
-
-async function resolveUserId(req: Request, body: Record<string, unknown>): Promise<string | null> {
-  if (isInternalRequest(req)) {
-    return typeof body.user_id === 'string' ? body.user_id : null;
+/**
+ * The acting user comes from a user JWT or from the internal actor headers the
+ * MCP server signs with `WZRD_INTERNAL_ACTOR_SECRET` — never from the body, so a
+ * caller cannot name a user it has no credential for.
+ */
+async function resolveUserId(req: Request): Promise<string | null> {
+  try {
+    const identity = await resolveRequestIdentity(req.headers);
+    return identity.userId;
+  } catch (error) {
+    console.error('[storyboard-session] auth', error instanceof AuthError ? error.message : error);
+    return null;
   }
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const { data, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-  if (error || !data.user) return null;
-  return data.user.id;
 }
 
 async function loadProject(projectId: string, userId: string) {
@@ -112,32 +112,43 @@ async function loadStoryboard(projectId: string): Promise<StoryboardRows> {
 }
 
 async function getOrCreateSession(projectId: string) {
+  // Upsert against the unique project index: two concurrent first proposals
+  // both land on the same row instead of one dying on the constraint.
+  const created = await supabase
+    .from('storyboard_sessions')
+    .upsert(
+      { project_id: projectId, state: emptySessionState(), revision: 0 },
+      { onConflict: 'project_id', ignoreDuplicates: true },
+    )
+    .select('id,project_id,state,revision,updated_at')
+    .maybeSingle();
+  if (created.error) throw new Error(created.error.message);
+  if (created.data) return created.data;
+
   const existing = await supabase
     .from('storyboard_sessions')
     .select('id,project_id,state,revision,updated_at')
     .eq('project_id', projectId)
     .maybeSingle();
   if (existing.error) throw new Error(existing.error.message);
-  if (existing.data) return existing.data;
-
-  const created = await supabase
-    .from('storyboard_sessions')
-    .insert({ project_id: projectId, state: emptySessionState(), revision: 0 })
-    .select('id,project_id,state,revision,updated_at')
-    .single();
-  if (created.error) throw new Error(created.error.message);
-  return created.data;
+  if (!existing.data) throw new Error(`storyboard session for ${projectId} could not be created`);
+  return existing.data;
 }
 
 /** Structural continuity warnings from the shared graph plus rubric findings. */
-async function fetchEvaluationWarnings(projectId: string, authHeader: string | null) {
+async function fetchEvaluationWarnings(projectId: string, userId: string) {
+  const internalSecret = Deno.env.get('WZRD_INTERNAL_ACTOR_SECRET') ?? '';
+  if (!internalSecret) return { available: false as const, findings: [] };
+
   try {
     const res = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/evaluate-storyboard-packet`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         apikey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-        ...(authHeader ? { Authorization: authHeader } : {}),
+        Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''}`,
+        [INTERNAL_ACTOR_HEADER]: userId,
+        [INTERNAL_SECRET_HEADER]: internalSecret,
       },
       body: JSON.stringify({ project_id: projectId, target_type: 'scene' }),
     });
@@ -301,7 +312,7 @@ serve(async (req) => {
     return json({ success: false, error: 'Invalid JSON body' }, 400);
   }
 
-  const userId = await resolveUserId(req, body);
+  const userId = await resolveUserId(req);
   if (!userId) return json({ success: false, error: 'Unauthorized', code: 'unauthorized' }, 401);
 
   const action = String(body.action ?? '');
@@ -388,7 +399,7 @@ serve(async (req) => {
     if (action === 'diff') {
       const rows = await loadStoryboard(projectId);
       const diff = diffStoryboard({ revision: session.revision, state, ...rows });
-      const evaluation = await fetchEvaluationWarnings(projectId, req.headers.get('Authorization'));
+      const evaluation = await fetchEvaluationWarnings(projectId, userId);
       const warnings = [...diff.warnings, ...evaluation.findings];
       return json({
         success: true,
@@ -464,8 +475,24 @@ serve(async (req) => {
         );
       }
 
-      const applied = await applyStagedState(projectId, state);
-      const { edges, rows } = await rederiveGraph(projectId);
+      // The writes in applyStagedState are not one transaction, so a mid-write
+      // failure hands the claimed revision back and keeps the staged state: the
+      // agent can re-diff and retry at the revision it was given, and re-applying
+      // is safe because the staged deltas are upserts keyed by scene/shot.
+      let applied: Awaited<ReturnType<typeof applyStagedState>>;
+      let edges: Awaited<ReturnType<typeof rederiveGraph>>['edges'];
+      let rows: Awaited<ReturnType<typeof rederiveGraph>>['rows'];
+      try {
+        applied = await applyStagedState(projectId, state);
+        ({ edges, rows } = await rederiveGraph(projectId));
+      } catch (applyError) {
+        await supabase
+          .from('storyboard_sessions')
+          .update({ revision })
+          .eq('id', session.id)
+          .eq('revision', revision + 1);
+        throw applyError;
+      }
       const { error: clearError } = await supabase
         .from('storyboard_sessions')
         .update({ state: emptySessionState() })

@@ -25,6 +25,7 @@ import {
   shouldSkipCreditBilling,
 } from "../_shared/credits.ts";
 import { resolveImageGenerationPlan } from "../_shared/image-fallback.ts";
+import { AuthError, resolveRequestIdentity } from "../_shared/auth.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
@@ -87,57 +88,32 @@ serve(async (req) => {
     });
   }
 
-  // Authenticate the request. Trusted server-side callers (the MCP server, which
-  // holds the service-role key) act on behalf of a user via `user_id` and may own
-  // the credit hold themselves (`delegated_billing`) so a spend is reserved,
-  // committed, and released exactly once per tool call.
-  const isInternalCall = req.headers.get('apikey') === supabaseServiceKey;
-
-  let parsedBody: Record<string, unknown> = {};
+  // Authenticate the request (user JWT or internal MCP actor)
+  let user: { id: string } | null = null;
+  let tokenId: string | undefined;
   try {
-    const rawBody = await req.text();
-    parsedBody = rawBody ? JSON.parse(rawBody) : {};
-  } catch {
+    const identity = await resolveRequestIdentity(req.headers);
+    user = { id: identity.userId };
+    tokenId = identity.tokenId;
+  } catch (authError) {
+    console.error('[generate-shot-image] Auth error:', authError instanceof AuthError ? authError.message : authError);
+  }
+  if (!user) {
     return new Response(
-      JSON.stringify({ success: false, error: "Invalid JSON body" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, error: "Invalid or expired token" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
-
-  let user: { id: string } | null = null;
-  if (isInternalCall && typeof parsedBody.user_id === 'string') {
-    user = { id: parsedBody.user_id };
-  } else {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Missing authorization" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !data.user) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Invalid or expired token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    user = { id: data.user.id };
-  }
-
-  const delegatedBilling = isInternalCall && parsedBody.delegated_billing === true;
 
 
   let shotId: string | null = null;
   let imageGenerationJobId: string | null = null;
   let creditReservation: { holdId: string | null; requestedAmount: number; skipped: boolean } | null = null;
   try {
-    const body = parsedBody;
-    shotId = typeof body.shot_id === 'string' ? body.shot_id : null;
+    const body = await req.json();
+    shotId = body.shot_id;
     const requestId = typeof body.request_id === 'string' ? body.request_id : crypto.randomUUID();
-    const styleReferenceOverride = typeof body.style_reference_url === 'string' ? body.style_reference_url : null;
+    const styleReferenceOverride = body.style_reference_url;
     const requestedImageModel = typeof body.image_model === 'string' ? body.image_model : null;
     
     if (!shotId) {
@@ -222,6 +198,45 @@ serve(async (req) => {
       enabledOnly: false,
     });
 
+    // ── Test seam ─────────────────────────────────────────────────────────
+    // Replaces only the provider call, for every provider branch: credits are
+    // still reserved and committed against the real ledger at the catalog price,
+    // so the integration suite can assert quoted-vs-charged without paying a
+    // provider.
+    if (Deno.env.get('WZRD_MOCK_GENERATION') === '1') {
+      const mockCost = getCreditCostForModel(selectedImageModel, 'image');
+      creditReservation = await reserveCredits({
+        supabase,
+        tokenId,
+        userId: user.id,
+        resourceType: 'image',
+        requestedAmount: mockCost,
+        referenceType: 'shot_image_generation',
+        referenceId: shotId,
+        idempotencyKey: buildCreditIdempotencyKey('generate-shot-image', shotId, requestId, selectedImageModel),
+        metadata: { endpoint: 'generate-shot-image', shot_id: shotId, model: selectedImageModel, provider: 'mock' },
+        skipBilling: shouldSkipCreditBilling(req.headers),
+      });
+      const mockUrl = `https://mock.invalid/shots/${shotId}.png`;
+      await supabase
+        .from('shots')
+        .update({ image_url: mockUrl, image_status: 'completed', image_progress: 100 })
+        .eq('id', shotId);
+      await commitCredits({
+        supabase,
+        tokenId,
+        amount: creditReservation.requestedAmount,
+        holdId: creditReservation.holdId,
+        skipped: creditReservation.skipped,
+        userId: user.id,
+        metadata: { endpoint: 'generate-shot-image', shot_id: shotId, provider: 'mock' },
+      });
+      return new Response(
+        JSON.stringify({ success: true, image_url: mockUrl, mock: true, credits: mockCost }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     // ── GMI Cloud path ──────────────────────────────────────────────────────
     if (selectedCatalogModel?.provider === 'gmi-cloud') {
       const gmiApiModelId = selectedCatalogModel.endpointId;
@@ -242,6 +257,7 @@ serve(async (req) => {
       const gmiCreditCost = getCreditCostForModel(selectedImageModel, 'image');
       creditReservation = await reserveCredits({
         supabase,
+        tokenId,
         userId: user.id,
         resourceType: 'image',
         requestedAmount: gmiCreditCost,
@@ -255,7 +271,7 @@ serve(async (req) => {
           model: selectedImageModel,
           provider: 'gmi-cloud',
         },
-        skipBilling: delegatedBilling || shouldSkipCreditBilling(req.headers),
+        skipBilling: shouldSkipCreditBilling(req.headers),
       });
 
       // Convert aspect ratio to WxH for Seedream
@@ -307,6 +323,8 @@ serve(async (req) => {
         console.warn(`[generate-shot-image][Shot ${shotId}] All GMI models unavailable, falling through to FAL path`);
         await releaseCredits({
           supabase,
+          tokenId,
+          amount: creditReservation.requestedAmount,
           holdId: creditReservation.holdId,
           skipped: creditReservation.skipped,
           reason: 'gmi_unavailable_fallback_to_fal',
@@ -385,6 +403,7 @@ serve(async (req) => {
 
         await commitCredits({
           supabase,
+          tokenId,
           holdId: creditReservation.holdId,
           skipped: creditReservation.skipped,
           amount: gmiCreditCost,
@@ -450,6 +469,7 @@ serve(async (req) => {
     const creditCost = getCreditCostForModel(finalModelId, 'image');
     creditReservation = await reserveCredits({
       supabase,
+      tokenId,
       userId: user.id,
       resourceType: 'image',
       requestedAmount: creditCost,
@@ -462,38 +482,8 @@ serve(async (req) => {
         shot_id: shotId,
         model: finalModelId,
       },
-      skipBilling: delegatedBilling || shouldSkipCreditBilling(req.headers),
+      skipBilling: shouldSkipCreditBilling(req.headers),
     });
-
-    // Test seam: with WZRD_MOCK_GENERATION=1 (local stack / CI only, never set in
-    // production) the provider call is replaced by a deterministic placeholder so
-    // the plugin integration suite can exercise the real credit ledger without a
-    // paid provider account. Billing behaves exactly as in the real path.
-    if (Deno.env.get('WZRD_MOCK_GENERATION') === '1') {
-      const mockUrl = `${supabaseUrl}/storage/v1/object/public/workflow-media/mock/${shotId}.png`;
-      await supabase
-        .from('shots')
-        .update({ image_url: mockUrl, image_status: 'completed', image_progress: 100 })
-        .eq('id', shotId);
-      await commitCredits({
-        supabase,
-        holdId: creditReservation.holdId,
-        skipped: creditReservation.skipped,
-        amount: creditCost,
-        metadata: { endpoint: 'generate-shot-image', shot_id: shotId, mock: true },
-      });
-      creditReservation = null;
-      await updateGenerationJob(supabase, imageGenerationJobId, {
-        status: 'completed',
-        progress: 100,
-        result_url: mockUrl,
-        completed_at: new Date().toISOString(),
-      });
-      return new Response(
-        JSON.stringify({ success: true, mock: true, shot_id: shotId, image_url: mockUrl, model: finalModelId }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
 
     console.log(`[generate-shot-image][Shot ${shotId}] Starting image generation with streaming.`);
 
@@ -688,6 +678,7 @@ serve(async (req) => {
 
       await commitCredits({
         supabase,
+        tokenId,
         holdId: creditReservation.holdId,
         skipped: creditReservation.skipped,
         amount: creditCost,
@@ -750,6 +741,8 @@ serve(async (req) => {
       if (creditReservation) {
         await releaseCredits({
           supabase,
+          tokenId,
+          amount: creditReservation.requestedAmount,
           holdId: creditReservation.holdId,
           skipped: creditReservation.skipped,
           reason: 'generation_failed',

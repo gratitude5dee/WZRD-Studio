@@ -9,92 +9,14 @@
  * valid.
  */
 
-export const MANIFEST_ALLOWED_KEYS = [
-  '$schema',
-  'name',
-  'version',
-  'description',
-  'homepage',
-  'license',
-  'author',
-  'mcp',
-  'skills',
-  'clients',
-];
-
-export const MANIFEST_REQUIRED_KEYS = ['name', 'version', 'description', 'mcp', 'skills'];
-
-export const MCP_SERVER_ALLOWED_KEYS = ['type', 'url', 'description', 'auth'];
-
 export const MAX_SKILL_NAME_LENGTH = 64;
 export const MAX_SKILL_DESCRIPTION_LENGTH = 1024;
 export const MAX_SKILL_BODY_LINES = 500;
 export const MAX_TOOL_NAME_LENGTH = 40;
 
-const SEMVER = /^\d+\.\d+\.\d+$/;
 /** lowercase alphanumerics and hyphens, no leading/trailing/consecutive hyphens */
 const SKILL_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const TOOL_NAME = /^[a-z][a-z0-9_]*$/;
-
-export function validateManifest(manifest, { label = 'plugin/plugin.json' } = {}) {
-  const errors = [];
-  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
-    return [`${label}: manifest must be a JSON object`];
-  }
-
-  for (const key of Object.keys(manifest)) {
-    if (!MANIFEST_ALLOWED_KEYS.includes(key)) {
-      errors.push(`${label}: unknown top-level field "${key}"`);
-    }
-  }
-  for (const key of MANIFEST_REQUIRED_KEYS) {
-    if (manifest[key] === undefined) errors.push(`${label}: missing required field "${key}"`);
-  }
-  if (typeof manifest.name === 'string' && !SKILL_NAME.test(manifest.name)) {
-    errors.push(`${label}: name "${manifest.name}" must be lowercase alphanumerics separated by single hyphens`);
-  }
-  if (typeof manifest.version === 'string' && !SEMVER.test(manifest.version)) {
-    errors.push(`${label}: version "${manifest.version}" must be semver MAJOR.MINOR.PATCH`);
-  }
-  if (typeof manifest.description === 'string' && manifest.description.length > MAX_SKILL_DESCRIPTION_LENGTH) {
-    errors.push(`${label}: description is ${manifest.description.length} chars (max ${MAX_SKILL_DESCRIPTION_LENGTH})`);
-  }
-  return errors;
-}
-
-export function validateMcpConfig(config, { label = 'plugin/mcp.json' } = {}) {
-  const errors = [];
-  if (!config || typeof config !== 'object') return [`${label}: must be a JSON object`];
-  if (typeof config.version !== 'string' || !SEMVER.test(config.version ?? '')) {
-    errors.push(`${label}: version must be semver`);
-  }
-  const servers = config.mcpServers;
-  if (!servers || typeof servers !== 'object') return [...errors, `${label}: missing mcpServers`];
-
-  const names = Object.keys(servers);
-  if (!names.includes('wzrd-remote')) errors.push(`${label}: mcpServers must define "wzrd-remote"`);
-  for (const extra of names.filter((name) => name !== 'wzrd-remote')) {
-    errors.push(`${label}: unexpected MCP server "${extra}"`);
-  }
-
-  const server = servers['wzrd-remote'];
-  if (server && typeof server === 'object') {
-    for (const key of Object.keys(server)) {
-      if (!MCP_SERVER_ALLOWED_KEYS.includes(key)) {
-        // A `headers` block would bake a bearer token into a committed file.
-        errors.push(`${label}: wzrd-remote has unsupported field "${key}" (auth must go through auth.tokenEnv, never inline headers)`);
-      }
-    }
-    if (server.type !== 'http') errors.push(`${label}: wzrd-remote.type must be "http"`);
-    if (typeof server.url !== 'string' || !server.url.startsWith('https://')) {
-      errors.push(`${label}: wzrd-remote.url must be an https URL`);
-    }
-    if (!server.auth || server.auth.type !== 'bearer' || typeof server.auth.tokenEnv !== 'string') {
-      errors.push(`${label}: wzrd-remote.auth must be { type: "bearer", tokenEnv: "<ENV>" }`);
-    }
-  }
-  return errors;
-}
 
 /** Minimal frontmatter reader: `key: value` pairs, values may be quoted. */
 export function parseFrontmatter(content) {
@@ -184,29 +106,76 @@ export function validateToolNames(names) {
   return errors;
 }
 
-/** Spending tools must advertise their cost in tools/list. */
+/**
+ * A tool that can move credits must say so in `tools/list`, where the agent picks
+ * it: either its price, or that this particular call is free and what is billed
+ * instead. "Find out by calling it" is not an option for a spending tool.
+ */
 export function validateSpendingToolDescriptions(tools) {
   return tools
     .filter((tool) => tool.spends)
-    .filter((tool) => !/credit/i.test(tool.description) || !/dryrun/i.test(tool.description))
-    .map((tool) => `tool "${tool.name}" spends credits but its description omits the cost text or the dryRun preview`);
+    .filter((tool) => !/credit|billed|free/i.test(tool.description))
+    .map(
+      (tool) =>
+        `tool "${tool.name}" can spend credits but its description states neither a cost nor that it is free`,
+    );
 }
 
 /**
- * The committed MCP config is mirrored at the repo root for clients that look for
- * `.mcp.json`; drift between them silently breaks one of the two.
+ * Skills are the fallback for clients that implement no extensions, so a skill
+ * naming a tool the server does not expose is a broken plugin, not a typo. Tool
+ * invocations in a skill body are written as `tool_name { args }` or listed after
+ * a `Tool:`/`Tools:` lead-in.
  */
-export function validateMirrorDrift({ pluginMcp, rootMcp, versions }) {
-  const errors = [];
-  if (JSON.stringify(pluginMcp) !== JSON.stringify(rootMcp)) {
-    errors.push('.mcp.json has drifted from plugin/mcp.json (they must be byte-identical after JSON normalization)');
+export function validateSkillToolReferences({ dirName, content, knownTools }) {
+  const label = `plugin/skills/${dirName}/SKILL.md`;
+  const referenced = new Set();
+
+  for (const [, name] of content.matchAll(/`([a-z][a-z0-9_]*)\s*\{/g)) referenced.add(name);
+  for (const line of content.split(/\r?\n/)) {
+    if (!/^Tools?:/.test(line.trim())) continue;
+    for (const [, name] of line.matchAll(/`([a-z][a-z0-9_]+)`/g)) referenced.add(name);
   }
-  const entries = Object.entries(versions ?? {});
-  const distinct = [...new Set(entries.map(([, version]) => version))];
-  if (distinct.length > 1) {
-    errors.push(
-      `version fields disagree: ${entries.map(([label, version]) => `${label}=${version}`).join(', ')}`,
-    );
+
+  return [...referenced]
+    .filter((name) => !knownTools.includes(name))
+    .sort()
+    .map((name) => `${label}: references tool "${name}", which the MCP server does not expose`);
+}
+
+const PLACEHOLDER = /\$\{[A-Za-z_][A-Za-z0-9_]*\}/;
+
+/**
+ * Rules a JSON schema cannot express: a `headers` block on the remote server
+ * would bake a bearer token into a committed file (the stdio bridge supplies
+ * Authorization at runtime), and `${VAR}` placeholders do not expand in
+ * `command` or `url`.
+ */
+export function validateMcpServers(servers) {
+  const errors = [];
+  for (const [name, server] of Object.entries(servers ?? {})) {
+    if (server.type === 'stdio') {
+      if (server.command !== 'node') {
+        errors.push(`${name}: mcp.json command must be exactly "node" (got ${JSON.stringify(server.command)})`);
+      }
+      if (PLACEHOLDER.test(server.command ?? '')) errors.push(`${name}: placeholders do not expand in "command"`);
+    }
+    if (server.type === 'streamable-http') {
+      if ('headers' in server) {
+        errors.push(`${name}: remote server must not carry a headers block — it would bake a bearer token into a committed file`);
+      }
+      if (PLACEHOLDER.test(server.url ?? '')) errors.push(`${name}: placeholders do not expand in "url"`);
+    }
   }
   return errors;
+}
+
+/** One version for the whole plugin: any artefact that disagrees breaks a client. */
+export function validateVersionParity(versions) {
+  const entries = Object.entries(versions ?? {});
+  const distinct = [...new Set(entries.map(([, version]) => version))];
+  if (distinct.length <= 1) return [];
+  return [
+    `version fields disagree: ${entries.map(([label, version]) => `${label}=${version}`).join(', ')}`,
+  ];
 }

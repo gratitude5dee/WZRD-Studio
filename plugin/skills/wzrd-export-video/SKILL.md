@@ -1,12 +1,16 @@
 ---
 name: wzrd-export-video
-description: Assemble a finished WZRD project into a single exported video (Director's Cut) and return the download link. Use this when the user asks to export, render out, stitch, or download the final cut. Covers the readiness check for missing shot media, the catalog-priced cost preview, the explicit confirmation step, job polling, and the refusal that happens when no verified export price exists in the catalog.
+description: Assemble a finished WZRD project into a single exported video (Director's Cut) and return the download link. Use this when the user asks to export, render out, stitch, or download the final cut. Covers the readiness check for missing shot media, the dryRun cost preview, the explicit confirmation step before any spend, job polling, and why assembly itself is free while the shot media it needs is not.
 ---
 
 # Export the final video
 
-Tools: `export_video` (**spends credits**), `get_job`, `get_timeline`,
-`get_credits`.
+Tools: `export_video`, `get_job`, `get_timeline`, `get_credits`.
+
+Assembly itself is **free**: `export_video` stitches media that already exists. The
+expensive part is the shot media it needs, which is billed by the generation tools
+(`wzrd-generate-shot`, `wzrd-render-timeline`) before you get here — so never
+"just export" a project with missing shots and let the fix surprise the user.
 
 ## The one safety loop
 
@@ -14,20 +18,22 @@ Tools: `export_video` (**spends credits**), `get_job`, `get_timeline`,
 2. Iterate free: `get_timeline` and confirm with the user that every shot they want
    in the cut actually has media. Missing shots are reported by the export sync
    step; fixing them is free, re-generating them is not.
-3. `export_video { projectId, dryRun: true }` → `credits_quoted` plus the
-   `catalog_id` the price came from. Costs 0.
-4. Explicit user confirmation of that exact number.
-5. `export_video { projectId, confirm: true, idempotencyKey: "<stable-key>" }` →
-   `{ jobId }` immediately.
+3. `export_video { projectId, action: "sync", dryRun: true }` → `{ credits: 0,
+   breakdown }` for the assembly. If shots are missing, quote what generating them
+   costs with the generation tool's own `dryRun` — that is the real number.
+4. Explicit user confirmation of that exact number before any generation. Assembly
+   at 0 credits still needs a go-ahead, not a surprise render.
+5. `export_video { projectId, action: "create", idempotencyKey: "<stable-key>" }` →
+   `{ jobId, status: "queued" }` immediately.
 6. Poll `get_job { jobId }` for the export URL, then present it together with
    `https://<app>/project/<projectId>?tab=timeline`.
 
 ## When export is refused
 
-`unpriced_operation` means no enabled row in `ai_model_catalog` carries a verified
-price for the export operation. WZRD billing is catalog-strict: it refuses rather
-than guessing a price. Tell the user exactly that and offer the in-app export
-instead — do not invent a credit figure and do not retry.
+If a generation the cut depends on has no enabled, priced row in
+`ai_model_catalog`, WZRD refuses rather than guessing: billing is catalog-strict.
+Tell the user exactly that and offer the in-app export instead — do not invent a
+credit figure and do not retry.
 
 ## Notes
 
@@ -37,3 +43,5 @@ instead — do not invent a credit figure and do not retry.
   did not get.
 - Export settings (resolution, fps) are optional; the project's defaults are used
   when omitted.
+- `action` selects the phase: `sync` checks readiness, `create` starts the render
+  (the default), `status` polls, `retry` re-runs a failed job.

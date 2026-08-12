@@ -2,7 +2,7 @@
 /**
  * MCP conformance suite (§11.1b) — runs against a local Supabase stack.
  *
- *   supabase start && supabase functions serve --no-verify-jwt
+ *   supabase start && WZRD_MOCK_GENERATION=1 supabase functions serve --no-verify-jwt
  *   SUPABASE_SERVICE_ROLE_KEY=… bun run plugin:conformance
  *
  * Asserts the protocol contract clients depend on: initialize, tools/list
@@ -10,7 +10,6 @@
  * (-32001 / -32002 / -32003), non-blocking long operations, idempotency, and the
  * absence of any secret pattern in responses and errors.
  */
-import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import {
   assertNoSecrets,
@@ -22,15 +21,16 @@ import {
   ledgerEntries,
   mintToken,
   rpc,
+  seedProject,
   seedUser,
   section,
   waitForJob,
 } from './lib/harness.mjs';
-import { parseToolRegistry } from './validate.mjs';
+import { pluginMeta, readTools } from './registry.mjs';
 
 const repoRoot = new URL('../../', import.meta.url).pathname.replace(/\/$/, '');
-const pluginVersion = JSON.parse(readFileSync(`${repoRoot}/plugin/plugin.json`, 'utf8')).version;
-const registry = parseToolRegistry(readFileSync(`${repoRoot}/supabase/functions/mcp-server/tools.ts`, 'utf8'));
+const pluginVersion = pluginMeta(repoRoot).version;
+const registry = readTools(repoRoot);
 
 const users = [];
 
@@ -65,8 +65,8 @@ async function main() {
   for (const spending of registry.filter((tool) => tool.spends)) {
     const entry = listed.find((tool) => tool.name === spending.name);
     check(
-      `${spending.name} advertises its credit cost in tools/list`,
-      /credit/i.test(entry?.description ?? '') && /dryrun/i.test(entry?.description ?? ''),
+      `${spending.name} states its cost (or freeness) in tools/list`,
+      /credit|billed|free/i.test(entry?.description ?? ''),
     );
   }
   assertNoSecrets('tools/list', list.raw);
@@ -85,21 +85,19 @@ async function main() {
   const fullToken = await mintToken({ userId: owner.userId });
   const readToken = await mintToken({ userId: owner.userId, scopes: ['read'] });
   const revokedToken = await mintToken({ userId: owner.userId, revoked: true });
-  const cappedToken = await mintToken({ userId: owner.userId, monthlyCreditCap: 1 });
+  const cappedToken = await mintToken({ userId: owner.userId, dailyCreditCap: 1 });
   check('seeded a user with a full-scope token', typeof fullToken === 'string');
+  const projectId = await seedProject(owner.userId, { title: 'Conformance fixture' });
+  check('seeded a fixture project', typeof projectId === 'string');
 
   section('auth: revoked / scope / cap');
   const revoked = await rpc('tools/call', { name: 'get_credits', arguments: {} }, { token: revokedToken });
   equal('revoked token → -32001', revoked.body?.error?.code, -32001);
   check('revoked token error tells the client not to retry', /revoked/i.test(revoked.body?.error?.message ?? ''));
 
-  const project = await callTool('setup_project', { title: 'Conformance fixture' }, { token: fullToken });
-  const projectId = project.data?.project?.id;
-  check('setup_project returns a project id', typeof projectId === 'string', project);
-
   const scoped = await rpc(
     'tools/call',
-    { name: 'generate_shot_image', arguments: { projectId, shotId: randomUUID(), confirm: true } },
+    { name: 'generate_shot_image', arguments: { projectId, shotId: randomUUID() } },
     { token: readToken },
   );
   equal('read-scope token calling generate_shot_image → -32002', scoped.body?.error?.code, -32002);
@@ -109,7 +107,8 @@ async function main() {
     scoped.body?.error?.message,
   );
 
-  // Seed a committed shot so the cap check is reached with a real shot id.
+  // Commit a shot through the free storyboard loop so spend checks use a real shot.
+  const ledgerBeforeStoryboard = (await ledgerEntries(owner.userId)).length;
   const proposed = await callTool(
     'storyboard_propose',
     {
@@ -119,21 +118,27 @@ async function main() {
     },
     { token: fullToken },
   );
-  check('storyboard_propose stages without spending', proposed.data?.credit_cost === 0, proposed);
+  check('storyboard_propose stages deltas', proposed.error === null, proposed.error);
   const diffed = await callTool('storyboard_diff', { projectId }, { token: fullToken });
+  check('storyboard_diff reports a revision', Number.isInteger(diffed.data?.revision), diffed);
   const committed = await callTool(
     'storyboard_commit',
     { projectId, revision: diffed.data?.revision },
     { token: fullToken },
   );
-  const shotId = committed.data?.shots?.[0]?.id ?? committed.data?.applied?.shots?.[0]?.id ?? null;
-  check('storyboard_commit reports applied shots', committed.data !== null, committed);
+  const shotId = committed.data?.shots?.[0]?.id ?? null;
+  check('storyboard_commit reports the committed shots', typeof shotId === 'string', committed);
+  equal(
+    'the propose/diff/commit loop wrote no ledger entry',
+    (await ledgerEntries(owner.userId)).length,
+    ledgerBeforeStoryboard,
+  );
 
   const capped = await rpc(
     'tools/call',
     {
       name: 'generate_shot_image',
-      arguments: { projectId, shotId: shotId ?? randomUUID(), confirm: true, idempotencyKey: randomUUID() },
+      arguments: { projectId, shotId: shotId ?? randomUUID(), idempotencyKey: randomUUID() },
     },
     { token: cappedToken },
   );
@@ -147,7 +152,9 @@ async function main() {
 
   section('tools/call shape for every tool');
   for (const tool of registry) {
-    const response = await rpc('tools/call', { name: tool.name, arguments: { projectId } }, { token: fullToken });
+    // dryRun on spending tools: the shape check must not start real generations.
+    const args = tool.spends ? { projectId, dryRun: true } : { projectId };
+    const response = await rpc('tools/call', { name: tool.name, arguments: args }, { token: fullToken });
     const ok = response.body?.result?.content?.[0]?.type === 'text' || typeof response.body?.error?.code === 'number';
     check(`${tool.name} returns either text content or a JSON-RPC error`, ok, response.body);
     assertNoSecrets(`${tool.name} response`, response.raw);
@@ -162,7 +169,7 @@ async function main() {
     const key = `conformance-${randomUUID()}`;
     const started = await callTool(
       'generate_shot_image',
-      { projectId, shotId, confirm: true, idempotencyKey: key },
+      { projectId, shotId, idempotencyKey: key },
       { token: fullToken },
     );
     const elapsed = Date.now() - startedAt;
@@ -172,22 +179,22 @@ async function main() {
     section('idempotency');
     const replay = await callTool(
       'generate_shot_image',
-      { projectId, shotId, confirm: true, idempotencyKey: key },
+      { projectId, shotId, idempotencyKey: key },
       { token: fullToken },
     );
     equal('replaying the same idempotencyKey returns the same job', replay.data?.jobId, started.data?.jobId);
-    check('replay is flagged as idempotent', replay.data?.idempotent_replay === true, replay.data);
+    check('replay is flagged as a replay', replay.data?.replayed === true, replay.data);
 
     await waitForJob(started.data.jobId, { token: fullToken, timeoutMs: 90_000 });
     const ledger = await ledgerEntries(owner.userId);
-    const spends = ledger.filter((entry) => (entry.reference_type ?? '').includes('generate_shot_image'));
+    const spends = ledger.filter((entry) => (entry.reference_type ?? '').includes('shot_image'));
     check(`one ledger entry for one idempotency key (found ${spends.length})`, spends.length <= 1, spends);
 
     section('dry run costs nothing');
     const before = (await ledgerEntries(owner.userId)).length;
     const preview = await callTool('generate_shot_image', { projectId, shotId, dryRun: true }, { token: fullToken });
-    equal('dryRun reports credit_cost 0', preview.data?.credit_cost, 0);
-    check('dryRun quotes a credit number', typeof preview.data?.credits_quoted === 'number', preview.data);
+    check('dryRun is echoed back', preview.data?.dryRun === true, preview.data);
+    check('dryRun quotes a credit number', typeof preview.data?.credits === 'number', preview.data);
     equal('dryRun writes no ledger entry', (await ledgerEntries(owner.userId)).length, before);
   } else {
     check('a committed shot was available for the long-operation checks', false);
@@ -196,10 +203,20 @@ async function main() {
   section('seedance handoff');
   const review = await callTool('seedance_handoff', { projectId, mode: 'review' }, { token: fullToken });
   equal('seedance review is free', review.data?.credit_cost, 0);
-  const auto = await callTool('seedance_handoff', { projectId, mode: 'auto', confirm: true }, { token: fullToken });
+  const autoPreview = await callTool('seedance_handoff', { projectId, mode: 'auto', dryRun: true }, { token: fullToken });
+  check(
+    'seedance auto mode cannot even be priced while pricing is unverified',
+    /unpriced|unverified|never inferred/i.test(JSON.stringify(autoPreview.error ?? autoPreview.data ?? {})),
+    autoPreview.error ?? autoPreview.data,
+  );
+  const auto = await callTool(
+    'seedance_handoff',
+    { projectId, mode: 'auto', confirm: true, idempotencyKey: randomUUID() },
+    { token: fullToken },
+  );
   check(
     'seedance auto mode is refused while pricing is unverified',
-    /unverified|not priced|disabled/i.test(JSON.stringify(auto.error ?? auto.data ?? {})),
+    /unpriced|unverified|not priced|disabled/i.test(JSON.stringify(auto.error ?? auto.data ?? {})),
     auto.error ?? auto.data,
   );
 }

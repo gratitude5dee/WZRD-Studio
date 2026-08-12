@@ -118,24 +118,58 @@ export async function seedUser({ credits = 100 } = {}) {
 
 export async function mintToken({
   userId,
-  scopes = ['read', 'write', 'generate', 'billing'],
-  monthlyCreditCap = null,
+  scopes = ['read', 'generate', 'billing'],
+  dailyCreditCap = 500,
   revoked = false,
   expiresAt = null,
 }) {
   const token = `${TOKEN_PREFIX}${randomUUID().replace(/-/g, '')}`;
-  const { error } = await admin.from('agent_access_tokens').insert({
+  const { error } = await admin.from('wzrd_api_tokens').insert({
     user_id: userId,
     name: `harness-${scopes.join('-')}`,
     token_hash: sha256(token),
     token_prefix: token.slice(0, 16),
     scopes,
-    monthly_credit_cap: monthlyCreditCap,
+    daily_credit_cap: dailyCreditCap,
     revoked_at: revoked ? new Date().toISOString() : null,
     expires_at: expiresAt,
   });
   if (error) throw new Error(`mintToken failed: ${error.message}`);
   return token;
+}
+
+/**
+ * Insert a bare project row directly. Fixture setup for suites that are not
+ * exercising `setup_project` itself, which runs the full generation pipeline.
+ */
+export async function seedProject(userId, { title = 'Harness fixture' } = {}) {
+  const { data, error } = await admin
+    .from('projects')
+    .insert({ user_id: userId, title })
+    .select('id')
+    .single();
+  if (error) throw new Error(`seedProject failed: ${error.message}`);
+  return data.id;
+}
+
+export async function seedScene(projectId, { sceneNumber = 1, title = 'Scene 1', location = null } = {}) {
+  const { data, error } = await admin
+    .from('scenes')
+    .insert({ project_id: projectId, scene_number: sceneNumber, title, location })
+    .select('id')
+    .single();
+  if (error) throw new Error(`seedScene failed: ${error.message}`);
+  return data.id;
+}
+
+export async function seedShot(projectId, sceneId, { shotNumber = 1, visualPrompt = 'A rooftop at dusk' } = {}) {
+  const { data, error } = await admin
+    .from('shots')
+    .insert({ project_id: projectId, scene_id: sceneId, shot_number: shotNumber, visual_prompt: visualPrompt })
+    .select('id')
+    .single();
+  if (error) throw new Error(`seedShot failed: ${error.message}`);
+  return data.id;
 }
 
 export async function ledgerEntries(userId) {
@@ -181,7 +215,8 @@ export async function waitForJob(jobId, { token, timeoutMs = 120_000 } = {}) {
 
 export async function cleanupUser(userId) {
   await admin.from('projects').delete().eq('user_id', userId);
-  await admin.from('agent_access_tokens').delete().eq('user_id', userId);
+  await admin.from('wzrd_mcp_jobs').delete().eq('user_id', userId);
+  await admin.from('wzrd_api_tokens').delete().eq('user_id', userId);
   await admin.auth.admin.deleteUser(userId).catch(() => {});
 }
 

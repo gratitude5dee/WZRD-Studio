@@ -5,7 +5,9 @@ description: Compile the Seedance video reference packet for a WZRD project and 
 
 # Seedance handoff (reference packet review)
 
-Tool: `seedance_handoff`. `mode: "review"` is **free**.
+Tool: `seedance_handoff { projectId, mode: "review", shotIds?, negativePrompt? }`.
+`mode: "review"` is the default and is **free** — confirm it with
+`dryRun: true`, which quotes 0 credits.
 
 ## What it does
 
@@ -53,7 +55,8 @@ lists shots that cannot be compiled at all (no prompt) — fix those first.
 It **spends credits**, so it requires the `generate` scope, explicit confirmation,
 and verified catalog pricing. Seedance 2.5 has no verified row in
 `ai_model_catalog`, and WZRD billing is catalog-strict — it refuses unpriced models
-rather than guessing. So the tool returns `seedance_auto_mode_unavailable`.
+rather than guessing. So both the dry run and the call itself fail with `-32003`
+and `reason: "unpriced_model"`.
 
 If the user asks for auto mode, say exactly that: submission is disabled until
 Seedance 2.5 catalog pricing is published; nobody is inventing a price. Then offer

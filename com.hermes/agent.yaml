@@ -1,7 +1,7 @@
 # Hermes harness mapping for the WZRD Studio universal plugin.
 # `.hermes/agent.yaml` includes this file; keep both in sync via `bun run plugin:validate`.
 name: wzrd-studio
-version: 1.1.0
+version: 0.2.0
 skills: plugin/skills
 mcp:
   server: wzrd-remote
@@ -13,7 +13,8 @@ mcp:
 
 # Draft/approve is mandatory for every tool that can move credits. Hermes must
 # render the draft (the dryRun quote) and collect an explicit human approval of the
-# quoted credit number before the tool is executed with confirm: true.
+# quoted credit number before the tool is executed without dryRun — dropping
+# dryRun *is* the spend, so approval has to happen between the two calls.
 tools:
   - name: get_credits
     mode: direct
@@ -22,8 +23,14 @@ tools:
     mode: direct
     scope: read
   - name: setup_project
-    mode: direct
-    scope: write
+    mode: draft_approve
+    scope: generate
+    draft:
+      arguments: { dryRun: true }
+      quote_field: credits
+    approve:
+      require_idempotency_key: true
+      note: Drafting a storyline and shots spends credits (3 + 1 per shot).
   - name: get_timeline
     mode: direct
     scope: read
@@ -49,9 +56,10 @@ tools:
     scope: read
   - name: seedance_handoff
     mode: draft_approve
-    scope: read
+    scope: generate
     draft:
-      arguments: { mode: review }
+      arguments: { mode: review, dryRun: true }
+      quote_field: credits
     approve:
       note: >-
         mode "auto" spends credits and is currently refused (Seedance 2.5 pricing
@@ -61,35 +69,62 @@ tools:
     scope: generate
     draft:
       arguments: { dryRun: true }
-      quote_field: credits_quoted
+      quote_field: credits
     approve:
-      arguments: { confirm: true }
       require_idempotency_key: true
-  - name: render_timeline
+  - name: generate_scene_images
     mode: draft_approve
     scope: generate
     draft:
       arguments: { dryRun: true }
-      quote_field: credits_quoted
+      quote_field: credits
     approve:
-      arguments: { confirm: true }
       require_idempotency_key: true
+      note: One scene per call; approve each scene's total separately.
+  - name: evaluate_storyboard
+    mode: direct
+    scope: read
+  - name: edit_timeline
+    mode: direct
+    scope: write
   - name: export_video
     mode: draft_approve
     scope: generate
     draft:
-      arguments: { dryRun: true }
-      quote_field: credits_quoted
+      arguments: { action: sync, dryRun: true }
+      quote_field: credits
     approve:
-      arguments: { confirm: true }
       require_idempotency_key: true
+      note: Assembly is free; the shot media it needs is billed by the generation tools.
+  - name: transcribe_captions
+    mode: draft_approve
+    scope: generate
+    draft:
+      arguments: { dryRun: true }
+      quote_field: credits
+    approve:
+      require_idempotency_key: true
+  - name: get_studio_graph
+    mode: direct
+    scope: read
+  - name: save_studio_graph
+    mode: direct
+    scope: write
   - name: run_studio_graph
     mode: draft_approve
     scope: generate
+    draft:
+      arguments: { dryRun: true }
+      quote_field: credits
     approve:
-      arguments: { confirm: true }
-      note: Requires a user session JWT in authToken.
+      require_idempotency_key: true
+      note: >-
+        The quote is a floor of one credit per generation node; each node bills its
+        model's catalog price.
   - name: get_job
+    mode: direct
+    scope: read
+  - name: list_projects
     mode: direct
     scope: read
   # Billing tool: produces a checkout URL only. It never charges and never changes

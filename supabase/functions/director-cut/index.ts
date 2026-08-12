@@ -7,6 +7,7 @@ import {
   processAssetsRemote,
 } from '../_shared/export-helpers.ts';
 import { safeLog } from '../_shared/safe-logger.ts';
+import { AuthError, resolveRequestIdentity } from '../_shared/auth.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -34,8 +35,6 @@ interface RequestBody {
   projectId?: string;
   jobId?: string;
   settings?: ExportSettings;
-  /** Only honored for service-role callers acting on a user's behalf. */
-  userId?: string;
 }
 
 interface MissingShotDetail {
@@ -510,35 +509,21 @@ serve(async (req) => {
   let requestBody: RequestBody | null = null;
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    // Trusted server-side callers (the MCP server, which holds the service-role
-    // key) act on behalf of a user via `user_id` in the body.
-    const isInternalCall = req.headers.get('apikey') === SUPABASE_SERVICE_ROLE_KEY;
-    requestBody = (await req.json()) as RequestBody;
-
     let user: { id: string } | null = null;
-    if (isInternalCall && typeof requestBody?.userId === 'string') {
-      user = { id: requestBody.userId };
-    } else {
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader) {
-        return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const token = authHeader.replace('Bearer ', '');
-      const { data, error: authError } = await supabaseAdmin.auth.getUser(token);
-
-      if (authError || !data.user) {
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      user = { id: data.user.id };
+    try {
+      user = { id: (await resolveRequestIdentity(req.headers)).userId };
+    } catch (authError) {
+      console.error('[DirectorCut] Auth error:', authError instanceof AuthError ? authError.message : authError);
     }
 
+    if (!user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    requestBody = (await req.json()) as RequestBody;
     const { action, projectId, jobId, settings } = requestBody;
 
     if (!action) {

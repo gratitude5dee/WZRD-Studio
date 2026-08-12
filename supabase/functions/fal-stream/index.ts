@@ -28,6 +28,7 @@ import {
   shouldSkipCreditBilling,
   UnpricedModelError,
 } from '../_shared/credits.ts';
+import { AuthError, resolveRequestIdentity } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,28 +78,18 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getUser(token);
-    if (claimsError || !claimsData?.user) {
+    let identity;
+    try {
+      identity = await resolveRequestIdentity(req.headers);
+    } catch (authError) {
+      console.error('[fal-stream] Auth error:', authError instanceof AuthError ? authError.message : authError);
       return new Response(
         JSON.stringify({ error: 'Invalid or expired token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    const supabaseClient = identity.client;
+    const claimsData = { user: { id: identity.userId } };
 
     const body = await req.json();
     const modelId = String(body?.modelId || '').trim();
@@ -174,6 +165,7 @@ serve(async (req) => {
     );
     const creditReservation = await reserveCredits({
       supabase: supabaseClient,
+      tokenId: identity.tokenId,
       userId: claimsData.user.id,
       resourceType: resourceTypeForBilling,
       requestedAmount: reservedAmount,
@@ -294,6 +286,7 @@ serve(async (req) => {
           });
           await commitCredits({
             supabase: supabaseClient,
+            tokenId: identity.tokenId,
             holdId: creditReservation.holdId,
             skipped: creditReservation.skipped,
             amount: succeededModel === resolvedFromRequest.modelId ? primaryCost : fallbackCost,
@@ -327,6 +320,7 @@ serve(async (req) => {
               });
               await commitCredits({
                 supabase: supabaseClient,
+                tokenId: identity.tokenId,
                 holdId: creditReservation.holdId,
                 skipped: creditReservation.skipped,
                 amount: fallbackCost,
@@ -344,6 +338,8 @@ serve(async (req) => {
               const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : 'Fallback failed';
               await releaseCredits({
                 supabase: supabaseClient,
+                tokenId: identity.tokenId,
+                amount: creditReservation.requestedAmount,
                 holdId: creditReservation.holdId,
                 skipped: creditReservation.skipped,
                 userId: claimsData.user.id,
@@ -368,6 +364,8 @@ serve(async (req) => {
 
           await releaseCredits({
             supabase: supabaseClient,
+            tokenId: identity.tokenId,
+            amount: creditReservation.requestedAmount,
             holdId: creditReservation.holdId,
             skipped: creditReservation.skipped,
             userId: claimsData.user.id,

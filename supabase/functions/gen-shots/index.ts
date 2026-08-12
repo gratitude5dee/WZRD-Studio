@@ -11,6 +11,7 @@ import {
   reserveCredits,
   shouldSkipCreditBilling,
 } from '../_shared/credits.ts';
+import { AuthError, resolveRequestIdentity } from '../_shared/auth.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -65,35 +66,23 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const anonClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
     const adminClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const {
-      data: { user },
-      error: authError,
-    } = await anonClient.auth.getUser();
-
-    if (authError || !user) {
+    let identity;
+    try {
+      identity = await resolveRequestIdentity(req.headers);
+    } catch (authError) {
+      console.error('[gen-shots] Auth error:', authError instanceof AuthError ? authError.message : authError);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+    const anonClient = identity.client;
+    const user = { id: identity.userId };
 
     const body = (await req.json()) as RequestBody;
     if (!body.projectId) {
@@ -153,6 +142,7 @@ serve(async (req) => {
     const estimatedCredits = getWorkflowCreditCost('gen-shots', desiredShotCount / 2);
     const creditReservation = await reserveCredits({
       supabase: anonClient,
+      tokenId: identity.tokenId,
       userId: user.id,
       resourceType: 'text',
       requestedAmount: estimatedCredits,
@@ -337,6 +327,7 @@ serve(async (req) => {
             if (actualCredits > 0) {
               await commitCredits({
                 supabase: anonClient,
+                tokenId: identity.tokenId,
                 holdId: creditReservation.holdId,
                 skipped: creditReservation.skipped,
                 amount: actualCredits,
@@ -350,6 +341,8 @@ serve(async (req) => {
             } else {
               await releaseCredits({
                 supabase: anonClient,
+                tokenId: identity.tokenId,
+                amount: creditReservation.requestedAmount,
                 holdId: creditReservation.holdId,
                 skipped: creditReservation.skipped,
                 reason: 'no_shots_inserted',
@@ -374,6 +367,7 @@ serve(async (req) => {
             if (partialCredits > 0) {
               await commitCredits({
                 supabase: anonClient,
+                tokenId: identity.tokenId,
                 holdId: creditReservation.holdId,
                 skipped: creditReservation.skipped,
                 amount: partialCredits,
@@ -388,6 +382,8 @@ serve(async (req) => {
             } else {
               await releaseCredits({
                 supabase: anonClient,
+                tokenId: identity.tokenId,
+                amount: creditReservation.requestedAmount,
                 holdId: creditReservation.holdId,
                 skipped: creditReservation.skipped,
                 reason: 'stream_error',

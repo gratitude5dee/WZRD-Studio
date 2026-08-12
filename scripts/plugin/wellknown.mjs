@@ -7,11 +7,12 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { pluginMeta } from './registry.mjs';
 
 const repoRoot = new URL('../../', import.meta.url).pathname.replace(/\/$/, '');
-const manifest = JSON.parse(readFileSync(join(repoRoot, 'plugin/plugin.json'), 'utf8'));
-const mcp = JSON.parse(readFileSync(join(repoRoot, 'plugin/mcp.json'), 'utf8'));
-const serverUrl = mcp.mcpServers['wzrd-remote'].url;
+const manifest = pluginMeta(repoRoot);
+const mcp = JSON.parse(readFileSync(join(repoRoot, 'plugin/src/mcp.source.json'), 'utf8'));
+const serverUrl = mcp.servers['wzrd-remote'].url;
 const target = join(repoRoot, 'public/.well-known/agents.json');
 
 const previous = JSON.parse(readFileSync(target, 'utf8'));
@@ -30,7 +31,7 @@ const document = {
     token_instructions: 'Create a personal access token in the WZRD web app under Settings → Agent access.',
   },
   plugin: {
-    manifest: '/plugin/plugin.json',
+    manifest: '/.claude-plugin/plugin.json',
     mcp_config: '/.mcp.json',
     skills: '/plugin/skills',
     marketplace: '/.claude-plugin/marketplace.json',

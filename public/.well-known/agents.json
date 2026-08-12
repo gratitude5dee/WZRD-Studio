@@ -1,9 +1,9 @@
 {
   "$schema": "https://lovable.dev/schemas/well-known-agents.json",
   "name": "WZRD Studio",
-  "version": "1.1.0",
+  "version": "0.2.0",
   "description": "Agentic film/video generation studio. Build, score, generate.",
-  "homepage": "https://studio.wzrd.tech",
+  "homepage": "https://wzrd.tech",
   "mcp": {
     "url": "https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server",
     "transport": "streamable-http",
@@ -12,7 +12,7 @@
     "token_instructions": "Create a personal access token in the WZRD web app under Settings → Agent access."
   },
   "plugin": {
-    "manifest": "/plugin/plugin.json",
+    "manifest": "/.claude-plugin/plugin.json",
     "mcp_config": "/.mcp.json",
     "skills": "/plugin/skills",
     "marketplace": "/.claude-plugin/marketplace.json"

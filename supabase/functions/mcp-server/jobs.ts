@@ -1,184 +1,149 @@
 /**
- * Billed job runner for spending MCP tools.
+ * Durable job records for async tool calls and idempotent replays.
  *
- * Contract enforced here (asserted by the conformance + adversarial suites):
- *   - a spending call returns `{ jobId }` immediately and never blocks on the
- *     provider;
- *   - the same `idempotencyKey` twice produces one job and one ledger entry;
- *   - the credit hold is always settled: commit on success, release on failure or
- *     interruption, so no orphaned hold can survive a disconnected client.
+ * Edge Function isolates are short-lived and never sticky, so anything an agent
+ * polls or replays lives in `wzrd_mcp_jobs` rather than in memory. A job keyed by
+ * an idempotency key is the replay record too: a repeated call returns the
+ * original result instead of charging a second time.
  */
-import {
-  buildCreditIdempotencyKey,
-  commitCredits,
-  releaseCredits,
-  reserveCredits,
-} from '../_shared/credits.ts';
-import type { AgentAuthContext } from './auth.ts';
-import type { McpSupabaseClient } from './supabase-client.ts';
+import { internalError, notFoundError } from './errors.ts';
+import type { McpIdentity } from './auth.ts';
+import type { ServiceClient } from './client.ts';
 
-type SupabaseLike = McpSupabaseClient;
-
-interface AgentJobRow extends Record<string, unknown> {
+export interface JobRow {
   id: string;
-  status: 'running' | 'succeeded' | 'failed';
-  credits_quoted: number | null;
-  credits_charged: number | null;
-  result: Record<string, unknown> | null;
-  error: string | null;
-}
-
-export interface BilledJobResult {
-  jobId: string;
-  status: 'running' | 'succeeded' | 'failed';
-  creditsQuoted: number;
-  reused: boolean;
-  result?: Record<string, unknown> | null;
-  error?: string | null;
-}
-
-export interface BilledJobInput {
-  supabase: SupabaseLike;
-  auth: AgentAuthContext;
   tool: string;
-  resourceType: string;
-  quotedCredits: number;
-  idempotencyKey: string;
-  projectId?: string | null;
-  request: Record<string, unknown>;
-  run: (ctx: { jobId: string }) => Promise<Record<string, unknown>>;
+  status: 'queued' | 'running' | 'succeeded' | 'failed';
+  progress: Record<string, unknown>;
+  result: unknown;
+  error: Record<string, unknown> | null;
+  credits: number | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
 }
 
-function waitUntil(promise: Promise<unknown>): void {
-  const runtime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
-  if (runtime?.waitUntil) {
-    runtime.waitUntil(promise);
-    return;
-  }
-  // Local `deno run` fallback: keep the microtask alive without blocking the reply.
-  void promise.catch(() => {});
+const JOB_COLUMNS = 'id,tool,status,progress,result,error,credits,created_at,updated_at,completed_at';
+
+export interface CreateJobResult {
+  job: JobRow;
+  /** True when an earlier call with the same idempotency key already exists. */
+  replayed: boolean;
 }
 
-export async function startBilledJob(input: BilledJobInput): Promise<BilledJobResult> {
-  const existing = await input.supabase
-    .from<AgentJobRow>('agent_jobs')
-    .select('id,status,credits_quoted,credits_charged,result,error')
-    .eq('user_id', input.auth.userId)
-    .eq('tool', input.tool)
-    .eq('idempotency_key', input.idempotencyKey)
-    .maybeSingle();
-
-  if (existing.data) {
-    return {
-      jobId: existing.data.id,
-      status: existing.data.status,
-      creditsQuoted: existing.data.credits_quoted ?? input.quotedCredits,
-      reused: true,
-      result: existing.data.result ?? null,
-      error: existing.data.error ?? null,
-    };
-  }
-
-  const reservation = await reserveCredits({
-    supabase: input.supabase,
-    userId: input.auth.userId,
-    resourceType: input.resourceType,
-    requestedAmount: input.quotedCredits,
-    referenceType: `mcp_${input.tool}`,
-    referenceId: input.projectId ?? input.auth.userId,
-    idempotencyKey: buildCreditIdempotencyKey('mcp', input.tool, input.auth.userId, input.idempotencyKey),
-    metadata: {
-      surface: 'mcp',
-      tool: input.tool,
-      token_id: input.auth.tokenId,
-      project_id: input.projectId ?? null,
-    },
-  });
-
-  const inserted = await input.supabase
-    .from<AgentJobRow>('agent_jobs')
+export async function createJob(
+  svc: ServiceClient,
+  input: {
+    identity: McpIdentity;
+    tool: string;
+    args: Record<string, unknown>;
+    idempotencyKey?: string;
+  },
+): Promise<CreateJobResult> {
+  const { data, error } = await svc
+    .from('wzrd_mcp_jobs')
     .insert({
-      user_id: input.auth.userId,
-      token_id: input.auth.tokenId,
+      user_id: input.identity.userId,
+      token_id: input.identity.tokenId,
       tool: input.tool,
-      project_id: input.projectId ?? null,
-      idempotency_key: input.idempotencyKey,
-      credit_hold_id: reservation.holdId,
-      credits_quoted: input.quotedCredits,
-      request: input.request,
-      status: 'running',
+      args: input.args,
+      idempotency_key: input.idempotencyKey ?? null,
+      status: 'queued',
     })
-    .select('id')
+    .select(JOB_COLUMNS)
     .single();
 
-  if (inserted.error || !inserted.data) {
-    // Lost an idempotency race: release our hold and return the winner's job.
-    await releaseCredits({
-      supabase: input.supabase,
-      holdId: reservation.holdId,
-      reason: 'duplicate_idempotency_key',
-      userId: input.auth.userId,
-    });
-    const winner = await input.supabase
-      .from<AgentJobRow>('agent_jobs')
-      .select('id,status,credits_quoted')
-      .eq('user_id', input.auth.userId)
+  if (!error) {
+    return { job: data as JobRow, replayed: false };
+  }
+
+  // 23505: the (user, tool, idempotency_key) unique index rejected a replay.
+  if (error.code === '23505' && input.idempotencyKey) {
+    const existing = await svc
+      .from('wzrd_mcp_jobs')
+      .select(JOB_COLUMNS)
+      .eq('user_id', input.identity.userId)
       .eq('tool', input.tool)
       .eq('idempotency_key', input.idempotencyKey)
       .maybeSingle();
-    if (winner.data) {
-      return {
-        jobId: winner.data.id,
-        status: winner.data.status,
-        creditsQuoted: winner.data.credits_quoted ?? input.quotedCredits,
-        reused: true,
-      };
+
+    if (existing.data) {
+      return { job: existing.data as JobRow, replayed: true };
     }
-    throw new Error(inserted.error?.message ?? 'Failed to create job');
   }
 
-  const jobId = inserted.data.id;
+  console.error('mcp-server: failed to create job', error.message);
+  throw internalError('Could not queue the requested operation.');
+}
 
-  const settle = (async () => {
-    try {
-      const result = await input.run({ jobId });
-      await commitCredits({
-        supabase: input.supabase,
-        holdId: reservation.holdId,
-        amount: input.quotedCredits,
-        metadata: { surface: 'mcp', tool: input.tool, job_id: jobId },
-      });
-      await input.supabase.rpc('agent_token_usage_add', {
-        p_token_id: input.auth.tokenId,
-        p_credits: input.quotedCredits,
-      });
-      await input.supabase
-        .from('agent_jobs')
-        .update({ status: 'succeeded', result, credits_charged: input.quotedCredits })
-        .eq('id', jobId);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'job failed';
-      // Release before surfacing: a failed provider call must never leave a hold.
-      await releaseCredits({
-        supabase: input.supabase,
-        holdId: reservation.holdId,
-        reason: 'operation_failed',
-        userId: input.auth.userId,
-        metadata: { tool: input.tool, job_id: jobId },
-      });
-      await input.supabase
-        .from('agent_jobs')
-        .update({ status: 'failed', error: message, credits_charged: 0 })
-        .eq('id', jobId);
-    }
-  })();
+export async function markJobRunning(
+  svc: ServiceClient,
+  jobId: string,
+): Promise<void> {
+  await svc.from('wzrd_mcp_jobs').update({ status: 'running' }).eq('id', jobId);
+}
 
-  waitUntil(settle);
+export async function reportProgress(
+  svc: ServiceClient,
+  jobId: string,
+  progress: Record<string, unknown>,
+): Promise<void> {
+  await svc.from('wzrd_mcp_jobs').update({ progress }).eq('id', jobId);
+}
 
+export async function finishJob(
+  svc: ServiceClient,
+  jobId: string,
+  outcome:
+    | { status: 'succeeded'; result: unknown; credits?: number | null }
+    | { status: 'failed'; error: Record<string, unknown> },
+): Promise<void> {
+  await svc
+    .from('wzrd_mcp_jobs')
+    .update({
+      status: outcome.status,
+      completed_at: new Date().toISOString(),
+      ...(outcome.status === 'succeeded'
+        ? { result: outcome.result ?? null, credits: outcome.credits ?? null, error: null }
+        : { error: outcome.error }),
+    })
+    .eq('id', jobId);
+}
+
+export async function getJob(
+  svc: ServiceClient,
+  userId: string,
+  jobId: string,
+): Promise<JobRow> {
+  const { data, error } = await svc
+    .from('wzrd_mcp_jobs')
+    .select(JOB_COLUMNS)
+    .eq('id', jobId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('mcp-server: job lookup failed', error.message);
+    throw internalError('Could not read job status.');
+  }
+  if (!data) {
+    throw notFoundError(`No job ${jobId} for this token's user.`);
+  }
+  return data as JobRow;
+}
+
+/** Shape returned to agents for both fresh and polled jobs. */
+export function jobEnvelope(job: JobRow) {
   return {
-    jobId,
-    status: 'running',
-    creditsQuoted: input.quotedCredits,
-    reused: false,
+    jobId: job.id,
+    tool: job.tool,
+    status: job.status,
+    progress: job.progress ?? {},
+    result: job.status === 'succeeded' ? job.result : undefined,
+    error: job.status === 'failed' ? job.error : undefined,
+    credits: job.credits ?? undefined,
+    createdAt: job.created_at,
+    updatedAt: job.updated_at,
+    completedAt: job.completed_at ?? undefined,
   };
 }

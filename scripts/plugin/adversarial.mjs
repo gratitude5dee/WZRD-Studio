@@ -3,7 +3,8 @@
  * Adversarial suite (§11.1 adversarial pass) — the four ways an agent or a client
  * can hurt a user, scripted:
  *
- *   1. a 50-shot render request must gate at the confirmation step;
+ *   1. a 50-shot render request must gate: pricing it is free, and only an
+ *      explicit non-dryRun call can spend;
  *   2. a revoked token must produce one clean error, with no retry storm;
  *   3. an interrupted generation must leave no orphaned credit hold;
  *   4. a cross-user projectId must be denied by RLS without leaking existence.
@@ -25,6 +26,7 @@ import {
   mintToken,
   openHolds,
   rpc,
+  seedProject as seedProjectRow,
   seedUser,
   section,
   waitForJob,
@@ -32,9 +34,8 @@ import {
 
 const users = [];
 
-async function seedProject(token, { shots = 3, title = 'Adversarial fixture' } = {}) {
-  const created = await callTool('setup_project', { title }, { token });
-  const projectId = created.data.project.id;
+async function seedProject(userId, token, { shots = 3, title = 'Adversarial fixture' } = {}) {
+  const projectId = await seedProjectRow(userId, { title });
   await callTool(
     'storyboard_propose',
     {
@@ -52,40 +53,36 @@ async function seedProject(token, { shots = 3, title = 'Adversarial fixture' } =
   );
   const diff = await callTool('storyboard_diff', { projectId }, { token });
   const commit = await callTool('storyboard_commit', { projectId, revision: diff.data.revision }, { token });
-  return { projectId, shots: commit.data.shots ?? [] };
+  return { projectId, shots: commit.data?.shots ?? [] };
 }
 
 async function main() {
-  section('1. a 50-shot request gates at confirmation');
+  section('1. a 50-shot request gates before spending');
   const big = await seedUser({ credits: 500 });
   users.push(big.userId);
   const bigToken = await mintToken({ userId: big.userId });
-  const { projectId: bigProject } = await seedProject(bigToken, { shots: 50, title: 'Fifty shots' });
+  const bigScoped = await seedProject(big.userId, bigToken, { shots: 50, title: 'Fifty shots' });
+  const bigProject = bigScoped.projectId;
+  const { data: bigScene } = await callTool('get_storyboard', { projectId: bigProject }, { token: bigToken });
+  const sceneId = bigScoped.shots[0]?.scene_id ?? bigScene?.scenes?.[0]?.id;
 
   const usedBefore = await creditsUsed(big.userId);
   const ledgerBefore = (await ledgerEntries(big.userId)).length;
 
-  const unconfirmed = await callTool('render_timeline', { projectId: bigProject }, { token: bigToken });
+  const preview = await callTool('generate_scene_images', { projectId: bigProject, sceneId, dryRun: true }, { token: bigToken });
   check(
-    'render_timeline without confirm is refused',
-    /confirmation_required/.test(JSON.stringify(unconfirmed.error ?? {})),
-    unconfirmed.error,
+    'dryRun quotes the 50-shot total without spending',
+    typeof preview.data?.credits === 'number' && preview.data.credits >= 50,
+    preview.data ?? preview.error,
   );
   check(
-    'the refusal states the exact credit total',
-    /\d+ credits/.test(unconfirmed.error?.message ?? ''),
-    unconfirmed.error?.message,
+    'the quote breakdown states the shot count',
+    /50 shot/.test(JSON.stringify(preview.data?.breakdown ?? [])),
+    preview.data?.breakdown,
   );
-  const preview = await callTool('render_timeline', { projectId: bigProject, dryRun: true }, { token: bigToken });
-  equal('dryRun quotes 50 shots', preview.data?.shots_pending, 50);
-  equal(
-    'dryRun total equals per-shot price × 50',
-    preview.data?.credits_quoted,
-    (preview.data?.credits_per_shot ?? 0) * 50,
-  );
-  equal('nothing was spent before confirmation', await creditsUsed(big.userId), usedBefore);
-  equal('no ledger entry was written before confirmation', (await ledgerEntries(big.userId)).length, ledgerBefore);
-  equal('no credit hold was created before confirmation', (await openHolds(big.userId)).length, 0);
+  equal('nothing was spent by the quote', await creditsUsed(big.userId), usedBefore);
+  equal('no ledger entry was written by the quote', (await ledgerEntries(big.userId)).length, ledgerBefore);
+  equal('no credit hold was created by the quote', (await openHolds(big.userId)).length, 0);
 
   section('2. a revoked token errors cleanly, with no retry storm');
   const revokedToken = await mintToken({ userId: big.userId, revoked: true });
@@ -103,8 +100,8 @@ async function main() {
   );
   const revokedResponse = await rpc('tools/call', { name: 'get_credits', arguments: {} }, { token: revokedToken });
   check(
-    'the error tells the client not to retry',
-    /do not retry/i.test(revokedResponse.body?.error?.message ?? ''),
+    'the error tells the client to mint a new token instead of retrying',
+    /revoked|mint a new/i.test(revokedResponse.body?.error?.message ?? ''),
     revokedResponse.body?.error,
   );
 
@@ -112,7 +109,7 @@ async function main() {
   const interrupted = await seedUser({ credits: 100 });
   users.push(interrupted.userId);
   const interruptedToken = await mintToken({ userId: interrupted.userId });
-  const { projectId, shots } = await seedProject(interruptedToken, { shots: 1, title: 'Interrupted' });
+  const { projectId, shots } = await seedProject(interrupted.userId, interruptedToken, { shots: 1, title: 'Interrupted' });
 
   // Abort the HTTP request mid-flight: the server must still settle the hold.
   const controller = new AbortController();
@@ -126,7 +123,7 @@ async function main() {
       method: 'tools/call',
       params: {
         name: 'generate_shot_image',
-        arguments: { projectId, shotId: shots[0].id, confirm: true, idempotencyKey: key },
+        arguments: { projectId, shotId: shots[0].id, idempotencyKey: key },
       },
     }),
     signal: controller.signal,
@@ -134,21 +131,26 @@ async function main() {
   setTimeout(() => controller.abort(), 150);
   await request;
 
-  // Give the background settle a chance, then assert the invariant.
-  await new Promise((resolve) => setTimeout(resolve, 15_000));
-  const holds = await openHolds(interrupted.userId);
+  // Poll for the invariant with a bounded budget instead of one fixed sleep,
+  // so a slow settle is retried and a genuine orphan still fails the suite.
+  let holds = await openHolds(interrupted.userId);
+  const holdDeadline = Date.now() + 60_000;
+  while (holds.length > 0 && Date.now() < holdDeadline) {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    holds = await openHolds(interrupted.userId);
+  }
   check(`no hold is left in 'held' after an aborted request (found ${holds.length})`, holds.length === 0, holds);
 
   // A failing generation must release rather than charge.
   const failing = await callTool(
     'generate_shot_image',
-    { projectId, shotId: randomUUID(), confirm: true, idempotencyKey: `adversarial-fail-${randomUUID()}` },
+    { projectId, shotId: randomUUID(), idempotencyKey: `adversarial-fail-${randomUUID()}` },
     { token: interruptedToken },
   );
   if (failing.data?.jobId) {
     const settled = await waitForJob(failing.data.jobId, { token: interruptedToken, timeoutMs: 60_000 });
     equal('a generation for a missing shot fails', settled.job?.status, 'failed');
-    equal('the failed job charged 0 credits', settled.job?.credits_charged, 0);
+    check('the failed job charged 0 credits', !settled.job?.credits, settled.job);
     equal('the failed job left no open hold', (await openHolds(interrupted.userId)).length, 0);
   } else {
     check('a generation for a missing shot is rejected', Boolean(failing.error), failing);
@@ -166,7 +168,7 @@ async function main() {
 
   const deniedSpend = await callTool(
     'generate_shot_image',
-    { projectId, shotId: shots[0].id, confirm: true, idempotencyKey: randomUUID() },
+    { projectId, shotId: shots[0].id, idempotencyKey: randomUUID() },
     { token: outsiderToken },
   );
   check('cross-user spend is denied', Boolean(deniedSpend.error), deniedSpend);

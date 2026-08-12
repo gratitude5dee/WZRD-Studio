@@ -13,6 +13,13 @@
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  AuthError,
+  INTERNAL_ACTOR_HEADER,
+  INTERNAL_SECRET_HEADER,
+  INTERNAL_TOKEN_HEADER,
+  resolveRequestIdentity,
+} from '../_shared/auth.ts';
 import { getCatalogCreditCost } from '../_shared/credits.ts';
 import {
   type CatalogPricingRow,
@@ -34,9 +41,11 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+const INTERNAL_ACTOR_SECRET = Deno.env.get('WZRD_INTERNAL_ACTOR_SECRET') ?? '';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': `authorization, x-client-info, apikey, content-type, ${INTERNAL_ACTOR_HEADER}, ${INTERNAL_SECRET_HEADER}`,
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
@@ -47,20 +56,27 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function isInternalRequest(req: Request): boolean {
-  const apiKey = req.headers.get('apikey') ?? req.headers.get('x-internal-key');
-  return !!apiKey && apiKey === SERVICE_ROLE_KEY;
+interface Actor {
+  userId: string;
+  tokenId?: string;
 }
 
-async function resolveUserId(req: Request, body: Record<string, unknown>): Promise<string | null> {
-  if (isInternalRequest(req)) {
-    return typeof body.user_id === 'string' ? body.user_id : null;
-  }
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) return null;
-  const { data, error } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
-  if (error || !data.user) return null;
-  return data.user.id;
+/**
+ * Headers for a downstream function call made on behalf of `userId`.
+ *
+ * The acting user is named by the signed internal-actor headers, never by a
+ * request body field and never by presenting a client-supplied `apikey`, so a
+ * caller cannot act as somebody else.
+ */
+function internalHeaders(userId: string, tokenId?: string): Record<string, string> {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+    apikey: SERVICE_ROLE_KEY,
+    [INTERNAL_ACTOR_HEADER]: userId,
+    [INTERNAL_SECRET_HEADER]: INTERNAL_ACTOR_SECRET,
+    ...(tokenId ? { [INTERNAL_TOKEN_HEADER]: tokenId } : {}),
+  };
 }
 
 async function resolveStyleReferenceUrl(assetId: string | null): Promise<string | null> {
@@ -78,15 +94,11 @@ async function resolveStyleReferenceUrl(assetId: string | null): Promise<string 
   return null;
 }
 
-async function evaluateStoryboard(projectId: string, authHeader: string | null) {
+async function evaluateStoryboard(projectId: string, actor: Actor) {
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/evaluate-storyboard-packet`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: SERVICE_ROLE_KEY,
-        ...(authHeader ? { Authorization: authHeader } : {}),
-      },
+      headers: internalHeaders(actor.userId, actor.tokenId),
       body: JSON.stringify({ project_id: projectId, target_type: 'scene' }),
     });
     if (!res.ok) return { available: false as const, summary: null, failedJudges: [] as string[] };
@@ -99,16 +111,12 @@ async function evaluateStoryboard(projectId: string, authHeader: string | null) 
   }
 }
 
-async function buildRevisionPlan(projectId: string, failedJudges: string[], authHeader: string | null) {
+async function buildRevisionPlan(projectId: string, failedJudges: string[], actor: Actor) {
   if (failedJudges.length === 0) return { available: false as const, plan: null };
   try {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/build-revision-plan`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: SERVICE_ROLE_KEY,
-        ...(authHeader ? { Authorization: authHeader } : {}),
-      },
+      headers: internalHeaders(actor.userId, actor.tokenId),
       body: JSON.stringify({ project_id: projectId, failed_judges: failedJudges }),
     });
     if (!res.ok) return { available: false as const, plan: null };
@@ -138,16 +146,12 @@ async function submitShot(input: {
   packetShot: { shotId: string; prompt: string; negative: string | null; duration: number; continuityFrame: { value: string | null } };
   modelId: string;
   projectId: string;
-  authHeader: string;
+  actor: Actor;
   idempotencyKey: string;
 }): Promise<{ jobId: string | null; status: string }> {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/fal-stream`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: input.authHeader,
-      apikey: SERVICE_ROLE_KEY,
-    },
+    headers: internalHeaders(input.actor.userId, input.actor.tokenId),
     body: JSON.stringify({
       model: input.modelId,
       project_id: input.projectId,
@@ -208,8 +212,15 @@ serve(async (req) => {
     return json({ success: false, error: 'Invalid JSON body' }, 400);
   }
 
-  const userId = await resolveUserId(req, body);
-  if (!userId) return json({ success: false, error: 'Unauthorized', code: 'unauthorized' }, 401);
+  let actor: Actor;
+  try {
+    const identity = await resolveRequestIdentity(req.headers);
+    actor = { userId: identity.userId, tokenId: identity.tokenId };
+  } catch (error) {
+    console.error('[seedance-handoff] auth', error instanceof AuthError ? error.message : error);
+    return json({ success: false, error: 'Unauthorized', code: 'unauthorized' }, 401);
+  }
+  const userId = actor.userId;
 
   const projectId = typeof body.project_id === 'string' ? body.project_id : '';
   if (!projectId) return json({ success: false, error: 'project_id is required' }, 400);
@@ -270,7 +281,7 @@ serve(async (req) => {
       styleReferenceUrl,
     };
 
-    const evaluation = await evaluateStoryboard(projectId, req.headers.get('Authorization'));
+    const evaluation = await evaluateStoryboard(projectId, actor);
 
     const packets = compileReferencePackets({
       project,
@@ -353,12 +364,18 @@ serve(async (req) => {
       );
     }
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return json({ success: false, code: 'user_token_required', error: 'auto mode must be called with the user token so generation is billed to them.' }, 401);
+    if (!INTERNAL_ACTOR_SECRET) {
+      return json(
+        {
+          success: false,
+          code: 'internal_actor_secret_missing',
+          error: 'This deployment cannot submit generations: WZRD_INTERNAL_ACTOR_SECRET is not configured.',
+        },
+        500,
+      );
     }
 
-    const revisionPlan = await buildRevisionPlan(projectId, evaluation.failedJudges, authHeader);
+    const revisionPlan = await buildRevisionPlan(projectId, evaluation.failedJudges, actor);
     const submissions: Array<{ shot_id: string; job_id: string | null; status: string; error?: string }> = [];
     for (const packetShot of packets) {
       try {
@@ -366,7 +383,7 @@ serve(async (req) => {
           packetShot,
           modelId: priced.row.id,
           projectId,
-          authHeader,
+          actor,
           idempotencyKey: `seedance-handoff:${projectId}:${packetShot.shotId}:${String(body.idempotency_key ?? 'auto')}`,
         });
         submissions.push({ shot_id: packetShot.shotId, job_id: submitted.jobId, status: submitted.status });

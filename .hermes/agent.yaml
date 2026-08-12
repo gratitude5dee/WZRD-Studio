@@ -1,5 +1,5 @@
 name: wzrd-studio
-version: 1.1.0
+version: 0.2.0
 build: bun run build
 test: bunx vitest run
 skills: plugin/skills

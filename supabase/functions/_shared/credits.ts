@@ -167,6 +167,41 @@ export class InsufficientCreditsError extends Error {
   }
 }
 
+/**
+ * Raised when an agent PAT trips its own guard rails (daily credit cap or
+ * request rate limit) before any credits are held.
+ */
+export class TokenSpendLimitError extends Error {
+  readonly code: 'daily_cap' | 'rate_limited';
+  readonly used?: number;
+  readonly cap?: number;
+  readonly limit?: number;
+  readonly window?: string;
+  readonly resetsAt?: string;
+
+  constructor(input: {
+    code: 'daily_cap' | 'rate_limited';
+    used?: number;
+    cap?: number;
+    limit?: number;
+    window?: string;
+    resetsAt?: string;
+  }) {
+    super(
+      input.code === 'daily_cap'
+        ? 'Token daily credit cap reached'
+        : 'Token rate limit exceeded',
+    );
+    this.name = 'TokenSpendLimitError';
+    this.code = input.code;
+    this.used = input.used;
+    this.cap = input.cap;
+    this.limit = input.limit;
+    this.window = input.window;
+    this.resetsAt = input.resetsAt;
+  }
+}
+
 export class UnpricedModelError extends Error {
   readonly code = 'unpriced_model';
 
@@ -314,10 +349,11 @@ interface CreditSupabaseError {
 }
 
 interface CreditSupabaseClient {
+  // PromiseLike, not Promise: supabase-js returns an awaitable query builder.
   rpc(
     functionName: string,
     args: Record<string, unknown>,
-  ): Promise<{ data: unknown; error: CreditSupabaseError | null }>;
+  ): PromiseLike<{ data: unknown; error: CreditSupabaseError | null }>;
 }
 
 export function shouldSkipCreditBilling(headers: Headers): boolean {
@@ -390,6 +426,8 @@ interface ReserveCreditsInput {
   idempotencyKey: string;
   metadata?: Record<string, unknown>;
   skipBilling?: boolean;
+  /** Agent PAT the spend is attributed to, when the caller is the MCP server. */
+  tokenId?: string;
 }
 
 interface CreditReserveResult {
@@ -411,8 +449,87 @@ function parseRpcPayload(data: unknown): Record<string, unknown> {
   return safeJson(data);
 }
 
+/**
+ * Enforce a PAT's rate limits and daily credit cap.
+ *
+ * Runs before any hold exists so a capped token never reserves credits, and
+ * counts the request itself even when `credits` is 0 (a read-only tool call
+ * still consumes rate-limit budget).
+ */
+export async function enforceTokenSpendGuard(input: {
+  supabase: CreditSupabaseClient;
+  tokenId: string;
+  credits?: number;
+  dryRun?: boolean;
+}): Promise<{ used: number; cap: number; resetsAt: string | null }> {
+  const { data, error } = await input.supabase.rpc('wzrd_token_spend_guard', {
+    p_token_id: input.tokenId,
+    p_credits: Math.max(0, Math.ceil(input.credits ?? 0)),
+    p_dry_run: input.dryRun === true,
+  });
+
+  if (error) {
+    throw new Error(`Token spend guard failed: ${error.message || 'unknown error'}`);
+  }
+
+  const payload = parseRpcPayload(data);
+  const resetsAt = typeof payload.resets_at === 'string' ? payload.resets_at : null;
+
+  if (payload.allowed !== true) {
+    const code = typeof payload.code === 'string' ? payload.code : 'rate_limited';
+    if (code === 'daily_cap') {
+      throw new TokenSpendLimitError({
+        code: 'daily_cap',
+        used: asNumber(payload.used, 0),
+        cap: asNumber(payload.cap, 0),
+        resetsAt: resetsAt ?? undefined,
+      });
+    }
+    throw new TokenSpendLimitError({
+      code: 'rate_limited',
+      limit: asNumber(payload.limit, 0),
+      window: typeof payload.window === 'string' ? payload.window : undefined,
+      resetsAt: resetsAt ?? undefined,
+    });
+  }
+
+  return {
+    used: asNumber(payload.used, 0),
+    cap: asNumber(payload.cap, 0),
+    resetsAt,
+  };
+}
+
+/** Return unspent daily headroom to a PAT after a released reservation. */
+export async function releaseTokenSpend(input: {
+  supabase: CreditSupabaseClient;
+  tokenId: string;
+  credits: number;
+}): Promise<void> {
+  const credits = Math.max(0, Math.ceil(input.credits));
+  if (credits === 0) return;
+
+  const { error } = await input.supabase.rpc('wzrd_token_release_spend', {
+    p_token_id: input.tokenId,
+    p_credits: credits,
+  });
+  if (error) {
+    console.error('releaseTokenSpend: release failed', error.message);
+  }
+}
+
 export async function reserveCredits(input: ReserveCreditsInput): Promise<CreditReserveResult> {
   const requestedAmount = Math.max(1, Math.ceil(input.requestedAmount));
+
+  // Guard rails come first: a capped or rate-limited token must never create a
+  // hold, so this runs before credits_reserve.
+  if (input.tokenId) {
+    await enforceTokenSpendGuard({
+      supabase: input.supabase,
+      tokenId: input.tokenId,
+      credits: requestedAmount,
+    });
+  }
 
   const { data, error } = await input.supabase.rpc('credits_reserve', {
     resource_type: input.resourceType,
@@ -423,6 +540,7 @@ export async function reserveCredits(input: ReserveCreditsInput): Promise<Credit
     metadata: {
       ...(input.metadata || {}),
       user_id: input.userId,
+      ...(input.tokenId ? { token_id: input.tokenId } : {}),
     },
   });
 
@@ -473,6 +591,8 @@ interface CreditSettleInput {
   reason?: string;
   skipped?: boolean;
   userId?: string;
+  /** Agent PAT the spend is attributed to, when the caller is the MCP server. */
+  tokenId?: string;
 }
 
 export async function commitCredits(input: CreditSettleInput): Promise<void> {
@@ -481,7 +601,10 @@ export async function commitCredits(input: CreditSettleInput): Promise<void> {
   const { data, error } = await input.supabase.rpc('credits_commit', {
     hold_id: input.holdId,
     actual_amount: input.amount ?? null,
-    metadata: input.metadata || {},
+    metadata: {
+      ...(input.metadata || {}),
+      ...(input.tokenId ? { token_id: input.tokenId } : {}),
+    },
   });
 
   if (error) {
@@ -503,8 +626,17 @@ export async function releaseCredits(input: CreditSettleInput): Promise<void> {
     metadata: {
       ...(input.metadata || {}),
       ...(input.userId ? { user_id: input.userId } : {}),
+      ...(input.tokenId ? { token_id: input.tokenId } : {}),
     },
   });
+
+  if (input.tokenId && typeof input.amount === 'number') {
+    await releaseTokenSpend({
+      supabase: input.supabase,
+      tokenId: input.tokenId,
+      credits: input.amount,
+    });
+  }
 
   if (error) {
     console.error('releaseCredits: release failed', error.message);

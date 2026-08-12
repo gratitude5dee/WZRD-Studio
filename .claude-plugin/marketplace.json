@@ -1,18 +1,24 @@
 {
   "name": "wzrd-studio",
-  "version": "1.1.0",
+  "version": "0.2.0",
   "owner": {
-    "name": "WZRD Studio",
-    "url": "https://studio.wzrd.tech"
+    "name": "5-DEE",
+    "url": "https://wzrd.tech"
   },
   "plugins": [
     {
       "name": "wzrd-studio",
-      "version": "1.1.0",
+      "version": "0.2.0",
       "source": "github:gratitude5dee/WZRD-Studio",
-      "description": "Storyboard, generate, and export AI film projects in WZRD Studio from Claude Code. Free storyboard iteration, explicit confirmation before any credit is spent.",
-      "homepage": "https://studio.wzrd.tech",
-      "keywords": ["film", "video", "storyboard", "generative", "wzrd"],
+      "description": "Drive WZRD Studio from your agent: set up projects, storyboard, generate shots, run studio graphs, edit timelines and export video.",
+      "homepage": "https://wzrd.tech",
+      "keywords": [
+        "film",
+        "video",
+        "storyboard",
+        "generative",
+        "wzrd"
+      ],
       "skills": "plugin/skills",
       "mcpServers": {
         "wzrd-remote": {

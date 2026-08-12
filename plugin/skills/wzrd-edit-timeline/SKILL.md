@@ -5,8 +5,9 @@ description: Make non-destructive, free edits to a WZRD timeline — reorder or 
 
 # Edit a WZRD timeline
 
-Tools: `get_timeline`, `get_storyboard`, `update_shot`,
-`storyboard_propose` / `_diff` / `_commit`, `get_continuity_graph`. **All free.**
+Tools: `get_timeline`, `edit_timeline`, `get_storyboard`, `update_shot`,
+`storyboard_propose` / `storyboard_diff` / `storyboard_commit`,
+`get_continuity_graph`. **All free.**
 
 Editing never spends credits. Only re-generating media does — and that is a
 different skill (`wzrd-generate-shot`, `wzrd-render-timeline`). Before you touch
@@ -22,7 +23,8 @@ number → spend once with an `idempotencyKey` → present
 | Reword one shot's prompt / dialogue / shot type | `update_shot` |
 | Fix which frame a shot continues from | `update_shot { continuity: { predecessorShotId } }` |
 | Add, delete, reorder, or renumber shots/scenes | `storyboard_propose` → `_diff` → `_commit` |
-| Trim/retime clips, audio, transitions, layers | Hand off to the web editor deep link |
+| Retime, trim, add or remove a timeline element | `edit_timeline { projectId, operations }` |
+| Audio beds, transitions, layer compositing | Hand off to the web editor deep link |
 | Re-render a changed shot | `wzrd-generate-shot`, with the full confirmation loop |
 
 ## Steps
@@ -30,8 +32,8 @@ number → spend once with an `idempotencyKey` → present
 1. `get_timeline { projectId }` and show the current shot list.
 2. Apply free edits with `update_shot`, or stage structural changes with
    `storyboard_propose` and show the `storyboard_diff` table before committing.
-3. Commit with the revision you diffed against; on `revision_mismatch` re-read and
-   show the user what someone else changed instead of retrying blindly.
+3. Commit with the revision you diffed against; on a `revision_mismatch` rejection
+   re-read and show the user what someone else changed instead of retrying blindly.
 4. If a shot's prompt changed, remind the user that its existing image is now stale
    and re-generating costs credits — quote the exact number with `dryRun: true`
    before spending anything.
@@ -39,7 +41,9 @@ number → spend once with an `idempotencyKey` → present
 
 ## Notes
 
-- Timeline-level editing (clip trimming, audio beds, transitions) lives in the web
-  editor and in the WZRD desktop app; the portable plugin deliberately exposes no
-  native editing tool. Send the deep link rather than pretending to edit clips.
+- `edit_timeline` applies structured `operations` (add, remove, move, trim) to the
+  saved timeline snapshot. Anything beyond that — audio beds, transitions, layer
+  compositing — lives in the web editor and the WZRD desktop app; the portable
+  plugin deliberately exposes no native editing tool. Send the deep link rather
+  than pretending to edit clips.
 - Deleting a shot does not refund credits already spent on it.

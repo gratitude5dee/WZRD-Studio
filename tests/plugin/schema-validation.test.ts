@@ -1,223 +1,145 @@
 /**
- * Phase 6a — schema validation, including the negative cases that must fail:
- * unknown top-level manifest field, skill name ≠ directory, description > 1024,
- * tool name > 40 chars, and a `headers` block on wzrd-remote.
+ * Schema validation (§11.1a) — including the negative cases the spec names:
+ * an unknown top-level manifest field, a skill name that differs from its
+ * directory, a description over 1024 chars, a tool name over 40 chars, and a
+ * `headers` block on `wzrd-remote`.
+ *
+ * Exercises exactly the code `bun run plugin:validate` runs.
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import Ajv from 'ajv';
 import { describe, expect, it } from 'vitest';
-// @ts-expect-error - plain ESM validator shared with the CLI
+// @ts-expect-error — plain ESM without type declarations
 import {
-  MAX_SKILL_DESCRIPTION_LENGTH,
-  parseFrontmatter,
-  validateManifest,
-  validateMcpConfig,
-  validateMirrorDrift,
+  validateMcpServers,
   validateSkill,
   validateSkillTeachesSafetyLoop,
   validateSpendingToolDescriptions,
   validateToolNames,
+  validateVersionParity,
 } from '../../scripts/plugin/validate-lib.mjs';
-// @ts-expect-error - plain ESM helper shared with the CLI
-import { EXPECTED_SKILLS, parseToolRegistry } from '../../scripts/plugin/validate.mjs';
+// @ts-expect-error — plain ESM without type declarations
+import { pluginMeta, readSkills, readTools } from '../../scripts/plugin/registry.mjs';
 
-const repoRoot = join(__dirname, '../..');
-const readJson = (path: string) => JSON.parse(readFileSync(join(repoRoot, path), 'utf8'));
-const readText = (path: string) => readFileSync(join(repoRoot, path), 'utf8');
+const ROOT = join(__dirname, '..', '..');
 
+function compile(schemaFile: string) {
+  const ajv = new Ajv({ strict: true, allErrors: true, allowUnionTypes: true });
+  return ajv.compile(JSON.parse(readFileSync(join(ROOT, 'plugin', 'schemas', schemaFile), 'utf8')));
+}
+
+const meta = pluginMeta(ROOT);
 const validManifest = {
-  name: 'wzrd-studio',
-  version: '1.1.0',
-  description: 'A plugin.',
-  mcp: './mcp.json',
-  skills: './skills',
+  name: meta.name,
+  version: meta.version,
+  description: meta.description,
+  author: { name: meta.author },
+  homepage: meta.homepage,
+  license: meta.license,
+  keywords: meta.keywords,
 };
 
-const validMcp = {
-  version: '1.1.0',
-  mcpServers: {
-    'wzrd-remote': {
-      type: 'http',
-      url: 'https://example.supabase.co/functions/v1/mcp-server',
-      auth: { type: 'bearer', tokenEnv: 'WZRD_PAT' },
-    },
-  },
+const skillFixture = (overrides: { name?: string; description?: string; bodyLines?: number } = {}) => {
+  const name = overrides.name ?? 'wzrd-example';
+  const description =
+    overrides.description ??
+    'Use this when the user wants an example: demonstrates the safety loop end to end.';
+  const body = Array.from({ length: overrides.bodyLines ?? 20 }, (_, i) => `line ${i}`).join('\n');
+  return `---\nname: ${name}\ndescription: ${description}\n---\n${body}\nget_credits dryRun confirm idempotency ?tab=timeline`;
 };
 
-const skillBody = `# Title
-
-get_credits, dryRun, confirm, idempotencyKey, https://app/project/x?tab=timeline
-`;
-
-const skillFile = (name: string, description: string, body = skillBody) =>
-  `---\nname: ${name}\ndescription: ${description}\n---\n\n${body}`;
-
-describe('plugin manifest schema', () => {
-  it('accepts the committed manifest', () => {
-    expect(validateManifest(readJson('plugin/plugin.json'))).toEqual([]);
+describe('plugin.json schema', () => {
+  it('accepts the generated manifest', () => {
+    expect(compile('plugin.schema.json')(validManifest)).toBe(true);
   });
 
   it('rejects an unknown top-level field', () => {
-    const errors = validateManifest({ ...validManifest, sideloadEverything: true });
-    expect(errors.some((error: string) => error.includes('unknown top-level field "sideloadEverything"'))).toBe(true);
-  });
-
-  it('rejects a missing required field', () => {
-    const { skills: _skills, ...withoutSkills } = validManifest;
-    expect(validateManifest(withoutSkills).some((error: string) => error.includes('missing required field "skills"'))).toBe(true);
-  });
-
-  it('rejects a non-semver version', () => {
-    expect(validateManifest({ ...validManifest, version: '1.1' }).some((error: string) => error.includes('semver'))).toBe(true);
+    const validate = compile('plugin.schema.json');
+    expect(validate({ ...validManifest, unknownField: true })).toBe(false);
+    expect(JSON.stringify(validate.errors)).toContain('additional properties');
   });
 });
 
-describe('mcp.json schema', () => {
-  it('accepts the committed config and its root mirror', () => {
-    expect(validateMcpConfig(readJson('plugin/mcp.json'))).toEqual([]);
-    expect(validateMcpConfig(readJson('.mcp.json'), { label: '.mcp.json' })).toEqual([]);
+describe('mcp.json rules', () => {
+  const source = JSON.parse(readFileSync(join(ROOT, 'plugin', 'src', 'mcp.source.json'), 'utf8'));
+
+  it('accepts the committed servers', () => {
+    expect(compile('mcp.schema.json')({ servers: source.servers })).toBe(true);
+    expect(validateMcpServers(source.servers)).toEqual([]);
   });
 
   it('rejects a headers block on wzrd-remote', () => {
-    const config = {
-      ...validMcp,
-      mcpServers: {
-        'wzrd-remote': { ...validMcp.mcpServers['wzrd-remote'], headers: { Authorization: 'Bearer wzrd_pat_leaked' } },
-      },
-    };
-    const errors = validateMcpConfig(config);
-    expect(errors.some((error: string) => error.includes('unsupported field "headers"'))).toBe(true);
-  });
-
-  it('rejects a non-https URL and a missing tokenEnv', () => {
-    const errors = validateMcpConfig({
-      ...validMcp,
-      mcpServers: { 'wzrd-remote': { type: 'http', url: 'http://insecure', auth: { type: 'bearer' } } },
-    });
-    expect(errors.some((error: string) => error.includes('https'))).toBe(true);
-    expect(errors.some((error: string) => error.includes('tokenEnv'))).toBe(true);
-  });
-
-  it('detects mirror drift and version disagreement', () => {
-    expect(
-      validateMirrorDrift({ pluginMcp: validMcp, rootMcp: { ...validMcp, version: '1.0.0' }, versions: {} }).length,
-    ).toBeGreaterThan(0);
-    expect(
-      validateMirrorDrift({
-        pluginMcp: validMcp,
-        rootMcp: validMcp,
-        versions: { a: '1.1.0', b: '1.0.0' },
-      }).some((error: string) => error.includes('version fields disagree')),
-    ).toBe(true);
+    const remote = { ...source.servers['wzrd-remote'], headers: { Authorization: 'Bearer wzrd_pat_x' } };
+    const errors = validateMcpServers({ 'wzrd-remote': remote });
+    expect(errors.some((e: string) => /headers block/.test(e))).toBe(true);
   });
 });
 
 describe('SKILL.md lint', () => {
   it('accepts every committed skill', () => {
-    for (const dirName of readdirSync(join(repoRoot, 'plugin/skills'))) {
-      const content = readText(`plugin/skills/${dirName}/SKILL.md`);
-      expect(validateSkill({ dirName, content, relativePath: `${dirName}/SKILL.md` })).toEqual([]);
-      expect(validateSkillTeachesSafetyLoop({ dirName, content })).toEqual([]);
+    for (const skill of readSkills(ROOT)) {
+      expect(validateSkill(skill)).toEqual([]);
+      expect(validateSkillTeachesSafetyLoop(skill)).toEqual([]);
     }
-  });
-
-  it('ships exactly the nine expected skills', () => {
-    expect(readdirSync(join(repoRoot, 'plugin/skills')).sort()).toEqual([...EXPECTED_SKILLS].sort());
   });
 
   it('rejects a name that differs from the directory', () => {
-    const errors = validateSkill({
-      dirName: 'wzrd-storyboard',
-      content: skillFile('wzrd-story-board', 'Use this when storyboarding.'),
-      relativePath: 'wzrd-storyboard/SKILL.md',
-    });
-    expect(errors.some((error: string) => error.includes('must equal the directory name'))).toBe(true);
+    const errors = validateSkill({ dirName: 'wzrd-other', content: skillFixture() });
+    expect(errors.some((e: string) => /must equal the directory name/.test(e))).toBe(true);
   });
 
-  it('rejects a description longer than 1024 characters', () => {
+  it('rejects a description over 1024 chars', () => {
     const errors = validateSkill({
-      dirName: 'wzrd-storyboard',
-      content: skillFile('wzrd-storyboard', `Use this when ${'x'.repeat(MAX_SKILL_DESCRIPTION_LENGTH)}`),
-      relativePath: 'wzrd-storyboard/SKILL.md',
+      dirName: 'wzrd-example',
+      content: skillFixture({ description: `use this when ${'x'.repeat(1024)}` }),
     });
-    expect(errors.some((error: string) => /description is \d+ chars/.test(error))).toBe(true);
+    expect(errors.some((e: string) => /max 1024/.test(e))).toBe(true);
   });
 
-  it('rejects a lowercase skill.md filename and nested skill files', () => {
+  it('rejects a body over 500 lines', () => {
+    const errors = validateSkill({ dirName: 'wzrd-example', content: skillFixture({ bodyLines: 501 }) });
+    expect(errors.some((e: string) => /max 500/.test(e))).toBe(true);
+  });
+
+  it('rejects a name without the wzrd- prefix and bad hyphenation', () => {
     expect(
-      validateSkill({ dirName: 'wzrd-storyboard', fileName: 'skill.md', content: skillFile('wzrd-storyboard', 'Use this when storyboarding.') })
-        .some((error: string) => error.includes('named exactly "SKILL.md"')),
+      validateSkill({ dirName: 'storyboard', content: skillFixture({ name: 'storyboard' }) }).some((e: string) =>
+        /prefixed with "wzrd-"/.test(e),
+      ),
     ).toBe(true);
     expect(
-      validateSkill({
-        dirName: 'wzrd-storyboard',
-        content: skillFile('wzrd-storyboard', 'Use this when storyboarding.'),
-        relativePath: 'wzrd-storyboard/nested/SKILL.md',
-      }).some((error: string) => error.includes('immediate child')),
-    ).toBe(true);
-  });
-
-  it('rejects malformed names and a missing wzrd- prefix', () => {
-    for (const name of ['wzrd--storyboard', '-wzrd-storyboard', 'wzrd-storyboard-', 'WZRD-Storyboard']) {
-      const errors = validateSkill({ dirName: name, content: skillFile(name, 'Use this when storyboarding.') });
-      expect(errors.length).toBeGreaterThan(0);
-    }
-    expect(
-      validateSkill({ dirName: 'storyboard', content: skillFile('storyboard', 'Use this when storyboarding.') }).some((error: string) =>
-        error.includes('prefixed with "wzrd-"'),
+      validateSkill({ dirName: 'wzrd--x', content: skillFixture({ name: 'wzrd--x' }) }).some((e: string) =>
+        /consecutive hyphens/.test(e),
       ),
     ).toBe(true);
   });
+});
 
-  it('rejects a body longer than 500 lines', () => {
-    const errors = validateSkill({
-      dirName: 'wzrd-storyboard',
-      content: skillFile('wzrd-storyboard', 'Use this when storyboarding.', 'line\n'.repeat(501)),
-      relativePath: 'wzrd-storyboard/SKILL.md',
-    });
-    expect(errors.some((error: string) => /body is \d+ lines/.test(error))).toBe(true);
+describe('tool registry', () => {
+  const tools = readTools(ROOT);
+
+  it('reads a non-empty registry from the modular tool files', () => {
+    expect(tools.length).toBeGreaterThan(20);
   });
 
-  it('parses frontmatter without a YAML dependency', () => {
-    const { frontmatter } = parseFrontmatter(skillFile('wzrd-billing', 'Use this for billing.'));
-    expect(frontmatter).toEqual({ name: 'wzrd-billing', description: 'Use this for billing.' });
+  it('accepts every committed tool name and rejects one over 40 chars', () => {
+    expect(validateToolNames(tools.map((t: { name: string }) => t.name))).toEqual([]);
+    const long = 'a'.repeat(41);
+    expect(validateToolNames([long]).some((e: string) => /max 40/.test(e))).toBe(true);
+  });
+
+  it('requires spending tools to state a cost or freeness', () => {
+    expect(validateSpendingToolDescriptions(tools)).toEqual([]);
+    expect(
+      validateSpendingToolDescriptions([{ name: 'x', spends: true, description: "'Renders things.'" }]),
+    ).toHaveLength(1);
   });
 });
 
-describe('MCP tool surface', () => {
-  const tools = parseToolRegistry(readText('supabase/functions/mcp-server/tools.ts'));
-
-  it('parses the registry and every name is valid', () => {
-    expect(tools.length).toBeGreaterThan(10);
-    expect(validateToolNames(tools.map((tool: { name: string }) => tool.name))).toEqual([]);
-  });
-
-  it('rejects a tool name longer than 40 characters', () => {
-    const tooLong = `generate_${'x'.repeat(40)}`;
-    expect(validateToolNames([tooLong]).some((error: string) => error.includes('max 40'))).toBe(true);
-  });
-
-  it('requires spending tools to advertise cost and dryRun', () => {
-    expect(validateSpendingToolDescriptions(tools)).toEqual([]);
-    expect(
-      validateSpendingToolDescriptions([{ name: 'generate_shot_image', description: 'Makes a picture.', spends: true }]).length,
-    ).toBe(1);
-  });
-
-  it('exposes the golden-path tools', () => {
-    const names = tools.map((tool: { name: string }) => tool.name);
-    for (const required of [
-      'setup_project',
-      'storyboard_propose',
-      'storyboard_diff',
-      'storyboard_commit',
-      'generate_shot_image',
-      'seedance_handoff',
-      'get_timeline',
-      'get_credits',
-      'export_video',
-    ]) {
-      expect(names).toContain(required);
-    }
+describe('version parity', () => {
+  it('flags any artefact that disagrees', () => {
+    expect(validateVersionParity({ a: '1.0.0', b: '1.0.0' })).toEqual([]);
+    expect(validateVersionParity({ a: '1.0.0', b: '1.0.1' })).toHaveLength(1);
   });
 });

@@ -5,9 +5,9 @@
     {
       "id": "wzrd-setup-project",
       "title": "Set up a WZRD Studio project",
-      "description": "Create a project, check credits and scopes, and hand the user the timeline deep link. Free.",
+      "description": "Draft a project's storyline, scenes and shots after quoting and confirming the cost (3 credits plus 1 per shot), then hand the user the timeline deep link.",
       "doc": "plugin/skills/wzrd-setup-project/SKILL.md",
-      "mcp_tools": ["get_credits", "setup_project", "get_timeline", "list_models"]
+      "mcp_tools": ["get_credits", "setup_project", "get_timeline", "list_models", "get_job"]
     },
     {
       "id": "wzrd-storyboard",
@@ -35,40 +35,40 @@
       "title": "Compile and review the Seedance reference packet",
       "description": "Review mode is free and stops before submitting; auto mode is refused while Seedance 2.5 pricing is unverified.",
       "doc": "plugin/skills/wzrd-seedance-handoff/SKILL.md",
-      "mcp_tools": ["seedance_handoff", "get_continuity_graph", "get_timeline"]
+      "mcp_tools": ["seedance_handoff", "get_continuity_graph", "evaluate_storyboard", "get_timeline"]
     },
     {
       "id": "wzrd-studio-graph",
       "title": "Execute a Studio compute graph (spends credits)",
-      "description": "Run a saved node graph under the user's session token, after explicit confirmation.",
+      "description": "Run a saved node graph after explicit confirmation of a quote that is a floor, not an exact total.",
       "doc": "plugin/skills/wzrd-studio-graph/SKILL.md",
-      "mcp_tools": ["run_studio_graph", "get_credits", "list_models"]
+      "mcp_tools": ["run_studio_graph", "get_studio_graph", "save_studio_graph", "get_credits", "list_models", "get_job"]
     },
     {
       "id": "wzrd-edit-timeline",
       "title": "Edit a timeline for free",
       "description": "Rewrite prompts, fix continuity edges, restructure scenes and shots; clip-level editing stays in the web editor.",
       "doc": "plugin/skills/wzrd-edit-timeline/SKILL.md",
-      "mcp_tools": ["get_timeline", "update_shot", "storyboard_propose", "storyboard_diff", "storyboard_commit"]
+      "mcp_tools": ["get_timeline", "edit_timeline", "update_shot", "storyboard_propose", "storyboard_diff", "storyboard_commit"]
     },
     {
       "id": "wzrd-render-timeline",
-      "title": "Render every pending shot (spends credits)",
-      "description": "Quote the exact total with dryRun, confirm it, then run one idempotent batch job.",
+      "title": "Render every pending shot, scene by scene (spends credits)",
+      "description": "Quote each scene with dryRun, sum the total, confirm it, then run one idempotent job per scene.",
       "doc": "plugin/skills/wzrd-render-timeline/SKILL.md",
-      "mcp_tools": ["render_timeline", "get_job", "get_timeline", "get_credits"]
+      "mcp_tools": ["generate_scene_images", "get_storyboard", "get_job", "get_timeline", "get_credits"]
     },
     {
       "id": "wzrd-export-video",
-      "title": "Export the final cut (spends credits)",
-      "description": "Catalog-priced Director's Cut export, refused when no verified price exists.",
+      "title": "Export the final cut",
+      "description": "Assemble the Director's Cut from media that already exists; assembly is free, the shot media it needs is not.",
       "doc": "plugin/skills/wzrd-export-video/SKILL.md",
       "mcp_tools": ["export_video", "get_job", "get_timeline"]
     },
     {
       "id": "wzrd-billing",
       "title": "Credits, catalog prices, caps, and top-ups",
-      "description": "Explain balances, per-token monthly caps, scope errors, and create a Stripe checkout URL. Free.",
+      "description": "Explain balances, per-token daily caps, scope errors, and create a Stripe checkout URL. Free.",
       "doc": "plugin/skills/wzrd-billing/SKILL.md",
       "mcp_tools": ["get_credits", "list_models", "create_checkout_session"]
     }
