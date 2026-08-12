@@ -8,13 +8,17 @@ export interface DocsBlock {
 export interface DocsSection {
   id: string;
   title: string;
+  navTitle?: string;
   tagline: string;
+  description: string;
   group: string;
   blocks: DocsBlock[];
 }
 
+export const DOCS_BASE_URL = 'https://studio.wzrd.tech/docs';
+
 export const DOCS_GROUPS = [
-  'Getting started',
+  'Get started',
   'Create',
   'Edit & deliver',
   'Distribute',
@@ -22,12 +26,19 @@ export const DOCS_GROUPS = [
   'Build on WZRD',
 ] as const;
 
+export function getDocsSection(id: string): DocsSection | undefined {
+  return DOCS_SECTIONS.find((s) => s.id === id);
+}
+
 export const DOCS_SECTIONS: DocsSection[] = [
   {
     id: 'overview',
     title: 'What is WZRD Studio?',
+    navTitle: 'Introduction',
     tagline: 'A creator operating system: concept → storyboard → generation → edit → delivery, in one place.',
-    group: 'Getting started',
+    description:
+      'WZRD Studio is an AI creative studio that takes a video project from concept to storyboard to generation to editing to final delivery in one workflow, in the browser or on desktop.',
+    group: 'Get started',
     blocks: [
       {
         body: [
@@ -49,10 +60,12 @@ export const DOCS_SECTIONS: DocsSection[] = [
     ],
   },
   {
-    id: 'getting-started',
-    title: 'Getting started',
+    id: 'quickstart',
+    title: 'Quickstart',
     tagline: 'Sign in, get credits, create your first project.',
-    group: 'Getting started',
+    description:
+      'How to start using WZRD Studio: sign in with a wallet or email, understand credits (1 credit = 1 US cent), and create your first project with the four-step setup wizard.',
+    group: 'Get started',
     blocks: [
       {
         heading: 'Accounts & sign-in',
@@ -75,10 +88,12 @@ export const DOCS_SECTIONS: DocsSection[] = [
     ],
   },
   {
-    id: 'home',
+    id: 'projects',
     title: 'Home & projects',
     tagline: 'Project library, search, favorites, and bulk management.',
-    group: 'Getting started',
+    description:
+      'The WZRD Studio Home page: browse projects in grid or table view, search, favorite, and bulk-manage, and open any project into Studio, Timeline, or Editor.',
+    group: 'Get started',
     blocks: [
       {
         body: [
@@ -90,7 +105,10 @@ export const DOCS_SECTIONS: DocsSection[] = [
   {
     id: 'studio',
     title: 'Studio — node-based generation',
+    navTitle: 'Studio (node editor)',
     tagline: 'A prompt-to-workflow canvas: describe what you want, get an executable node graph.',
+    description:
+      'WZRD Studio\u2019s node-based generation canvas: a prompt-to-workflow video agent that plans and wires image, video, and audio model blocks into executable graphs.',
     group: 'Create',
     blocks: [
       {
@@ -125,7 +143,10 @@ export const DOCS_SECTIONS: DocsSection[] = [
   {
     id: 'timeline',
     title: 'Timeline — storyboard',
+    navTitle: 'Timeline (storyboard)',
     tagline: 'Scenes, shots, prompts, and one-click image generation with continuity.',
+    description:
+      'The Timeline storyboard in WZRD Studio: scenes, shots, visual prompts, per-shot and per-scene image generation with character and setting continuity, plus Director\u2019s Cut final assembly.',
     group: 'Create',
     blocks: [
       {
@@ -153,7 +174,10 @@ export const DOCS_SECTIONS: DocsSection[] = [
   {
     id: 'editor',
     title: 'Editor — full video editor',
+    navTitle: 'Editor (video editor)',
     tagline: 'Multi-track editing, effects, captions, AI panels, and client-side export.',
+    description:
+      'The full WZRD Studio video editor: multi-track timeline, effect keyframes, text animations, karaoke captions, AI generation panels, and browser export via WebCodecs (MP4/WebM/GIF) or native FFmpeg on desktop.',
     group: 'Edit & deliver',
     blocks: [
       {
@@ -195,7 +219,10 @@ export const DOCS_SECTIONS: DocsSection[] = [
   {
     id: 'kanvas',
     title: 'Kanvas — AI studios',
+    navTitle: 'Kanvas (AI studios)',
     tagline: 'Focused studios for image, video, cinema, lipsync, lyrics, and remixing.',
+    description:
+      'Kanvas is WZRD Studio\u2019s suite of focused AI studios: image, video, cinema, lipsync, lyric-video, and remix tools for direct generation without a node graph.',
     group: 'Create',
     blocks: [
       {
@@ -215,6 +242,8 @@ export const DOCS_SECTIONS: DocsSection[] = [
     id: 'clip-studio',
     title: 'Clip Studio, Sourcify & Postz',
     tagline: 'Find viral clips, source content, and schedule posts across channels.',
+    description:
+      'WZRD Studio distribution tools: Clip Studio finds viral moments with AI scoring, Sourcify sources external content, and Postz schedules posts across channels with a multi-channel composer and calendar.',
     group: 'Distribute',
     blocks: [
       {
@@ -243,6 +272,8 @@ export const DOCS_SECTIONS: DocsSection[] = [
     id: 'ip-vault',
     title: 'IP Vault',
     tagline: 'Register and manage your intellectual property on-chain.',
+    description:
+      'The IP Vault registers creative assets as IP on Story Protocol, giving each asset verifiable on-chain provenance and licensing terms.',
     group: 'Own & bill',
     blocks: [
       {
@@ -256,6 +287,8 @@ export const DOCS_SECTIONS: DocsSection[] = [
     id: 'credits-billing',
     title: 'Credits & billing',
     tagline: 'Transparent, server-side, per-generation pricing.',
+    description:
+      'How WZRD Studio credits work: 1 credit = 1 US cent, every AI call priced server-side from a model catalog, credits held on start and settled on completion, with strict pricing and no provider keys in the browser.',
     group: 'Own & bill',
     blocks: [
       {
@@ -274,6 +307,8 @@ export const DOCS_SECTIONS: DocsSection[] = [
     id: 'agent-plugin',
     title: 'Agent plugin & MCP',
     tagline: 'Drive WZRD from Claude Code, Codex, and other agent harnesses.',
+    description:
+      'WZRD Studio exposes its functionality to AI agents through an MCP server and Agent Plugins package, so Claude Code, Codex, Hermes, OpenClaw, and other harnesses can set up projects, storyboard, and generate.',
     group: 'Build on WZRD',
     blocks: [
       {
@@ -295,7 +330,10 @@ export const DOCS_SECTIONS: DocsSection[] = [
   {
     id: 'desktop',
     title: 'Desktop app (macOS)',
+    navTitle: 'Desktop app',
     tagline: 'Native FFmpeg export, terminal, and deep links.',
+    description:
+      'The WZRD Studio macOS desktop app adds native FFmpeg export, an integrated terminal and local MCP server, wzrd:// deep links, and local file access for large media.',
     group: 'Build on WZRD',
     blocks: [
       {

@@ -17,6 +17,7 @@ const App = () => {
             {/* Public — no auth, no wallet, no studio providers */}
             <Route path={appRoutes.landing} element={<Landing />} />
             <Route path={appRoutes.docs} element={<DocsPage />} />
+            <Route path={`${appRoutes.docs}/:sectionId`} element={<DocsPage />} />
 
             {/* Login — auth + wallet only */}
             <Route path={appRoutes.login} element={<LoginRoute />} />

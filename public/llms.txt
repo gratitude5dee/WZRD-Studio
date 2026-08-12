@@ -1,0 +1,24 @@
+# WZRD Studio
+
+> WZRD Studio is a creator operating system for AI video: go from concept to storyboard to AI generation to editing to final delivery in one workflow. It runs in the browser at https://studio.wzrd.tech and as a macOS desktop app. Every project carries three connected surfaces — Studio (node-based generation), Timeline (storyboard), and Editor (full video editor) — backed by server-side AI billing (1 credit = 1 US cent) and on-chain IP registration via Story Protocol.
+
+## Documentation
+
+- [Introduction](https://studio.wzrd.tech/docs/overview): What WZRD Studio is and the core concept-to-delivery loop.
+- [Quickstart](https://studio.wzrd.tech/docs/quickstart): Sign-in, credits, and creating your first project with the setup wizard.
+- [Home & projects](https://studio.wzrd.tech/docs/projects): Project library, search, favorites, and bulk management.
+- [Studio — node-based generation](https://studio.wzrd.tech/docs/studio): Prompt-to-workflow node graphs for image, video, and audio models.
+- [Timeline — storyboard](https://studio.wzrd.tech/docs/timeline): Scenes, shots, prompts, per-shot generation with continuity, and Director's Cut.
+- [Editor — full video editor](https://studio.wzrd.tech/docs/editor): Multi-track editing, keyframes, text animations, captions, and export (WebCodecs MP4/WebM/GIF in browser, FFmpeg on desktop).
+- [Kanvas — AI studios](https://studio.wzrd.tech/docs/kanvas): Focused image, video, cinema, lipsync, lyric-video, and remix studios.
+- [Clip Studio, Sourcify & Postz](https://studio.wzrd.tech/docs/clip-studio): Viral clip finding, content sourcing, and multi-channel post scheduling.
+- [IP Vault](https://studio.wzrd.tech/docs/ip-vault): On-chain IP registration via Story Protocol.
+- [Credits & billing](https://studio.wzrd.tech/docs/credits-billing): Server-side per-generation pricing; 1 credit = 1 US cent.
+- [Agent plugin & MCP](https://studio.wzrd.tech/docs/agent-plugin): Drive WZRD from Claude Code, Codex, Hermes, OpenClaw, and other agent harnesses via the MCP server.
+- [Desktop app (macOS)](https://studio.wzrd.tech/docs/desktop): Native FFmpeg export, terminal, and wzrd:// deep links.
+
+## For agents
+
+- MCP server (Streamable HTTP): https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server
+- Agent discovery: https://studio.wzrd.tech/.well-known/agents.json
+- Source: https://github.com/gratitude5dee/WZRD-Studio
