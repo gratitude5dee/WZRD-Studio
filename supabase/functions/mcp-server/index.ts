@@ -1,199 +1,346 @@
 /**
- * WZRD Studio MCP Server (hand-rolled JSON-RPC 2.0 over HTTP).
+ * WZRD Studio MCP Server (hand-rolled JSON-RPC 2.0 over Streamable HTTP).
  *
- * Replaces npm:mcp-lite (unresolvable in Deno) with a minimal MCP-compatible
- * Streamable HTTP transport. Supports the standard handshake methods
- * (initialize, tools/list, tools/call) used by Claude Code, Codex, OpenClaw,
- * and Hermes harnesses.
+ * Identity comes exclusively from a WZRD personal access token
+ * (`Authorization: Bearer wzrd_pat_…`); no tool accepts a `user_id` or
+ * `auth_token` argument, so a caller can only ever act as the token's owner.
+ * Around every tool this module applies the cross-cutting plugin contract:
+ * scopes, argument validation, dry runs, per-token spend guards, idempotent
+ * replays and async jobs. Anything that can outlast a request runs as a job and
+ * answers `{ jobId, status: "queued" }` immediately.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import {
+  buildCreditIdempotencyKey,
+  enforceTokenSpendGuard,
+  TokenSpendLimitError,
+} from '../_shared/credits.ts';
+import {
+  INTERNAL_ACTOR_HEADER,
+  INTERNAL_SECRET_HEADER,
+  INTERNAL_TOKEN_HEADER,
+} from '../_shared/auth.ts';
+import { resolveIdentity, type McpIdentity, type Scope } from './auth.ts';
+import type { ServiceClient } from './client.ts';
+import {
+  creditsError,
+  internalError,
+  rateLimitedError,
+  RPC_ERROR,
+  RpcError,
+  scopeError,
+} from './errors.ts';
+import { createJob, finishJob, jobEnvelope, markJobRunning, reportProgress } from './jobs.ts';
+import { validateArgs } from './validate.ts';
+import { allTools, toolByName } from './tools/index.ts';
+import type { ToolContext, ToolDefinition } from './tools/types.ts';
+import { MCP_PROTOCOL_VERSION, PLUGIN_NAME, PLUGIN_VERSION, commitSha } from './version.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, accept, mcp-session-id',
+    'authorization, x-client-info, apikey, content-type, accept, mcp-session-id, x-wzrd-client',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, DELETE',
 };
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const INTERNAL_ACTOR_SECRET = Deno.env.get('WZRD_INTERNAL_ACTOR_SECRET') ?? '';
 
-function svc() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+/** Hard ceiling on a single HTTP response; bridges give up at 55s. */
+const SYNC_BUDGET_MS = 45_000;
+/** Budget for a background job: bounded by the platform's wall-clock limit. */
+const ASYNC_BUDGET_MS = 120_000;
+
+function serviceClient() {
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }
 
-async function invoke(fnName: string, body: unknown, authHeader?: string) {
-  const url = `${SUPABASE_URL}/functions/v1/${fnName}`;
-  const res = await fetch(url, {
+// ─── Edge Function invocation on behalf of the PAT's user ──────────
+//
+// Downstream functions authenticate a Supabase JWT, which a PAT holder does not
+// have. Instead the MCP server presents its own service credentials plus signed
+// internal-actor headers that name the acting user; `resolveRequestIdentity` in
+// `_shared/auth.ts` trusts those headers only when the shared secret matches.
+function internalHeaders(identity: McpIdentity): Record<string, string> {
+  if (!INTERNAL_ACTOR_SECRET) {
+    throw internalError(
+      'This deployment cannot run project tools: WZRD_INTERNAL_ACTOR_SECRET is not configured on the MCP server.',
+    );
+  }
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    [INTERNAL_ACTOR_HEADER]: identity.userId,
+    [INTERNAL_SECRET_HEADER]: INTERNAL_ACTOR_SECRET,
+    [INTERNAL_TOKEN_HEADER]: identity.tokenId,
+  };
+}
+
+async function invokeFunction(identity: McpIdentity, fn: string, body: unknown) {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authHeader ? { Authorization: authHeader } : {}),
-    },
+    headers: internalHeaders(identity),
     body: JSON.stringify(body ?? {}),
   });
-  const text = await res.text();
+  const text = await response.text();
   try {
-    return { status: res.status, data: JSON.parse(text) };
+    return { status: response.status, data: text ? JSON.parse(text) : null };
   } catch {
-    return { status: res.status, data: text };
+    return { status: response.status, data: text };
   }
 }
 
-// ─── Tool definitions ──────────────────────────────────────────────
-type ToolHandler = (args: Record<string, unknown>) => Promise<{ content: Array<{ type: string; text: string }> }>;
-interface Tool {
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
-  handler: ToolHandler;
+async function invokeSseFunction(
+  identity: McpIdentity,
+  fn: string,
+  body: unknown,
+  onEvent: (event: Record<string, unknown>) => void | Promise<void>,
+) {
+  const response = await fetch(`${SUPABASE_URL}/functions/v1/${fn}`, {
+    method: 'POST',
+    headers: { ...internalHeaders(identity), Accept: 'text/event-stream' },
+    body: JSON.stringify(body ?? {}),
+  });
+
+  const events: Array<Record<string, unknown>> = [];
+  if (!response.body) return { status: response.status, events };
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let newlineIndex = buffer.indexOf('\n');
+    while (newlineIndex !== -1) {
+      const line = buffer.slice(0, newlineIndex).replace(/\r$/, '');
+      buffer = buffer.slice(newlineIndex + 1);
+      newlineIndex = buffer.indexOf('\n');
+
+      if (!line.startsWith('data:')) continue;
+      const payload = line.slice(5).trim();
+      if (!payload || payload === '[DONE]') continue;
+      try {
+        const event = JSON.parse(payload) as Record<string, unknown>;
+        events.push(event);
+        await onEvent(event);
+      } catch {
+        // Partial frame: the next chunk completes it.
+      }
+    }
+  }
+
+  return { status: response.status, events };
 }
 
-const tools: Tool[] = [
-  {
-    name: 'list_models',
-    description: 'List models in the WZRD AI catalog with credit cost, provider, and capabilities.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        mediaType: { type: 'string', enum: ['text', 'image', 'video', 'audio'] },
-        provider: { type: 'string' },
-      },
+// ─── Tool execution ────────────────────────────────────────────────
+function buildContext(input: {
+  identity: McpIdentity;
+  svc: ServiceClient;
+  jobId?: string;
+  deadlineAt: number;
+}): ToolContext {
+  const { identity, svc, jobId, deadlineAt } = input;
+  return {
+    identity,
+    svc,
+    deadlineAt,
+    jobId,
+    invoke: (fn, body) => invokeFunction(identity, fn, body),
+    invokeSse: (fn, body, onEvent) => invokeSseFunction(identity, fn, body, onEvent),
+    progress: async (update) => {
+      if (!jobId) return;
+      await reportProgress(svc, jobId, { ...update, at: new Date().toISOString() });
     },
-    handler: async (args) => {
-      const sb = svc();
-      let q = sb
-        .from('ai_model_catalog')
-        .select('id,name,provider,media_type,credits,pricing_text,description')
-        .eq('enabled', true)
-        .or('pricing->>editor_only.is.null,pricing->>editor_only.neq.true');
-      if (typeof args.mediaType === 'string') q = q.eq('media_type', args.mediaType);
-      if (typeof args.provider === 'string') q = q.eq('provider', args.provider);
-      const { data, error } = await q.order('sort_rank', { ascending: true }).limit(200);
-      if (error) return { content: [{ type: 'text', text: `Error: ${error.message}` }] };
-      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
-    },
-  },
-  {
-    name: 'get_credits',
-    description: "Get a user's available credit balance by user_id.",
-    inputSchema: {
-      type: 'object',
-      properties: { user_id: { type: 'string' } },
-      required: ['user_id'],
-    },
-    handler: async (args) => {
-      const user_id = String(args.user_id ?? '');
-      const sb = svc();
-      const { data, error } = await sb
-        .from('user_credits')
-        .select('total_credits,used_credits')
-        .eq('user_id', user_id)
-        .maybeSingle();
-      if (error) return { content: [{ type: 'text', text: `Error: ${error.message}` }] };
-      const available = Math.max(0, (data?.total_credits ?? 0) - (data?.used_credits ?? 0));
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ user_id, available, total: data?.total_credits ?? 0, used: data?.used_credits ?? 0 }),
-        }],
-      };
-    },
-  },
-  {
-    name: 'create_project',
-    description: 'Create a new WZRD project for the given user.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        user_id: { type: 'string' },
-        title: { type: 'string' },
-        description: { type: 'string' },
-      },
-      required: ['user_id', 'title'],
-    },
-    handler: async (args) => {
-      const sb = svc();
-      const { data, error } = await sb
-        .from('projects')
-        .insert({
-          user_id: String(args.user_id),
-          title: String(args.title),
-          description: typeof args.description === 'string' ? args.description : null,
-        })
-        .select('id,title,created_at')
-        .single();
-      if (error) return { content: [{ type: 'text', text: `Error: ${error.message}` }] };
-      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
-    },
-  },
-  {
-    name: 'get_timeline',
-    description: 'Fetch scenes and shots for a project (read-only).',
-    inputSchema: {
-      type: 'object',
-      properties: { project_id: { type: 'string' } },
-      required: ['project_id'],
-    },
-    handler: async (args) => {
-      const project_id = String(args.project_id ?? '');
-      const sb = svc();
-      const [scenes, shots] = await Promise.all([
-        sb.from('scenes').select('*').eq('project_id', project_id).order('scene_number'),
-        sb.from('shots').select('*').eq('project_id', project_id).order('shot_number'),
-      ]);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ scenes: scenes.data ?? [], shots: shots.data ?? [] }),
-        }],
-      };
-    },
-  },
-  {
-    name: 'run_studio_graph',
-    description: 'Execute a saved compute graph for a project node-by-node.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: { type: 'string' },
-        auth_token: { type: 'string', description: 'Bearer token for the user' },
-      },
-      required: ['project_id', 'auth_token'],
-    },
-    handler: async (args) => {
-      const r = await invoke('compute-execute', { project_id: String(args.project_id) }, `Bearer ${String(args.auth_token)}`);
-      return { content: [{ type: 'text', text: JSON.stringify(r) }] };
-    },
-  },
-  {
-    name: 'create_checkout_session',
-    description: 'Create a billing checkout URL for plan upgrade or credit pack.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        auth_token: { type: 'string' },
-        plan: { type: 'string', enum: ['pro', 'enterprise'] },
-        pack: { type: 'string', description: 'Credit pack id (alternative to plan)' },
-      },
-      required: ['auth_token'],
-    },
-    handler: async (args) => {
-      const r = await invoke(
-        'billing-checkout',
-        { plan: args.plan, pack: args.pack },
-        `Bearer ${String(args.auth_token)}`,
+  };
+}
+
+function rpcErrorPayload(error: unknown): { code: number; message: string; data?: Record<string, unknown> } {
+  if (error instanceof RpcError) {
+    return { code: error.code, message: error.message, data: error.data };
+  }
+  if (error instanceof TokenSpendLimitError) {
+    return spendLimitPayload(error);
+  }
+  console.error('mcp-server: unhandled tool failure', error);
+  return { code: RPC_ERROR.internal, message: 'The tool failed unexpectedly.' };
+}
+
+function spendLimitPayload(error: TokenSpendLimitError) {
+  if (error.code === 'daily_cap') {
+    const rpc = creditsError(
+      `This token has used ${error.used}/${error.cap} credits today. The cap resets at ${error.resetsAt}; raise it at /settings/agent-access.`,
+      { used: error.used, cap: error.cap, resetsAt: error.resetsAt },
+    );
+    return { code: rpc.code, message: rpc.message, data: rpc.data };
+  }
+  const rpc = rateLimitedError(
+    `This token exceeded ${error.limit} requests per ${error.window}. Retry after ${error.resetsAt}.`,
+    { limit: error.limit, window: error.window, resetsAt: error.resetsAt },
+  );
+  return { code: rpc.code, message: rpc.message, data: rpc.data };
+}
+
+function requireScope(tool: ToolDefinition, scopes: Scope[]): void {
+  if (!scopes.includes(tool.scope)) {
+    throw scopeError(tool.scope, scopes);
+  }
+}
+
+/** Fail a synchronous call before the bridge's 55s cutoff, with a hint. */
+function withDeadline<T>(promise: Promise<T>, ms: number, toolName: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(
+        internalError(
+          `${toolName} did not finish within ${Math.round(ms / 1000)}s. Retry it — long operations return a jobId you can poll with get_job.`,
+        ),
       );
-      return { content: [{ type: 'text', text: JSON.stringify(r) }] };
+    }, ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+interface CallOutcome {
+  payload: unknown;
+  isError?: boolean;
+}
+
+async function callTool(
+  identity: McpIdentity,
+  svc: ServiceClient,
+  toolName: string,
+  rawArgs: Record<string, unknown>,
+): Promise<CallOutcome> {
+  const tool = toolByName.get(toolName);
+  if (!tool) {
+    throw new RpcError(RPC_ERROR.methodNotFound, `Unknown tool: ${toolName}. Call tools/list to see what is available.`);
+  }
+
+  requireScope(tool, identity.scopes);
+  validateArgs(tool.name, tool.inputSchema, rawArgs);
+
+  const dryRun = rawArgs.dryRun === true;
+  const idempotencyKey =
+    typeof rawArgs.idempotencyKey === 'string' && rawArgs.idempotencyKey
+      ? buildCreditIdempotencyKey(tool.name, identity.userId, rawArgs.idempotencyKey)
+      : undefined;
+
+  // Every call — free or not — consumes rate-limit budget for the token. A
+  // spending tool consumes a second unit when `reserveCredits` re-runs the guard
+  // to charge the daily cap, so the 60/min ceiling admits ~30 generations/min.
+  await enforceTokenSpendGuard({ supabase: svc, tokenId: identity.tokenId, credits: 0 });
+
+  if (dryRun) {
+    if (!tool.estimate) {
+      return { payload: { dryRun: true, credits: 0, breakdown: [], note: `${tool.name} never spends credits.` } };
+    }
+    const estimate = await tool.estimate(
+      buildContext({ identity, svc, deadlineAt: Date.now() + SYNC_BUDGET_MS }),
+      rawArgs,
+    );
+    return { payload: { dryRun: true, ...estimate } };
+  }
+
+  if (!tool.async) {
+    const context = buildContext({ identity, svc, deadlineAt: Date.now() + SYNC_BUDGET_MS });
+    const result = await withDeadline(tool.handler(context, rawArgs), SYNC_BUDGET_MS, tool.name);
+    return { payload: result };
+  }
+
+  const { job, replayed } = await createJob(svc, {
+    identity,
+    tool: tool.name,
+    args: rawArgs,
+    idempotencyKey,
+  });
+
+  // A replay returns the original job — including its result — and never spends
+  // a second time.
+  if (replayed) {
+    return { payload: { ...jobEnvelope(job), replayed: true } };
+  }
+
+  const estimate = tool.estimate
+    ? await tool.estimate(buildContext({ identity, svc, deadlineAt: Date.now() + SYNC_BUDGET_MS }), rawArgs)
+    : { credits: 0, breakdown: [] };
+
+  // Fail before queueing if the estimate already exceeds the token's daily cap.
+  // The authoritative charge happens inside `reserveCredits`, so this check is a
+  // dry run and never consumes headroom itself.
+  if (estimate.credits > 0) {
+    try {
+      await enforceTokenSpendGuard({
+        supabase: svc,
+        tokenId: identity.tokenId,
+        credits: estimate.credits,
+        dryRun: true,
+      });
+    } catch (error) {
+      const payload = rpcErrorPayload(error);
+      await finishJob(svc, job.id, { status: 'failed', error: payload });
+      throw error;
+    }
+  }
+
+  const run = async () => {
+    const context = buildContext({
+      identity,
+      svc,
+      jobId: job.id,
+      deadlineAt: Date.now() + ASYNC_BUDGET_MS,
+    });
+    try {
+      await markJobRunning(svc, job.id);
+      const result = await tool.handler(context, rawArgs);
+      await finishJob(svc, job.id, {
+        status: 'succeeded',
+        result,
+        credits: estimate.credits || null,
+      });
+    } catch (error) {
+      await finishJob(svc, job.id, { status: 'failed', error: rpcErrorPayload(error) });
+    }
+  };
+
+  const runtime = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  if (runtime?.waitUntil) {
+    runtime.waitUntil(run());
+  } else {
+    // Local dev: no background runtime, so let it run detached.
+    run().catch((error) => console.error('mcp-server: job failed', error));
+  }
+
+  return {
+    payload: {
+      jobId: job.id,
+      status: 'queued',
+      tool: tool.name,
+      estimatedCredits: estimate.credits,
+      poll: { tool: 'get_job', arguments: { jobId: job.id } },
     },
-  },
-];
+  };
+}
 
-const toolMap = new Map(tools.map((t) => [t.name, t]));
-
-// ─── JSON-RPC 2.0 envelope ─────────────────────────────────────────
+// ─── JSON-RPC envelope ─────────────────────────────────────────────
 interface JsonRpcRequest {
-  jsonrpc: '2.0';
+  jsonrpc?: string;
   id?: string | number | null;
   method: string;
   params?: Record<string, unknown>;
@@ -202,45 +349,70 @@ interface JsonRpcRequest {
 function rpcResult(id: string | number | null | undefined, result: unknown) {
   return { jsonrpc: '2.0', id: id ?? null, result };
 }
-function rpcError(id: string | number | null | undefined, code: number, message: string, data?: unknown) {
+
+function rpcFailure(
+  id: string | number | null | undefined,
+  code: number,
+  message: string,
+  data?: Record<string, unknown>,
+) {
   return { jsonrpc: '2.0', id: id ?? null, error: { code, message, ...(data ? { data } : {}) } };
 }
 
-async function dispatch(req: JsonRpcRequest): Promise<unknown> {
-  switch (req.method) {
+function toolListPayload() {
+  return {
+    tools: allTools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+      annotations: {
+        readOnlyHint: tool.scope === 'read' && !tool.estimate,
+        scope: tool.scope,
+        async: tool.async === true,
+      },
+    })),
+  };
+}
+
+async function dispatch(
+  request: JsonRpcRequest,
+  identity: McpIdentity,
+  svc: ServiceClient,
+): Promise<unknown> {
+  // Notifications carry no id and must never be answered.
+  if (request.method.startsWith('notifications/')) return null;
+
+  switch (request.method) {
     case 'initialize':
-      return rpcResult(req.id, {
-        protocolVersion: '2025-03-26',
-        serverInfo: { name: 'wzrd-studio', version: '1.0.0' },
-        capabilities: { tools: {} },
+      return rpcResult(request.id, {
+        protocolVersion: MCP_PROTOCOL_VERSION,
+        serverInfo: { name: PLUGIN_NAME, version: PLUGIN_VERSION },
+        capabilities: { tools: { listChanged: false } },
+        instructions:
+          'Long-running tools return { jobId, status: "queued" } — poll get_job. Pass dryRun: true to price a generation, and idempotencyKey to make retries safe.',
       });
-    case 'notifications/initialized':
-      return null; // notification — no response
     case 'ping':
-      return rpcResult(req.id, {});
+      return rpcResult(request.id, {});
     case 'tools/list':
-      return rpcResult(req.id, {
-        tools: tools.map((t) => ({
-          name: t.name,
-          description: t.description,
-          inputSchema: t.inputSchema,
-        })),
-      });
+      return rpcResult(request.id, toolListPayload());
     case 'tools/call': {
-      const name = String((req.params as Record<string, unknown> | undefined)?.name ?? '');
-      const args = ((req.params as Record<string, unknown> | undefined)?.arguments ?? {}) as Record<string, unknown>;
-      const tool = toolMap.get(name);
-      if (!tool) return rpcError(req.id, -32601, `Unknown tool: ${name}`);
+      const params = (request.params ?? {}) as Record<string, unknown>;
+      const name = String(params.name ?? '');
+      const args = (params.arguments ?? {}) as Record<string, unknown>;
       try {
-        const result = await tool.handler(args);
-        return rpcResult(req.id, result);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Tool execution failed';
-        return rpcError(req.id, -32000, message);
+        const outcome = await callTool(identity, svc, name, args);
+        return rpcResult(request.id, {
+          content: [{ type: 'text', text: JSON.stringify(outcome.payload, null, 2) }],
+          structuredContent: outcome.payload,
+          isError: false,
+        });
+      } catch (error) {
+        const payload = rpcErrorPayload(error);
+        return rpcFailure(request.id, payload.code, payload.message, payload.data);
       }
     }
     default:
-      return rpcError(req.id, -32601, `Method not found: ${req.method}`);
+      return rpcFailure(request.id, RPC_ERROR.methodNotFound, `Method not found: ${request.method}`);
   }
 }
 
@@ -255,38 +427,50 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   const url = new URL(req.url);
-  const isRoot = url.pathname.endsWith('/mcp-server') || url.pathname.endsWith('/mcp-server/') || url.pathname === '/';
 
+  // Unauthenticated liveness probe: bridges ping this at startup so a
+  // misconfigured install fails loudly instead of at first tool call.
   if (req.method === 'GET') {
     return jsonResponse({
-      name: 'wzrd-studio',
-      version: '1.0.0',
+      ok: true,
+      version: PLUGIN_VERSION,
+      toolCount: allTools.length,
+      commit: commitSha(),
+      name: PLUGIN_NAME,
       transport: 'streamable-http-jsonrpc2',
-      endpoint: '/functions/v1/mcp-server',
-      tools: tools.map((t) => t.name),
-      docs: isRoot ? 'POST JSON-RPC 2.0 envelopes to this endpoint.' : undefined,
+      endpoint: url.pathname,
     });
   }
 
   if (req.method !== 'POST') {
-    return jsonResponse(rpcError(null, -32600, 'Only POST is accepted for JSON-RPC.'), 405);
+    return jsonResponse(rpcFailure(null, -32600, 'Only POST is accepted for JSON-RPC.'), 405);
   }
 
   let payload: unknown;
   try {
     payload = await req.json();
   } catch {
-    return jsonResponse(rpcError(null, -32700, 'Parse error'), 400);
+    return jsonResponse(rpcFailure(null, -32700, 'Parse error'), 400);
   }
 
-  // Batch
+  const svc = serviceClient();
+  let identity: McpIdentity;
+  try {
+    identity = await resolveIdentity(req.headers, svc);
+  } catch (error) {
+    const failure = rpcErrorPayload(error);
+    const id = Array.isArray(payload) ? null : (payload as JsonRpcRequest | null)?.id ?? null;
+    return jsonResponse(rpcFailure(id, failure.code, failure.message, failure.data), 401);
+  }
+
   if (Array.isArray(payload)) {
-    const responses = await Promise.all(payload.map((p) => dispatch(p as JsonRpcRequest)));
-    const filtered = responses.filter((r) => r !== null);
-    return jsonResponse(filtered);
+    const responses = await Promise.all(
+      payload.map((entry) => dispatch(entry as JsonRpcRequest, identity, svc)),
+    );
+    return jsonResponse(responses.filter((response) => response !== null));
   }
 
-  const result = await dispatch(payload as JsonRpcRequest);
-  if (result === null) return new Response(null, { status: 204, headers: corsHeaders });
-  return jsonResponse(result);
+  const response = await dispatch(payload as JsonRpcRequest, identity, svc);
+  if (response === null) return new Response(null, { status: 204, headers: corsHeaders });
+  return jsonResponse(response);
 });

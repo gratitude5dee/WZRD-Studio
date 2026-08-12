@@ -10,6 +10,7 @@ import {
   updateEvaluationSummary,
   updateGenerationJob,
 } from '../_shared/observability.ts';
+import { resolveInternalActorId } from '../_shared/auth.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
@@ -95,6 +96,10 @@ async function requireAuth(req: Request) {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
     return false;
+  }
+
+  if (resolveInternalActorId(req.headers)) {
+    return true;
   }
 
   const token = authHeader.replace('Bearer ', '');

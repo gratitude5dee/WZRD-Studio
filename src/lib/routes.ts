@@ -33,6 +33,7 @@ export const appRoutes = {
     root: '/settings',
     billing: '/settings/billing',
     billingDocs: '/settings/billing/docs',
+    agentAccess: '/settings/agent-access',
   },
   projects: {
     studio: (projectId: string) => `/projects/${projectId}/studio`,
@@ -91,6 +92,7 @@ export const ROUTE_MANIFEST: RouteManifestEntry[] = [
   { id: 'settings', pattern: appRoutes.settings.root, category: 'core' },
   { id: 'settings-billing', pattern: appRoutes.settings.billing, category: 'core' },
   { id: 'settings-billing-docs', pattern: appRoutes.settings.billingDocs, category: 'core' },
+  { id: 'settings-agent-access', pattern: appRoutes.settings.agentAccess, category: 'core' },
   { id: 'project-studio', pattern: '/projects/:projectId/studio', category: 'core' },
   { id: 'project-timeline', pattern: '/projects/:projectId/timeline', category: 'core' },
   { id: 'project-editor', pattern: '/projects/:projectId/editor', category: 'core' },

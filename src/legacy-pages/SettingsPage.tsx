@@ -5,6 +5,7 @@ import {
   Check,
   Coins,
   CreditCard,
+  KeyRound,
   LifeBuoy,
   Loader2,
   Pencil,
@@ -267,6 +268,12 @@ const SettingsPage = () => {
               </Button>
               <Button asChild variant="outline" size="sm" className="border-zinc-700 bg-zinc-900/70 text-zinc-200 hover:bg-zinc-800">
                 <Link to={appRoutes.settings.billing}>Plans &amp; Credits</Link>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="border-zinc-700 bg-zinc-900/70 text-zinc-200 hover:bg-zinc-800">
+                <Link to={appRoutes.settings.agentAccess}>
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Agent access
+                </Link>
               </Button>
             </div>
           </Card>

@@ -1,0 +1,17 @@
+{
+  "servers": {
+    "wzrd-studio": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${PLUGIN_ROOT}/bridge/index.mjs"],
+      "env": {
+        "WZRD_MCP_URL": "https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server",
+        "WZRD_API_TOKEN": "${WZRD_API_TOKEN}"
+      }
+    },
+    "wzrd-remote": {
+      "type": "streamable-http",
+      "url": "https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server"
+    }
+  }
+}

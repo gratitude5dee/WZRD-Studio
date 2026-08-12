@@ -1,0 +1,16 @@
+{
+  "name": "wzrd-marketplace",
+  "owner": {
+    "name": "5-DEE",
+    "url": "https://wzrd.tech"
+  },
+  "plugins": [
+    {
+      "name": "{{name}}",
+      "source": "./",
+      "description": "{{description}}",
+      "version": "{{version}}",
+      "author": { "name": "{{author}}" }
+    }
+  ]
+}
