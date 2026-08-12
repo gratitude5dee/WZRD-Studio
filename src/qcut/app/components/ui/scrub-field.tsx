@@ -17,7 +17,8 @@ interface ScrubFieldProps {
 /**
  * Compact numeric field whose label doubles as a drag handle: drag
  * horizontally to scrub the value, use arrow keys (Shift for x10),
- * or type directly into the input.
+ * or type directly into the input. Typed text is committed on blur
+ * or Enter, clamped to [min, max].
  */
 export function ScrubField({
 	label,
@@ -31,7 +32,22 @@ export function ScrubField({
 	disabled = false,
 }: ScrubFieldProps) {
 	const drag = React.useRef<{ x: number; v: number } | null>(null);
+	const [draft, setDraft] = React.useState<string | null>(null);
 	const clamp = (v: number) => Math.min(max, Math.max(min, Math.round(v)));
+
+	const endDrag = () => {
+		drag.current = null;
+	};
+
+	const commitDraft = () => {
+		if (draft !== null) {
+			const n = Number(draft);
+			if (draft.trim() !== "" && !Number.isNaN(n)) {
+				onChange(clamp(n));
+			}
+			setDraft(null);
+		}
+	};
 
 	return (
 		<label
@@ -60,9 +76,9 @@ export function ScrubField({
 						clamp(drag.current.v + ((e.clientX - drag.current.x) / 2) * step)
 					);
 				}}
-				onPointerUp={() => {
-					drag.current = null;
-				}}
+				onPointerUp={endDrag}
+				onPointerCancel={endDrag}
+				onLostPointerCapture={endDrag}
 				onKeyDown={(e) => {
 					if (disabled) return;
 					const mult = e.shiftKey ? 10 : 1;
@@ -80,11 +96,19 @@ export function ScrubField({
 			</span>
 			<input
 				inputMode="numeric"
-				value={value}
+				value={draft ?? value}
 				disabled={disabled}
 				onChange={(e) => {
-					const n = Number(e.target.value.replace(/[^\d-]/g, ""));
-					if (!Number.isNaN(n)) onChange(clamp(n));
+					setDraft(e.target.value.replace(/[^\d-]/g, ""));
+				}}
+				onBlur={commitDraft}
+				onKeyDown={(e) => {
+					if (e.key === "Enter") {
+						e.preventDefault();
+						commitDraft();
+					} else if (e.key === "Escape") {
+						setDraft(null);
+					}
 				}}
 				aria-label={`${label} value`}
 				className="min-w-0 flex-1 bg-transparent text-sm text-foreground tabular-nums outline-none disabled:cursor-not-allowed"
