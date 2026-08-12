@@ -60,6 +60,7 @@ export const studioTools: ToolDefinition[] = [
   },
   {
     name: 'save_studio_graph',
+    mutates: true,
     description:
       'Use to persist a Studio canvas: pass nodes/edges for the compute graph and/or blocks for the visual canvas. Free.',
     scope: 'read',
@@ -111,6 +112,7 @@ export const studioTools: ToolDefinition[] = [
   },
   {
     name: 'run_studio_graph',
+    mutates: true,
     description:
       'Use to execute a project\'s saved compute graph node by node. Costs the sum of each generation node\'s model credits.',
     scope: 'generate',

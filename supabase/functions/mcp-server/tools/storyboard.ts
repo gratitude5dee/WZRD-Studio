@@ -89,6 +89,7 @@ export const storyboardTools: ToolDefinition[] = [
   },
   {
     name: 'update_shot',
+    mutates: true,
     description: 'Use to rewrite a shot\'s visual prompt, dialogue, sound effects or shot type. Free.',
     scope: 'read',
     inputSchema: readSchema(
@@ -129,6 +130,7 @@ export const storyboardTools: ToolDefinition[] = [
   },
   {
     name: 'generate_shot_image',
+    mutates: true,
     description: `Use to render the still image for one shot from its visual prompt. Costs ${SHOT_IMAGE_CREDITS} credits.`,
     scope: 'generate',
     async: true,
@@ -168,6 +170,7 @@ export const storyboardTools: ToolDefinition[] = [
   },
   {
     name: 'generate_scene_images',
+    mutates: true,
     description: `Use to render still images for every shot in a scene that is missing one. Costs ${SHOT_IMAGE_CREDITS} credits per shot, about ${SCENE_IMAGES_CREDITS} credits for a typical five-shot scene.`,
     scope: 'generate',
     async: true,

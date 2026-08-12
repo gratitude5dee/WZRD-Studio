@@ -161,10 +161,17 @@ async function forward(frame) {
       signal: controller.signal,
     });
 
-    if (response.status === 204) return null;
-
-    const text = await response.text();
-    if (!text) return null;
+    const text = response.status === 204 ? '' : await response.text();
+    if (!text) {
+      // Only notifications may go unanswered; an empty body for a request would
+      // hang the harness until its own timeout, so it becomes an error frame.
+      if (frame.id === undefined) return null;
+      return errorFrame(
+        frame.id,
+        RPC_INTERNAL_ERROR,
+        `The MCP server returned an empty response (HTTP ${response.status}).`,
+      );
+    }
 
     try {
       return JSON.parse(text);

@@ -572,6 +572,7 @@ serve(async (req) => {
                 holdId: reservation.holdId,
                 skipped: reservation.skipped,
                 amount: actualCredits,
+                reservedAmount: reservation.requestedAmount,
                 metadata: {
                   endpoint: 'compute-execute',
                   project_id: projectId,
@@ -623,6 +624,7 @@ serve(async (req) => {
                 holdId: reservation.holdId,
                 skipped: reservation.skipped,
                 amount: actualCredits,
+                reservedAmount: reservation.requestedAmount,
                 metadata: {
                   endpoint: 'compute-execute',
                   project_id: projectId,

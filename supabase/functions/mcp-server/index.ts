@@ -242,9 +242,9 @@ async function callTool(
       ? buildCreditIdempotencyKey(tool.name, identity.userId, rawArgs.idempotencyKey)
       : undefined;
 
-  // Every call — free or not — consumes rate-limit budget for the token. A
-  // spending tool consumes a second unit when `reserveCredits` re-runs the guard
-  // to charge the daily cap, so the 60/min ceiling admits ~30 generations/min.
+  // Every call — free or not — consumes one unit of the token's rate-limit
+  // budget here. The later guard pass inside `reserveCredits` charges the daily
+  // cap without counting a second request.
   await enforceTokenSpendGuard({ supabase: svc, tokenId: identity.tokenId, credits: 0 });
 
   if (dryRun) {
@@ -366,7 +366,8 @@ function toolListPayload() {
       description: tool.description,
       inputSchema: tool.inputSchema,
       annotations: {
-        readOnlyHint: tool.scope === 'read' && !tool.estimate,
+        readOnlyHint: tool.mutates !== true && !tool.estimate,
+        destructiveHint: tool.mutates === true,
         scope: tool.scope,
         async: tool.async === true,
       },

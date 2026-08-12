@@ -63,6 +63,7 @@ async function estimateSetupProject(_ctx: ToolContext, args: Record<string, unkn
 export const projectTools: ToolDefinition[] = [
   {
     name: 'setup_project',
+    mutates: true,
     description:
       'Use when a user describes a video idea and wants a ready-to-edit storyboard: creates the project, generates a storyline, scenes and shots in one call. Costs 3 credits for the storyline plus 1 credit per shot (default 4 shots = 7 credits).',
     scope: 'generate',
@@ -248,6 +249,7 @@ export const projectTools: ToolDefinition[] = [
   },
   {
     name: 'update_project_settings',
+    mutates: true,
     description: 'Use to change a project\'s title, aspect ratio, style, genre or tone. Free.',
     scope: 'read',
     inputSchema: readSchema(
@@ -282,6 +284,7 @@ export const projectTools: ToolDefinition[] = [
   },
   {
     name: 'add_character',
+    mutates: true,
     description: 'Use to add a cast member to a project before generating character art. Free.',
     scope: 'read',
     inputSchema: readSchema(
@@ -315,6 +318,7 @@ export const projectTools: ToolDefinition[] = [
   },
   {
     name: 'generate_character_image',
+    mutates: true,
     description:
       'Use to render reference art for a character already on the project. Costs image-model credits (typically 2).',
     scope: 'generate',
