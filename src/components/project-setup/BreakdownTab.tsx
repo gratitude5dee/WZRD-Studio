@@ -75,10 +75,10 @@ const SceneCard = ({
     data-voice-scene-id={scene.id}
     onClick={() => onSelect?.(scene)}
     className={cn(
-      'overflow-hidden bg-[#111319] rounded-lg border border-zinc-800 mb-4 transition-all duration-300',
+      'overflow-hidden bg-surface-raised rounded-lg border border-zinc-800 mb-4 transition-all duration-300',
       onSelect && 'cursor-pointer',
       isVoiceSelected &&
-        'border-[#f97316]/70 ring-2 ring-[#f97316]/45 shadow-[0_0_0_4px_rgba(249,115,22,0.1),0_0_34px_rgba(249,115,22,0.22)]',
+        'border-accent-ember/70 ring-2 ring-accent-ember/45 shadow-[0_0_0_4px_rgba(249,115,22,0.1),0_0_34px_rgba(249,115,22,0.22)]',
     )}
   >
     <div className="relative aspect-[16/5] overflow-hidden border-b border-white/5">
@@ -90,7 +90,7 @@ const SceneCard = ({
         decoding="async"
       />
       <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/35 to-transparent" />
-      <div className="absolute bottom-3 left-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-[#f97316]">
+      <div className="absolute bottom-3 left-4 text-[10px] font-semibold uppercase tracking-[0.22em] text-accent-ember">
         Scene {scene.number}
       </div>
     </div>
@@ -318,7 +318,7 @@ const BreakdownTab = ({ projectData, updateProjectData }: BreakdownTabProps) => 
       {!isGenerating && !isLoading && (
         <>
           {showNoScenesAlert && fetchedScenes.length === 0 && (
-            <Alert className="mb-6 bg-[#080D20] border-none text-white">
+            <Alert className="mb-6 bg-surface-canvas border-none text-white">
               <div className="flex items-start">
                 <Info className="h-5 w-5 mr-2 text-blue-400 mt-0.5 flex-shrink-0" />
                 <AlertDescription className="text-zinc-300">
@@ -341,7 +341,7 @@ const BreakdownTab = ({ projectData, updateProjectData }: BreakdownTabProps) => 
           
           {fetchedScenes.length === 0 ? (
             projectId && (
-              <div className="flex justify-center items-center min-h-[400px] bg-[#111319] rounded-lg border border-zinc-800 border-dashed">
+              <div className="flex justify-center items-center min-h-[400px] bg-surface-raised rounded-lg border border-zinc-800 border-dashed">
                 <div 
                   onClick={handleNewScene}
                   className="flex flex-col items-center justify-center cursor-pointer text-zinc-500 hover:text-zinc-300 transition-colors p-10 text-center"

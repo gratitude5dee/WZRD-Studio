@@ -40,13 +40,53 @@ way — disable the flag if the login UI itself is under test.
 | Dashboard / Home | `/home` |
 | Settings | `/settings` |
 | Billing | `/settings/billing` |
-| Agent access (MCP setup) | `/settings/agent-access` |
+| Agent access (PATs / MCP install) | `/settings/agent-access` |
 | Studio (ReactFlow canvas) | `/projects/:projectId/studio` |
 | Timeline | `/projects/:projectId/timeline` |
 | Observability | `/projects/:projectId/observability` |
 
 Protected pages first paint a "Preparing studio" skeleton while the lazy bundle loads — wait and
 re-view before concluding a page is broken.
+
+`/settings/agent-access` is reached from `/settings` → the **Agent access** button in the Billing
+card (`src/legacy-pages/SettingsPage.tsx`). The page is fully client-side except for
+`useAgentTokens`, which reads/writes `public.wzrd_api_tokens` through PostgREST. If the
+`wzrd_api_tokens` migration is not applied to the remote Supabase project, every list/mint call
+returns `Could not find the table 'public.wzrd_api_tokens' in the schema cache`; the page surfaces
+it as an inline rose error line and a sonner toast and stays usable. Treat that as the expected
+state until the migration is deployed, and check the harness-snippet tabs / validation toasts
+instead.
+
+## Capturing sonner toasts in a saved screenshot
+
+Toasts auto-dismiss in ~4 s, which is shorter than a browser `view` round-trip, so
+`save_screenshot` usually lands after the toast is gone. Two things that do NOT work: arming a
+background `import -window root` / `scrot` on a timer (the browser tool-call latency is
+unpredictable, so the capture fires before the click dispatches), and X root captures generally —
+they miss Chrome's toast layer. What works reliably: **hover the toast** (sonner pauses its
+dismiss timer while the pointer is over it), then take the screenshot:
+
+1. click the action that raises the toast,
+2. `move_mouse` to the toast (bottom-right, roughly `885,673` in a 1024x768 viewport),
+3. `view` with `save_screenshot` — the toast is still on screen.
+
+Crop/zoom the saved PNG with PIL to make the toast text legible (saved shots are 1600px wide vs.
+1024px browser coords, so scale by `img.width / 1024`).
+
+## Clipboard assertions
+
+`navigator.clipboard.readText()` from the console triggers a Chrome permission bubble that then
+sits on top of the page and steals your next clicks — avoid it. For "copy" buttons that flip a
+Copy icon to a Check icon only after `await navigator.clipboard.writeText()` resolves (the
+`CopyBlock` pattern used on the Agent access page), the icon swap is itself sufficient proof the
+write succeeded; assert on that in a screenshot instead of reading the clipboard back.
+
+## Vite HMR can reset your form state mid-test
+
+If you (or another agent in the same checkout) touch a file under `src/`, HMR reloads the page and
+clears typed inputs / checkbox state. Re-`view` and re-enter form values before asserting rather
+than trusting an earlier `type` call. Also note `devinid` attributes are re-numbered whenever a
+toast mounts or unmounts, so re-read the DOM before each click in a toast-heavy flow.
 
 ## Known pre-existing console noise (do NOT report as new regressions)
 
@@ -65,6 +105,10 @@ Verify against the base branch before blaming a PR; these all reproduce on a syn
   cards; revert both files after. Expect `Error updating shot` console errors whenever anything
   autosaves on mock data — not a regression.
 * Timeline mock: `Failed to load scene objects` / `Failed to load enabled state` also fire on load.
+* `/settings` and `/settings/agent-access` are **clean** — the only console output is `[vite]
+  connecting/connected` plus the React DevTools info notice. Any `Error`/`Warning` there is new.
+  Notably, PostgREST 404s from the missing `wzrd_api_tokens` table are handled in code and do NOT
+  reach the console, so a console error on that page is a real regression.
 
 ## Data-gated UI (charts, lists)
 

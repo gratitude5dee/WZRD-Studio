@@ -84,7 +84,8 @@ export function ProjectSetupVoiceBridge() {
     projectData,
     updateProjectData,
     activeTab,
-    setActiveTab,
+    goToTab,
+    getTabLockReason,
     saveProjectData,
     generateStoryline,
     finalizeProjectSetup,
@@ -148,8 +149,8 @@ export function ProjectSetupVoiceBridge() {
             updateProjectData(fields);
             projectDataRef.current = { ...projectDataRef.current, ...fields };
           }
-          if (isProjectSetupTab(tab)) {
-            setActiveTab(tab);
+          if (isProjectSetupTab(tab) && !goToTab(tab)) {
+            return invalid(getTabLockReason(tab) ?? `The ${tab} step is not available yet.`);
           }
 
           if ((save || shouldGenerateStoryline || finalize) && !context.confirmed) {
@@ -216,25 +217,32 @@ export function ProjectSetupVoiceBridge() {
             const savedProjectId = await saveProjectData(overrides);
             if (!savedProjectId) return invalid('I could not save the project yet.');
 
-            if (latestData.conceptOption === 'ai') {
+            // Manual mode has no Storyline step, so follow the visible flow.
+            const isAi = latestData.conceptOption === 'ai';
+            if (isAi) {
               await generateStoryline(savedProjectId, overrides);
             }
-            setActiveTab('storyline');
-            return completed('Storyline is open and generation has started.', {
-              projectId: savedProjectId,
-              activeSetupTab: 'storyline',
-            });
+            const nextTab: ProjectSetupTab = isAi ? 'storyline' : 'settings';
+            if (!goToTab(nextTab)) {
+              return invalid(getTabLockReason(nextTab) ?? `The ${nextTab} step is not available yet.`);
+            }
+            return completed(
+              isAi ? 'Storyline is open and generation has started.' : 'Project brief is open.',
+              { projectId: savedProjectId, activeSetupTab: nextTab },
+            );
           }
 
           if (activeTab === 'storyline') {
             await saveProjectData();
-            setActiveTab('settings');
-            return completed('Settings and Cast is open.', { activeSetupTab: 'settings', projectId });
+            goToTab('settings');
+            return completed('Project brief is open.', { activeSetupTab: 'settings', projectId });
           }
 
           if (activeTab === 'settings') {
             await saveProjectData();
-            setActiveTab('breakdown');
+            if (!goToTab('breakdown')) {
+              return invalid(getTabLockReason('breakdown') ?? 'Breakdown is not available yet.');
+            }
             return completed('Breakdown is open for review.', { activeSetupTab: 'breakdown', projectId });
           }
 
@@ -289,8 +297,8 @@ export function ProjectSetupVoiceBridge() {
         scope: 'project-setup',
         handler: async () => {
           await saveProjectData();
-          setActiveTab('settings');
-          return completed('Storyline confirmed. Settings and Cast is open.', {
+          goToTab('settings');
+          return completed('Storyline confirmed. Project brief is open.', {
             projectId,
             activeSetupTab: 'settings',
           });
@@ -323,7 +331,7 @@ export function ProjectSetupVoiceBridge() {
             projectId,
             sourceImageUrl: character.image_url ?? null,
           });
-          setActiveTab('settings');
+          goToTab('settings');
           scrollVoiceTargetIntoView(`[data-voice-character-id="${character.id}"]`);
           return completed(`${character.name} is selected.`, { character });
         },
@@ -355,7 +363,9 @@ export function ProjectSetupVoiceBridge() {
             projectId,
             sceneNumber: scene.scene_number,
           });
-          setActiveTab('breakdown');
+          if (!goToTab('breakdown')) {
+            return invalid(getTabLockReason('breakdown') ?? 'Breakdown is not available yet.');
+          }
           scrollVoiceTargetIntoView(`[data-voice-scene-id="${scene.id}"]`);
           return completed(`${scene.location || scene.title || `Scene ${scene.scene_number}`} is selected.`, { scene });
         },
@@ -482,7 +492,9 @@ export function ProjectSetupVoiceBridge() {
             projectId,
             sceneNumber: scene.scene_number,
           });
-          setActiveTab('breakdown');
+          if (!goToTab('breakdown')) {
+            return invalid(getTabLockReason('breakdown') ?? 'Breakdown is not available yet.');
+          }
           scrollVoiceTargetIntoView(`[data-voice-scene-id="${scene.id}"]`);
           return completed(`Scene ${scene.scene_number} updated.`, { sceneId: scene.id, updates: compactUpdates });
         },
@@ -521,7 +533,8 @@ export function ProjectSetupVoiceBridge() {
       selectedTargets.character,
       selectedTargets.location,
       selectedTargets.scene,
-      setActiveTab,
+      goToTab,
+      getTabLockReason,
       updateProjectData,
     ],
   );

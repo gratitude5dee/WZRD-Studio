@@ -294,7 +294,7 @@ export const VoiceCloneDialog: React.FC<VoiceCloneDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md bg-[#111319] border-zinc-700">
+      <DialogContent className="max-w-md bg-surface-raised border-zinc-700">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
             <Mic className="w-5 h-5 text-primary" />
@@ -333,7 +333,7 @@ export const VoiceCloneDialog: React.FC<VoiceCloneDialogProps> = ({
             value={voiceName}
             onChange={(e) => setVoiceName(e.target.value)}
             placeholder="e.g., My Custom Voice"
-            className="bg-[#18191E] border-zinc-700"
+            className="bg-surface-raised border-zinc-700"
             disabled={uploadStage === 'uploading' || uploadStage === 'success'}
           />
         </div>

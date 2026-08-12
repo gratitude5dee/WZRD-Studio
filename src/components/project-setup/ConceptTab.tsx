@@ -40,7 +40,7 @@ const ConceptTab = ({ projectData, updateProjectData }: ConceptTabProps) => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.03 }}
-          className="mb-8 overflow-hidden rounded-lg border border-white/10 bg-[#0b0d12]"
+          className="mb-8 overflow-hidden rounded-lg border border-white/10 bg-surface-canvas"
         >
           <div className="grid gap-0 lg:grid-cols-[1.1fr_1.4fr]">
             <div className="p-5 md:p-6">

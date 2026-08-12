@@ -54,6 +54,13 @@ export interface ToolDefinition {
   estimate?: (ctx: ToolContext, args: Record<string, unknown>) => Promise<CostEstimate>;
   /** Run as a background job and answer immediately with `{ jobId, status }`. */
   async?: boolean;
+  /**
+   * Set on any tool that writes or deletes persisted data. Drives the published
+   * `readOnlyHint`, which harnesses use to decide whether a call needs the
+   * user's confirmation, so it cannot be inferred from the credit scope: a free
+   * tool can still delete a timeline clip.
+   */
+  mutates?: boolean;
   handler: (ctx: ToolContext, args: Record<string, unknown>) => Promise<unknown>;
 }
 

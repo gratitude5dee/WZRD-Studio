@@ -130,7 +130,7 @@ export const VoiceOverSelector: React.FC<VoiceOverSelectorProps> = ({
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search voices..."
-          className="flex-1 bg-[#111319] border-zinc-700"
+          className="flex-1 bg-surface-raised border-zinc-700"
         />
         <div className="flex gap-1">
           {['male', 'female'].map((gender) => (
@@ -167,7 +167,7 @@ export const VoiceOverSelector: React.FC<VoiceOverSelectorProps> = ({
                 <Card
                   className={cn(
                     'relative p-3 cursor-pointer transition-all duration-200',
-                    'bg-[#18191E] border-zinc-700 hover:border-zinc-600',
+                    'bg-surface-raised border-zinc-700 hover:border-zinc-600',
                     isSelected && 'border-primary ring-2 ring-primary/20'
                   )}
                   onClick={() => handleSelectVoice(voice)}
