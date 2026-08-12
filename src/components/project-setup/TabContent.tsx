@@ -1,46 +1,13 @@
-import { Suspense, lazy, Component, ReactNode } from 'react';
+import { Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useProjectContext } from './ProjectContext';
-import { AlertCircle, RefreshCw } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { TabErrorBoundary } from './TabErrorBoundary';
 
 // Lazy imports with retry logic for dynamic chunk loading
 const ConceptTab = lazy(() => import('./ConceptTab').catch(() => import('./ConceptTab')));
 const StorylineTab = lazy(() => import('./StorylineTab').catch(() => import('./StorylineTab')));
-const SettingsTab = lazy(() => import('./SettingsTab').catch(() => import('./SettingsTab')));
+const ProjectBriefTab = lazy(() => import('./ProjectBriefTab').catch(() => import('./ProjectBriefTab')));
 const BreakdownTab = lazy(() => import('./BreakdownTab').catch(() => import('./BreakdownTab')));
-
-// Error boundary for lazy loaded components
-class TabErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-          <AlertCircle className="h-12 w-12 text-amber-500" />
-          <p className="text-muted-foreground">Failed to load this section</p>
-          <Button 
-            variant="outline" 
-            onClick={() => window.location.reload()}
-            className="gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Reload Page
-          </Button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 const shimmer = 'relative overflow-hidden rounded-xl bg-white/5 before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.3s_infinite] before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent';
 
@@ -60,7 +27,7 @@ const TabFallback = () => (
 );
 
 const TabContent = () => {
-  const { activeTab, projectData, updateProjectData } = useProjectContext();
+  const { activeTab, projectData, updateProjectData, isTabUnlocked } = useProjectContext();
 
   const tabContentVariants = {
     hidden: { opacity: 0, x: 20 },
@@ -69,7 +36,7 @@ const TabContent = () => {
   } as const;
 
   return (
-    <div className="flex-1 overflow-auto bg-[#111319]">
+    <div className="flex-1 overflow-auto bg-surface-raised">
       <TabErrorBoundary>
         <AnimatePresence mode="wait">
           {activeTab === 'concept' && (
@@ -107,11 +74,11 @@ const TabContent = () => {
               exit="exit"
             >
               <Suspense fallback={<TabFallback />}>
-                <SettingsTab projectData={projectData} updateProjectData={updateProjectData} />
+                <ProjectBriefTab projectData={projectData} updateProjectData={updateProjectData} />
               </Suspense>
             </motion.div>
           )}
-          {activeTab === 'breakdown' && (
+          {activeTab === 'breakdown' && isTabUnlocked('breakdown') && (
             <motion.div
               key="breakdown"
               variants={tabContentVariants}

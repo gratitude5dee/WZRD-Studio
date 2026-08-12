@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { ProjectData, ProjectSetupTab } from './types';
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseService } from '@/services/supabaseService';
@@ -8,6 +8,27 @@ import { extractInsufficientCreditsError, routeToBillingTopUp } from '@/lib/bill
 import { buildConceptPayload } from '@/services/conceptPayloadService';
 import { DEFAULT_EVALUATION_THRESHOLDS } from '@/lib/evaluation';
 import { upsertProjectCharacterBlueprints } from '@/services/characterBlueprintService';
+import {
+  buildProjectRow,
+  buildProjectSettingsRow,
+  buildStoryboardPacket,
+  projectBriefFromProjectData,
+  projectDataFromBrief,
+  type ProjectBrief,
+} from './projectBrief';
+
+/** Progress of storyline generation, reported by StorylineTab and used for tab gating. */
+export type StorylineProgressStatus = 'idle' | 'generating' | 'complete' | 'failed';
+
+/** The single source of truth for wizard navigation state. */
+export interface WizardState {
+  visibleTabs: ProjectSetupTab[];
+  activeTab: ProjectSetupTab;
+  /** 1-based index of the active tab within the visible tabs. */
+  currentStep: number;
+  totalSteps: number;
+  storylineStatus: StorylineProgressStatus;
+}
 
 interface ProjectContextProps {
   projectData: ProjectData;
@@ -27,6 +48,16 @@ interface ProjectContextProps {
   handleCreateProject: () => Promise<void>;
   finalizeProjectSetup: () => Promise<boolean>; // New method to invoke the orchestrator
   generationCompletedSignal: number;
+  /** Canonical Project brief view of the current wizard state. */
+  projectBrief: ProjectBrief;
+  applyProjectBrief: (brief: ProjectBrief) => void;
+  wizardState: WizardState;
+  storylineStatus: StorylineProgressStatus;
+  setStorylineStatus: (status: StorylineProgressStatus) => void;
+  isTabUnlocked: (tab: ProjectSetupTab) => boolean;
+  getTabLockReason: (tab: ProjectSetupTab) => string | null;
+  /** Gated navigation: no-ops when the target tab's prerequisites are unmet. */
+  goToTab: (tab: ProjectSetupTab) => boolean;
 }
 
 const defaultProjectData: ProjectData = {
@@ -102,6 +133,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectData, setProjectData] = useState<ProjectData>(defaultProjectData);
   const [generationCompletedSignal, setGenerationCompletedSignal] = useState(0);
+  const [storylineStatus, setStorylineStatus] = useState<StorylineProgressStatus>('idle');
   
   // Track option changes for smooth transitions
   useEffect(() => {
@@ -119,25 +151,18 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     setProjectData(prev => ({ ...prev, ...data }));
   };
 
-  const saveProjectSettings = async (currentProjectId: string): Promise<void> => {
-    const storylineSettings =
-      projectData.storylineTextSettings && typeof projectData.storylineTextSettings === 'object'
-        ? projectData.storylineTextSettings
-        : {};
+  const projectBrief = useMemo(() => projectBriefFromProjectData(projectData), [projectData]);
 
+  const applyProjectBrief = useCallback((brief: ProjectBrief) => {
+    setProjectData(projectDataFromBrief(brief));
+  }, []);
+
+  const saveProjectSettings = async (currentProjectId: string, brief: ProjectBrief): Promise<void> => {
     const { error } = await (supabase
       .from('project_settings' as any)
       .upsert(
         {
-          project_id: currentProjectId,
-          storyline_text_model: projectData.storylineTextModel || 'gmi/gemini-3.1-flash-lite',
-          storyline_text_settings: storylineSettings,
-          base_image_model: projectData.baseImageModel || 'gmi/seedream-5.0-lite',
-          base_video_model: projectData.baseVideoModel || 'gmi/ltx-fast-i2v',
-          evaluation_mode: projectData.evaluationMode || 'shadow',
-          evaluation_thresholds: projectData.evaluationThresholds || DEFAULT_EVALUATION_THRESHOLDS,
-          canon_facts: projectData.canonFacts || [],
-          creative_constraints: projectData.creativeConstraints || [],
+          ...buildProjectSettingsRow(brief, currentProjectId),
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'project_id' }
@@ -161,45 +186,17 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     let currentProjectId = projectId;
     try {
       console.log('Saving project data:', merged);
-      
-      const projectPayload = {
-        user_id: user.id,
-        title: merged.title || 'Untitled Project',
-        concept_text: merged.concept,
-        concept_option: merged.conceptOption,
-        format: merged.format,
-        custom_format_description: merged.customFormat,
-        genre: merged.genre,
-        tone: merged.tone,
-        add_voiceover: merged.addVoiceover,
-        special_requests: merged.specialRequests,
-        product_name: merged.product,
-        target_audience: merged.targetAudience,
-        main_message: merged.mainMessage,
-        call_to_action: merged.callToAction,
-        ad_brief_data: merged.adBrief,
-        music_video_data: merged.musicVideoData,
-        infotainment_data: merged.infotainmentData,
-        short_film_data: merged.shortFilmData,
-        voiceover_id: merged.voiceoverId,
-        voiceover_name: merged.voiceoverName,
-        voiceover_preview_url: merged.voiceoverPreviewUrl,
-        style_reference_asset_id: merged.styleReferenceAssetId,
-        // Add settings fields
-        aspect_ratio: merged.aspectRatio,
-        video_style: merged.videoStyle,
-        cinematic_inspiration: merged.cinematicInspiration,
-        // Custom format meta prompts (only persisted when format === 'custom')
-        custom_meta_prompts: merged.format === 'custom' ? (merged.customMetaPrompts ?? null) : null,
-      };
-      
-      console.log('Project payload:', projectPayload);
+
+      // Both the wizard and the setup_project plugin tool write through the same
+      // brief → row builders, so identical inputs produce identical rows.
+      const brief = projectBriefFromProjectData(merged);
+      const projectPayload = buildProjectRow(brief, { userId: user.id });
 
       // If project already exists, update it
       if (currentProjectId) {
         console.log(`Updating existing project ID: ${currentProjectId}`);
         await supabaseService.projects.update(currentProjectId, projectPayload);
-        await saveProjectSettings(currentProjectId);
+        await saveProjectSettings(currentProjectId, brief);
         
         toast.info("Project data saved");
         return currentProjectId;
@@ -212,7 +209,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
         setProjectId(newProjectId);
         currentProjectId = newProjectId;
         window.history.replaceState({}, '', `/project-setup/${newProjectId}`);
-        await saveProjectSettings(newProjectId);
+        await saveProjectSettings(newProjectId, brief);
         toast.success("Project created successfully");
         return newProjectId;
       }
@@ -330,6 +327,45 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  // ── Wizard navigation state (single source of truth) ──────────────────
+  const getTabLockReason = useCallback(
+    (tab: ProjectSetupTab): string | null => {
+      const tabs = getVisibleTabs();
+      if (!tabs.includes(tab)) return null;
+      if (tab === 'breakdown' && tabs.includes('storyline') && storylineStatus !== 'complete') {
+        return 'Finish the Storyline step first — the scene breakdown is generated from it.';
+      }
+      return null;
+    },
+    [projectData.conceptOption, storylineStatus]
+  );
+
+  const isTabUnlocked = useCallback(
+    (tab: ProjectSetupTab): boolean => getTabLockReason(tab) === null,
+    [getTabLockReason]
+  );
+
+  const goToTab = useCallback(
+    (tab: ProjectSetupTab): boolean => {
+      if (!isTabUnlocked(tab)) return false;
+      setActiveTab(tab);
+      return true;
+    },
+    [isTabUnlocked]
+  );
+
+  const wizardState = useMemo<WizardState>(() => {
+    const visibleTabs = getVisibleTabs();
+    const index = visibleTabs.indexOf(activeTab);
+    return {
+      visibleTabs,
+      activeTab,
+      currentStep: index >= 0 ? index + 1 : 1,
+      totalSteps: visibleTabs.length,
+      storylineStatus,
+    };
+  }, [activeTab, projectData.conceptOption, storylineStatus]);
+
   // New function to finalize project setup
   const finalizeProjectSetup = async (): Promise<boolean> => {
     if (!user) {
@@ -357,32 +393,11 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
 
       console.log(`Invoking finalize-project-setup for project: ${projectId}`);
       
-      // Build structured JSON payload with ALL prior step data using the shared conceptPayloadService
-      const conceptPayload = buildConceptPayload(projectData);
+      // Storyboard packet is derived purely from the brief so the plugin path can
+      // reproduce it exactly.
       const structuredPayload = {
         project_id: projectId,
-        concept: conceptPayload,
-        storyline: {
-          model: projectData.storylineTextModel || 'gmi/gemini-3.1-flash-lite',
-          settings: projectData.storylineTextSettings || {},
-        },
-        settings: {
-          aspectRatio: projectData.aspectRatio || '16:9',
-          videoStyle: projectData.videoStyle || 'cinematic',
-          cinematicInspiration: projectData.cinematicInspiration || null,
-          baseImageModel: projectData.baseImageModel || 'gmi/seedream-5.0-lite',
-          baseVideoModel: projectData.baseVideoModel || 'gmi/ltx-fast-i2v',
-          styleReferenceAssetId: projectData.styleReferenceAssetId || null,
-          evaluationMode: projectData.evaluationMode || 'shadow',
-          evaluationThresholds: projectData.evaluationThresholds || DEFAULT_EVALUATION_THRESHOLDS,
-          canonFacts: projectData.canonFacts || [],
-          creativeConstraints: projectData.creativeConstraints || [],
-        },
-        cast: {
-          addVoiceover: projectData.addVoiceover,
-          voiceoverId: projectData.voiceoverId || null,
-          voiceoverName: projectData.voiceoverName || null,
-        },
+        ...buildStoryboardPacket(projectBrief),
       };
 
       const { data, error } = await supabase.functions.invoke('finalize-project-setup', {
@@ -424,7 +439,15 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       generateStoryline,
       handleCreateProject,
       finalizeProjectSetup,
-      generationCompletedSignal
+      generationCompletedSignal,
+      projectBrief,
+      applyProjectBrief,
+      wizardState,
+      storylineStatus,
+      setStorylineStatus,
+      isTabUnlocked,
+      getTabLockReason,
+      goToTab
     }}>
       {children}
     </ProjectContext.Provider>

@@ -195,7 +195,7 @@ const CommercialForm: React.FC<{
               exit={{ opacity: 0, scale: 0.95 }}
               className="relative group"
             >
-              <div className="aspect-video max-w-xs rounded-lg overflow-hidden border border-zinc-700 bg-[#111319]">
+              <div className="aspect-video max-w-xs rounded-lg overflow-hidden border border-zinc-700 bg-surface-raised">
                 <img
                   src={productImagePreview}
                   alt="Product Reference"
@@ -231,7 +231,7 @@ const CommercialForm: React.FC<{
                 'relative border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all max-w-xs',
                 isDragging
                   ? 'border-primary bg-primary/5'
-                  : 'border-zinc-700 hover:border-zinc-500 bg-[#18191E]'
+                  : 'border-zinc-700 hover:border-zinc-500 bg-surface-raised'
               )}
             >
               <input
@@ -265,7 +265,7 @@ const CommercialForm: React.FC<{
             value={adBrief.brandName || ''}
             onChange={(e) => updateAdBrief('brandName', e.target.value)}
             placeholder="e.g., Nike, Apple, Tesla"
-            className="bg-[#111319] border-zinc-700"
+            className="bg-surface-raised border-zinc-700"
           />
         </div>
         <div className="space-y-2">
@@ -276,7 +276,7 @@ const CommercialForm: React.FC<{
             value={adBrief.productType || ''}
             onChange={(e) => updateAdBrief('productType', e.target.value)}
             placeholder="e.g., Running shoe, Smartphone, Electric car"
-            className="bg-[#111319] border-zinc-700"
+            className="bg-surface-raised border-zinc-700"
           />
         </div>
       </div>
@@ -290,7 +290,7 @@ const CommercialForm: React.FC<{
             value={adBrief.product}
             onChange={(e) => updateAdBrief('product', e.target.value)}
             placeholder="e.g., Nike Air Max 2025"
-            className="bg-[#111319] border-zinc-700"
+            className="bg-surface-raised border-zinc-700"
           />
         </div>
         <div className="space-y-2">
@@ -301,7 +301,7 @@ const CommercialForm: React.FC<{
             value={adBrief.targetAudience}
             onChange={(e) => updateAdBrief('targetAudience', e.target.value)}
             placeholder="e.g., Active millennials aged 25-35"
-            className="bg-[#111319] border-zinc-700"
+            className="bg-surface-raised border-zinc-700"
           />
         </div>
       </div>
@@ -315,7 +315,7 @@ const CommercialForm: React.FC<{
             value={adBrief.tone || ''}
             onChange={(e) => updateAdBrief('tone', e.target.value)}
             placeholder="e.g., Bold, Inspirational, Humorous, Professional"
-            className="bg-[#111319] border-zinc-700"
+            className="bg-surface-raised border-zinc-700"
           />
         </div>
         <div className="space-y-2">
@@ -326,7 +326,7 @@ const CommercialForm: React.FC<{
             value={adBrief.adDuration}
             onValueChange={(value) => updateAdBrief('adDuration', value)}
           >
-            <SelectTrigger className="bg-[#111319] border-zinc-700">
+            <SelectTrigger className="bg-surface-raised border-zinc-700">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -347,7 +347,7 @@ const CommercialForm: React.FC<{
           value={adBrief.mainMessage}
           onChange={(e) => updateAdBrief('mainMessage', e.target.value)}
           placeholder="What's the single most important thing you want viewers to remember?"
-          className="bg-[#111319] border-zinc-700 min-h-[80px]"
+          className="bg-surface-raised border-zinc-700 min-h-[80px]"
         />
       </div>
 
@@ -359,7 +359,7 @@ const CommercialForm: React.FC<{
           value={adBrief.callToAction}
           onChange={(e) => updateAdBrief('callToAction', e.target.value)}
           placeholder="e.g., Visit nike.com/airmax"
-          className="bg-[#111319] border-zinc-700"
+          className="bg-surface-raised border-zinc-700"
         />
       </div>
 
@@ -371,7 +371,7 @@ const CommercialForm: React.FC<{
           value={adBrief.platform}
           onValueChange={(value) => updateAdBrief('platform', value)}
         >
-          <SelectTrigger className="bg-[#111319] border-zinc-700">
+          <SelectTrigger className="bg-surface-raised border-zinc-700">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -393,7 +393,7 @@ const CommercialForm: React.FC<{
           value={adBrief.brandGuidelines || ''}
           onChange={(e) => updateAdBrief('brandGuidelines', e.target.value)}
           placeholder="Color codes, typography, do's and don'ts, tone of voice..."
-          className="bg-[#111319] border-zinc-700 min-h-[80px]"
+          className="bg-surface-raised border-zinc-700 min-h-[80px]"
         />
       </div>
     </div>
@@ -512,7 +512,7 @@ const MusicVideoForm: React.FC<{
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-lg border border-white/10 bg-[#0b0d12]">
+      <div className="overflow-hidden rounded-lg border border-white/10 bg-surface-canvas">
         <div className="grid gap-0 md:grid-cols-[1fr_1.1fr]">
           <div className="p-5">
             <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-cyan-200/70">Music Video Brief</p>
@@ -528,7 +528,7 @@ const MusicVideoForm: React.FC<{
                 { label: 'Visual palette', Icon: Palette },
               ].map(({ label, Icon }) => (
                 <div key={label} className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
-                  <Icon className="h-3.5 w-3.5 text-[#f97316]" />
+                  <Icon className="h-3.5 w-3.5 text-accent-ember" />
                   {label}
                 </div>
               ))}
@@ -563,7 +563,7 @@ const MusicVideoForm: React.FC<{
             value={musicData.artistName}
             onChange={(e) => updateMusicData('artistName', e.target.value)}
             placeholder="e.g., Fictional artist name"
-            className="bg-[#111319] border-zinc-700"
+            className="bg-surface-raised border-zinc-700"
           />
         </div>
         <div className="space-y-2">
@@ -574,7 +574,7 @@ const MusicVideoForm: React.FC<{
             value={musicData.trackTitle}
             onChange={(e) => updateMusicData('trackTitle', e.target.value)}
             placeholder="e.g., Working track title"
-            className="bg-[#111319] border-zinc-700"
+            className="bg-surface-raised border-zinc-700"
           />
         </div>
       </div>
@@ -585,7 +585,7 @@ const MusicVideoForm: React.FC<{
           value={musicData.genre}
           onChange={(e) => updateMusicData('genre', e.target.value)}
           placeholder="e.g., Gothic trap, rain-soaked R&B, cyberpop choreography..."
-          className="bg-[#111319] border-zinc-700"
+          className="bg-surface-raised border-zinc-700"
         />
       </div>
 
@@ -603,7 +603,7 @@ const MusicVideoForm: React.FC<{
             )
           }
           placeholder="One reference per line: key art mood, choreography direction, lens language, wardrobe palette, lyric typography..."
-          className="bg-[#111319] border-zinc-700 min-h-[96px] text-sm"
+          className="bg-surface-raised border-zinc-700 min-h-[96px] text-sm"
         />
       </div>
 
@@ -622,12 +622,12 @@ const MusicVideoForm: React.FC<{
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              className="rounded-lg border border-[#f97316]/20 bg-[#18191E] p-4 space-y-3"
+              className="rounded-lg border border-accent-ember/20 bg-surface-raised p-4 space-y-3"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#f97316]/20 flex items-center justify-center">
-                    <Music className="w-5 h-5 text-[#f97316]" />
+                  <div className="w-10 h-10 rounded-lg bg-accent-ember/20 flex items-center justify-center">
+                    <Music className="w-5 h-5 text-accent-ember" />
                   </div>
                   <div>
                     <p className="text-sm text-white font-medium truncate max-w-[200px]">
@@ -638,7 +638,7 @@ const MusicVideoForm: React.FC<{
                         <Loader2 className="w-3 h-3 animate-spin" /> Analyzing BPM...
                       </p>
                     ) : musicData.bpm ? (
-                      <p className="text-xs text-[#f97316] font-mono">
+                      <p className="text-xs text-accent-ember font-mono">
                         {musicData.bpm} BPM detected
                       </p>
                     ) : (
@@ -664,7 +664,7 @@ const MusicVideoForm: React.FC<{
                     {musicData.beatTimeline.slice(0, 60).map((beat, i) => (
                       <div
                         key={i}
-                        className="flex-1 bg-[#f97316]/70 rounded-t-sm min-w-[2px]"
+                        className="flex-1 bg-accent-ember/70 rounded-t-sm min-w-[2px]"
                         style={{
                           height: `${i % 4 === 0 ? 100 : 50}%`,
                           opacity: i % 4 === 0 ? 1 : 0.5,
@@ -691,7 +691,7 @@ const MusicVideoForm: React.FC<{
                     }
                   }}
                   placeholder="e.g., 120"
-                  className="bg-[#111319] border-zinc-700 w-24 h-8 text-sm"
+                  className="bg-surface-raised border-zinc-700 w-24 h-8 text-sm"
                 />
               </div>
             </motion.div>
@@ -702,7 +702,7 @@ const MusicVideoForm: React.FC<{
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => audioInputRef.current?.click()}
-              className="border-2 border-dashed border-zinc-700 hover:border-[#f97316]/40 rounded-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all bg-[#18191E]"
+              className="border-2 border-dashed border-zinc-700 hover:border-accent-ember/40 rounded-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all bg-surface-raised"
             >
               <input
                 ref={audioInputRef}
@@ -752,7 +752,7 @@ const MusicVideoForm: React.FC<{
           value={musicData.lyrics || ''}
           onChange={(e) => updateMusicData('lyrics', e.target.value)}
           placeholder="Paste lyrics for visual scene matching, hooks, typography moments, and beat-aware cuts..."
-          className="bg-[#111319] border-zinc-700 min-h-[120px] font-mono text-sm"
+          className="bg-surface-raised border-zinc-700 min-h-[120px] font-mono text-sm"
         />
       </div>
 
@@ -814,7 +814,7 @@ const InfotainmentForm: React.FC<{
           value={infoData.topic}
           onChange={(e) => updateInfoData('topic', e.target.value)}
           placeholder="e.g., The Science of Sleep"
-          className="bg-[#111319] border-zinc-700"
+          className="bg-surface-raised border-zinc-700"
         />
       </div>
 
@@ -827,7 +827,7 @@ const InfotainmentForm: React.FC<{
             value={infoData.targetDemographic}
             onChange={(e) => updateInfoData('targetDemographic', e.target.value)}
             placeholder="e.g., Curious adults 25-45"
-            className="bg-[#111319] border-zinc-700"
+            className="bg-surface-raised border-zinc-700"
           />
         </div>
         <div className="space-y-2">
@@ -836,7 +836,7 @@ const InfotainmentForm: React.FC<{
             value={infoData.hostStyle}
             onValueChange={(value) => updateInfoData('hostStyle', value)}
           >
-            <SelectTrigger className="bg-[#111319] border-zinc-700">
+            <SelectTrigger className="bg-surface-raised border-zinc-700">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -856,7 +856,7 @@ const InfotainmentForm: React.FC<{
           value={infoData.keyFacts || ''}
           onChange={(e) => updateInfoData('keyFacts', e.target.value)}
           placeholder="Essential facts, statistics, or data points to include in the content..."
-          className="bg-[#111319] border-zinc-700 min-h-[80px]"
+          className="bg-surface-raised border-zinc-700 min-h-[80px]"
         />
       </div>
 
@@ -871,7 +871,7 @@ const InfotainmentForm: React.FC<{
             )
           }
           placeholder="What should viewers learn? (one per line)"
-          className="bg-[#111319] border-zinc-700 min-h-[80px]"
+          className="bg-surface-raised border-zinc-700 min-h-[80px]"
         />
       </div>
 
@@ -883,7 +883,7 @@ const InfotainmentForm: React.FC<{
           value={infoData.visualStyle || ''}
           onValueChange={(value) => updateInfoData('visualStyle', value)}
         >
-          <SelectTrigger className="bg-[#111319] border-zinc-700">
+          <SelectTrigger className="bg-surface-raised border-zinc-700">
             <SelectValue placeholder="Choose a visual style" />
           </SelectTrigger>
           <SelectContent>
@@ -958,7 +958,7 @@ const ShortFilmForm: React.FC<{
             value={filmData.genre}
             onValueChange={(value) => updateFilmData('genre', value)}
           >
-            <SelectTrigger className="bg-[#111319] border-zinc-700">
+            <SelectTrigger className="bg-surface-raised border-zinc-700">
               <SelectValue placeholder="Select genre" />
             </SelectTrigger>
             <SelectContent>
@@ -983,7 +983,7 @@ const ShortFilmForm: React.FC<{
             value={filmData.tone}
             onValueChange={(value) => updateFilmData('tone', value)}
           >
-            <SelectTrigger className="bg-[#111319] border-zinc-700">
+            <SelectTrigger className="bg-surface-raised border-zinc-700">
               <SelectValue placeholder="Select tone" />
             </SelectTrigger>
             <SelectContent>
@@ -1009,7 +1009,7 @@ const ShortFilmForm: React.FC<{
             value={filmData.duration}
             onValueChange={(value) => updateFilmData('duration', value)}
           >
-            <SelectTrigger className="bg-[#111319] border-zinc-700">
+            <SelectTrigger className="bg-surface-raised border-zinc-700">
               <SelectValue placeholder="Select duration" />
             </SelectTrigger>
             <SelectContent>
@@ -1029,7 +1029,7 @@ const ShortFilmForm: React.FC<{
             value={filmData.visualStyle}
             onValueChange={(value) => updateFilmData('visualStyle', value)}
           >
-            <SelectTrigger className="bg-[#111319] border-zinc-700">
+            <SelectTrigger className="bg-surface-raised border-zinc-700">
               <SelectValue placeholder="Select visual style" />
             </SelectTrigger>
             <SelectContent>
@@ -1230,7 +1230,7 @@ const DefaultConceptForm: React.FC<{
                 value={projectData.specialRequests || ''}
                 onChange={(e) => updateProjectData({ specialRequests: e.target.value })}
                 placeholder="Anything from '80s atmosphere' to 'plot twists' or 'a car chase'"
-                className="bg-[#111319] border-zinc-700"
+                className="bg-surface-raised border-zinc-700"
               />
             </div>
 
@@ -1242,7 +1242,7 @@ const DefaultConceptForm: React.FC<{
                     value={projectData.customFormat || ''}
                     onChange={(e) => updateProjectData({ customFormat: e.target.value })}
                     placeholder="Describe the structure or format you want"
-                    className="bg-[#111319] border-zinc-700"
+                    className="bg-surface-raised border-zinc-700"
                   />
                 </div>
                 <MetaPromptEditor
@@ -1259,7 +1259,7 @@ const DefaultConceptForm: React.FC<{
                   value={projectData.genre || ''}
                   onChange={(e) => updateProjectData({ genre: e.target.value })}
                   placeholder="e.g., Thriller, Comedy..."
-                  className="bg-[#111319] border-zinc-700"
+                  className="bg-surface-raised border-zinc-700"
                 />
               </div>
               <div className="space-y-2">
@@ -1268,7 +1268,7 @@ const DefaultConceptForm: React.FC<{
                   value={projectData.tone || ''}
                   onChange={(e) => updateProjectData({ tone: e.target.value })}
                   placeholder="e.g., Dark, Upbeat..."
-                  className="bg-[#111319] border-zinc-700"
+                  className="bg-surface-raised border-zinc-700"
                 />
               </div>
             </div>

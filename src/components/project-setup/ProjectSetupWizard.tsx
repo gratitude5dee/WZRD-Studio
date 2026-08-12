@@ -10,7 +10,7 @@ const ProjectSetupWizard = () => {
   return (
     <ProjectProvider>
       <ProjectSetupVoiceBridge />
-      <div className="min-h-screen flex flex-col bg-[#0A0A0F]">
+      <div className="min-h-screen flex flex-col bg-surface-canvas">
         {/* Ambient background effects */}
         <div className="fixed inset-0 pointer-events-none hidden md:block">
           {/* Top-left warm glow */}

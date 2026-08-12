@@ -9,10 +9,11 @@ import { appRoutes } from '@/lib/routes';
 const NavigationFooter = () => {
   const navigate = useNavigate();
   const { 
-    activeTab, 
-    getVisibleTabs, 
+    wizardState,
     saveProjectData, 
-    setActiveTab, 
+    goToTab,
+    isTabUnlocked,
+    getTabLockReason,
     isCreating,
     isGenerating,
     isFinalizing,
@@ -22,10 +23,13 @@ const NavigationFooter = () => {
     projectId
   } = useProjectContext();
 
-  const visibleTabs = getVisibleTabs();
-  const currentTabIndex = visibleTabs.indexOf(activeTab);
+  const { activeTab, visibleTabs, currentStep } = wizardState;
+  const currentTabIndex = currentStep - 1;
   const isLastTab = currentTabIndex === visibleTabs.length - 1;
   const isFirstTab = currentTabIndex === 0;
+  const nextTabCandidate = isLastTab ? null : visibleTabs[currentTabIndex + 1];
+  const nextTabLockReason = nextTabCandidate ? getTabLockReason(nextTabCandidate) : null;
+  const isNextBlocked = nextTabCandidate !== null && !isTabUnlocked(nextTabCandidate);
 
   const handleNext = async () => {
     let nextTab = activeTab;
@@ -70,13 +74,13 @@ const NavigationFooter = () => {
 
     // Update active tab if needed and if proceed flag is true
     if (proceed && nextTab !== activeTab) {
-      setActiveTab(nextTab);
+      goToTab(nextTab);
     }
   };
 
   const handleBack = () => {
     if (currentTabIndex > 0) {
-      setActiveTab(visibleTabs[currentTabIndex - 1]);
+      goToTab(visibleTabs[currentTabIndex - 1]);
     }
   };
 
@@ -94,7 +98,7 @@ const NavigationFooter = () => {
 
   return (
     <motion.div 
-      className="border-t border-[rgba(249,115,22,0.12)] p-3 md:p-4 flex justify-between items-center bg-[#0a0a0f] sticky bottom-0 z-20 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:pb-4 gap-2"
+      className="border-t border-accent-ember/[0.12] p-3 md:p-4 flex justify-between items-center bg-surface-canvas sticky bottom-0 z-20 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] md:pb-4 gap-2"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ delay: 0.2, duration: 0.3 }}
@@ -102,7 +106,7 @@ const NavigationFooter = () => {
       <Button
         onClick={handleBack}
         variant="outline"
-        className={`text-white border-[rgba(249,115,22,0.15)] hover:bg-[rgba(249,115,22,0.06)] hover:border-[rgba(249,115,22,0.25)] hover:text-white flex items-center gap-2 transition-opacity duration-300 ${
+        className={`text-white border-accent-ember/15 hover:bg-accent-ember/[0.06] hover:border-accent-ember/25 hover:text-white flex items-center gap-2 transition-opacity duration-300 ${
           isFirstTab || isProcessing ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
         disabled={isProcessing || isFirstTab}
@@ -118,9 +122,9 @@ const NavigationFooter = () => {
               key={tab}
               className={`w-2 h-2 rounded-full transition-colors duration-300 ${
                 i === currentTabIndex 
-                  ? 'bg-[#f97316] scale-125' 
+                  ? 'bg-accent-ember scale-125' 
                   : i < currentTabIndex
-                    ? 'bg-[rgba(249,115,22,0.4)]'
+                    ? 'bg-accent-ember/40'
                     : 'bg-zinc-700'
               }`}
               initial={false}
@@ -135,11 +139,12 @@ const NavigationFooter = () => {
       
       <Button
         onClick={handleNext}
-        disabled={isProcessing}
+        disabled={isProcessing || isNextBlocked}
+        title={nextTabLockReason ?? undefined}
         className={`px-4 sm:px-8 min-h-[44px] flex items-center gap-2 transition-all duration-300 ${
           isLastTab 
-            ? 'bg-[#ea580c] hover:bg-[#dc2626] text-white shadow-[0_0_20px_rgba(249,115,22,0.2)]' 
-            : 'bg-[#f97316] hover:bg-[#ea580c] text-white shadow-[0_0_20px_rgba(249,115,22,0.15)]'
+            ? 'bg-accent-ember hover:bg-accent-ember/90 text-white shadow-[0_0_20px_rgba(249,115,22,0.2)]' 
+            : 'bg-accent-ember hover:bg-accent-ember/90 text-white shadow-[0_0_20px_rgba(249,115,22,0.15)]'
         } disabled:opacity-50`}
       >
         {getNextButtonText()}
