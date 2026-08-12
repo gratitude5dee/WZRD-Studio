@@ -1,0 +1,36 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WZRD Studio MCP client configuration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "mcpServers"],
+  "properties": {
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+    "mcpServers": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["wzrd-remote"],
+      "properties": {
+        "wzrd-remote": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "url", "auth"],
+          "properties": {
+            "type": { "const": "http" },
+            "url": { "type": "string", "pattern": "^https://" },
+            "description": { "type": "string" },
+            "auth": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["type", "tokenEnv"],
+              "properties": {
+                "type": { "const": "bearer" },
+                "tokenEnv": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

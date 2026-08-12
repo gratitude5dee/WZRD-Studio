@@ -1,19 +1,33 @@
 {
   "$schema": "https://lovable.dev/schemas/well-known-agents.json",
   "name": "WZRD Studio",
+  "version": "1.1.0",
   "description": "Agentic film/video generation studio. Build, score, generate.",
-  "homepage": "https://gmistudio.lovable.app",
+  "homepage": "https://studio.wzrd.tech",
   "mcp": {
     "url": "https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server",
     "transport": "streamable-http",
-    "auth": "bearer"
+    "auth": "bearer",
+    "health": "https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server/health",
+    "token_instructions": "Create a personal access token in the WZRD web app under Settings → Agent access."
+  },
+  "plugin": {
+    "manifest": "/plugin/plugin.json",
+    "mcp_config": "/.mcp.json",
+    "skills": "/plugin/skills",
+    "marketplace": "/.claude-plugin/marketplace.json"
   },
   "skills_index": "/agent-skills/index.json",
-  "supported_harnesses": ["claude-code", "codex", "openclaw", "hermes"],
+  "supported_harnesses": [
+    "claude-code",
+    "codex",
+    "openclaw",
+    "hermes"
+  ],
   "configs": {
-    "claude-code": "/.claude/CLAUDE.md",
-    "codex": "/.codex/codex.md",
-    "openclaw": "/.openclaw/manifest.json",
-    "hermes": "/.hermes/agent.yaml"
+    "claude-code": "/.claude-plugin/plugin.json",
+    "codex": "/com.openai.codex/marketplace.json",
+    "openclaw": "/ai.openclaw/manifest.json",
+    "hermes": "/com.hermes/agent.yaml"
   }
 }

@@ -25,6 +25,12 @@
     "test:e2e:pwa": "bun run web:build && playwright test -c playwright.pwa.config.ts",
     "test:daytona-relay": "bun run --cwd packages/wzrd-agent-relay test",
     "check:daytona-relay": "bun run --cwd packages/wzrd-agent-relay typecheck",
+    "plugin:validate": "node scripts/plugin/validate.mjs",
+    "plugin:build": "node scripts/plugin/build.mjs",
+    "plugin:wellknown": "node scripts/plugin/wellknown.mjs",
+    "plugin:conformance": "node scripts/plugin/conformance.mjs",
+    "plugin:integration": "node scripts/plugin/integration.mjs",
+    "plugin:adversarial": "node scripts/plugin/adversarial.mjs",
     "remotion:preview": "remotion preview",
     "remotion:render": "remotion render"
   },

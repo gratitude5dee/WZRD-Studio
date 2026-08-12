@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__wzrd-remote__get_storyboard",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/render-storyboard.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

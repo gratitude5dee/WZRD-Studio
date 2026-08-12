@@ -1,12 +1,23 @@
 /**
  * WZRD Studio MCP Server (hand-rolled JSON-RPC 2.0 over HTTP).
  *
- * Replaces npm:mcp-lite (unresolvable in Deno) with a minimal MCP-compatible
- * Streamable HTTP transport. Supports the standard handshake methods
- * (initialize, tools/list, tools/call) used by Claude Code, Codex, OpenClaw,
- * and Hermes harnesses.
+ * Streamable-HTTP-compatible MCP transport used by Claude Code, Codex, OpenClaw,
+ * and Hermes. `npm:mcp-lite` is unresolvable in Deno, so the envelope is
+ * hand-rolled here.
+ *
+ * Layout:
+ *   auth.ts     — PAT resolution, scopes, monthly caps (-32001 / -32002 / -32003)
+ *   tools.ts    — the tool surface and the one spend-safety gate
+ *   jobs.ts     — non-blocking billed jobs (reserve → run → commit/release)
+ *   redact.ts   — secret scrubbing applied to every response and error
+ *   version.ts  — the version reported by initialize and /health
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import type { McpSupabaseClient } from './supabase-client.ts';
+import { McpAuthError, authenticate } from './auth.ts';
+import { redactDeep } from './redact.ts';
+import { ToolError, type ToolContext, callTool, toolListing } from './tools.ts';
+import { PLUGIN_VERSION, PROTOCOL_VERSION, SERVER_NAME, commitSha } from './version.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,181 +28,15 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+const APP_URL = (Deno.env.get('WZRD_APP_URL') ?? 'https://studio.wzrd.tech').replace(/\/$/, '');
 
-function svc() {
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+function svc(): McpSupabaseClient {
+  // The generated client's builders are structurally compatible with the surface
+  // the MCP server and the shared credit helpers use, but not nominally so.
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY) as unknown as McpSupabaseClient;
 }
 
-async function invoke(fnName: string, body: unknown, authHeader?: string) {
-  const url = `${SUPABASE_URL}/functions/v1/${fnName}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authHeader ? { Authorization: authHeader } : {}),
-    },
-    body: JSON.stringify(body ?? {}),
-  });
-  const text = await res.text();
-  try {
-    return { status: res.status, data: JSON.parse(text) };
-  } catch {
-    return { status: res.status, data: text };
-  }
-}
-
-// ─── Tool definitions ──────────────────────────────────────────────
-type ToolHandler = (args: Record<string, unknown>) => Promise<{ content: Array<{ type: string; text: string }> }>;
-interface Tool {
-  name: string;
-  description: string;
-  inputSchema: Record<string, unknown>;
-  handler: ToolHandler;
-}
-
-const tools: Tool[] = [
-  {
-    name: 'list_models',
-    description: 'List models in the WZRD AI catalog with credit cost, provider, and capabilities.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        mediaType: { type: 'string', enum: ['text', 'image', 'video', 'audio'] },
-        provider: { type: 'string' },
-      },
-    },
-    handler: async (args) => {
-      const sb = svc();
-      let q = sb
-        .from('ai_model_catalog')
-        .select('id,name,provider,media_type,credits,pricing_text,description')
-        .eq('enabled', true)
-        .or('pricing->>editor_only.is.null,pricing->>editor_only.neq.true');
-      if (typeof args.mediaType === 'string') q = q.eq('media_type', args.mediaType);
-      if (typeof args.provider === 'string') q = q.eq('provider', args.provider);
-      const { data, error } = await q.order('sort_rank', { ascending: true }).limit(200);
-      if (error) return { content: [{ type: 'text', text: `Error: ${error.message}` }] };
-      return { content: [{ type: 'text', text: JSON.stringify(data, null, 2) }] };
-    },
-  },
-  {
-    name: 'get_credits',
-    description: "Get a user's available credit balance by user_id.",
-    inputSchema: {
-      type: 'object',
-      properties: { user_id: { type: 'string' } },
-      required: ['user_id'],
-    },
-    handler: async (args) => {
-      const user_id = String(args.user_id ?? '');
-      const sb = svc();
-      const { data, error } = await sb
-        .from('user_credits')
-        .select('total_credits,used_credits')
-        .eq('user_id', user_id)
-        .maybeSingle();
-      if (error) return { content: [{ type: 'text', text: `Error: ${error.message}` }] };
-      const available = Math.max(0, (data?.total_credits ?? 0) - (data?.used_credits ?? 0));
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ user_id, available, total: data?.total_credits ?? 0, used: data?.used_credits ?? 0 }),
-        }],
-      };
-    },
-  },
-  {
-    name: 'create_project',
-    description: 'Create a new WZRD project for the given user.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        user_id: { type: 'string' },
-        title: { type: 'string' },
-        description: { type: 'string' },
-      },
-      required: ['user_id', 'title'],
-    },
-    handler: async (args) => {
-      const sb = svc();
-      const { data, error } = await sb
-        .from('projects')
-        .insert({
-          user_id: String(args.user_id),
-          title: String(args.title),
-          description: typeof args.description === 'string' ? args.description : null,
-        })
-        .select('id,title,created_at')
-        .single();
-      if (error) return { content: [{ type: 'text', text: `Error: ${error.message}` }] };
-      return { content: [{ type: 'text', text: JSON.stringify(data) }] };
-    },
-  },
-  {
-    name: 'get_timeline',
-    description: 'Fetch scenes and shots for a project (read-only).',
-    inputSchema: {
-      type: 'object',
-      properties: { project_id: { type: 'string' } },
-      required: ['project_id'],
-    },
-    handler: async (args) => {
-      const project_id = String(args.project_id ?? '');
-      const sb = svc();
-      const [scenes, shots] = await Promise.all([
-        sb.from('scenes').select('*').eq('project_id', project_id).order('scene_number'),
-        sb.from('shots').select('*').eq('project_id', project_id).order('shot_number'),
-      ]);
-      return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({ scenes: scenes.data ?? [], shots: shots.data ?? [] }),
-        }],
-      };
-    },
-  },
-  {
-    name: 'run_studio_graph',
-    description: 'Execute a saved compute graph for a project node-by-node.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        project_id: { type: 'string' },
-        auth_token: { type: 'string', description: 'Bearer token for the user' },
-      },
-      required: ['project_id', 'auth_token'],
-    },
-    handler: async (args) => {
-      const r = await invoke('compute-execute', { project_id: String(args.project_id) }, `Bearer ${String(args.auth_token)}`);
-      return { content: [{ type: 'text', text: JSON.stringify(r) }] };
-    },
-  },
-  {
-    name: 'create_checkout_session',
-    description: 'Create a billing checkout URL for plan upgrade or credit pack.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        auth_token: { type: 'string' },
-        plan: { type: 'string', enum: ['pro', 'enterprise'] },
-        pack: { type: 'string', description: 'Credit pack id (alternative to plan)' },
-      },
-      required: ['auth_token'],
-    },
-    handler: async (args) => {
-      const r = await invoke(
-        'billing-checkout',
-        { plan: args.plan, pack: args.pack },
-        `Bearer ${String(args.auth_token)}`,
-      );
-      return { content: [{ type: 'text', text: JSON.stringify(r) }] };
-    },
-  },
-];
-
-const toolMap = new Map(tools.map((t) => [t.name, t]));
-
-// ─── JSON-RPC 2.0 envelope ─────────────────────────────────────────
 interface JsonRpcRequest {
   jsonrpc: '2.0';
   id?: string | number | null;
@@ -202,40 +47,74 @@ interface JsonRpcRequest {
 function rpcResult(id: string | number | null | undefined, result: unknown) {
   return { jsonrpc: '2.0', id: id ?? null, result };
 }
-function rpcError(id: string | number | null | undefined, code: number, message: string, data?: unknown) {
-  return { jsonrpc: '2.0', id: id ?? null, error: { code, message, ...(data ? { data } : {}) } };
+
+function rpcError(
+  id: string | number | null | undefined,
+  code: number,
+  message: string,
+  data?: unknown,
+) {
+  return { jsonrpc: '2.0', id: id ?? null, error: { code, message, ...(data === undefined ? {} : { data }) } };
 }
 
-async function dispatch(req: JsonRpcRequest): Promise<unknown> {
+function scrub<T>(payload: T): T {
+  return redactDeep(payload, [SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY]);
+}
+
+function jsonResponse(body: unknown, status = 200) {
+  return new Response(JSON.stringify(scrub(body)), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+function textContent(payload: unknown) {
+  return { content: [{ type: 'text', text: JSON.stringify(payload, null, 2) }] };
+}
+
+async function dispatch(req: JsonRpcRequest, headers: Headers): Promise<unknown> {
   switch (req.method) {
     case 'initialize':
       return rpcResult(req.id, {
-        protocolVersion: '2025-03-26',
-        serverInfo: { name: 'wzrd-studio', version: '1.0.0' },
+        protocolVersion: PROTOCOL_VERSION,
+        serverInfo: { name: SERVER_NAME, version: PLUGIN_VERSION },
         capabilities: { tools: {} },
       });
     case 'notifications/initialized':
+    case 'notifications/cancelled':
       return null; // notification — no response
     case 'ping':
       return rpcResult(req.id, {});
     case 'tools/list':
-      return rpcResult(req.id, {
-        tools: tools.map((t) => ({
-          name: t.name,
-          description: t.description,
-          inputSchema: t.inputSchema,
-        })),
-      });
+      return rpcResult(req.id, { tools: toolListing() });
     case 'tools/call': {
-      const name = String((req.params as Record<string, unknown> | undefined)?.name ?? '');
-      const args = ((req.params as Record<string, unknown> | undefined)?.arguments ?? {}) as Record<string, unknown>;
-      const tool = toolMap.get(name);
-      if (!tool) return rpcError(req.id, -32601, `Unknown tool: ${name}`);
+      const params = (req.params ?? {}) as Record<string, unknown>;
+      const name = String(params.name ?? '');
+      const args = (params.arguments ?? {}) as Record<string, unknown>;
+      const supabase = svc();
+
       try {
-        const result = await tool.handler(args);
-        return rpcResult(req.id, result);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Tool execution failed';
+        const auth = await authenticate(supabase, headers);
+        const ctx: ToolContext = {
+          supabase,
+          auth,
+          appUrl: APP_URL,
+          supabaseUrl: SUPABASE_URL,
+          serviceRoleKey: SUPABASE_SERVICE_ROLE_KEY,
+        };
+        const result = await callTool(name, args, ctx);
+        return rpcResult(req.id, textContent(result));
+      } catch (error) {
+        if (error instanceof McpAuthError) {
+          return rpcError(req.id, error.code, error.message, error.data);
+        }
+        if (error instanceof ToolError) {
+          if (error.code === 'unknown_tool') {
+            return rpcError(req.id, -32601, error.message);
+          }
+          return rpcError(req.id, -32000, error.message, { code: error.code, ...(error.details ?? {}) });
+        }
+        const message = error instanceof Error ? error.message : 'Tool execution failed';
         return rpcError(req.id, -32000, message);
       }
     }
@@ -244,27 +123,31 @@ async function dispatch(req: JsonRpcRequest): Promise<unknown> {
   }
 }
 
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   const url = new URL(req.url);
-  const isRoot = url.pathname.endsWith('/mcp-server') || url.pathname.endsWith('/mcp-server/') || url.pathname === '/';
+
+  if (url.pathname.endsWith('/health')) {
+    return jsonResponse({
+      status: 'ok',
+      name: SERVER_NAME,
+      version: PLUGIN_VERSION,
+      commit: commitSha(),
+      protocolVersion: PROTOCOL_VERSION,
+      tools: toolListing().length,
+    });
+  }
 
   if (req.method === 'GET') {
     return jsonResponse({
-      name: 'wzrd-studio',
-      version: '1.0.0',
+      name: SERVER_NAME,
+      version: PLUGIN_VERSION,
       transport: 'streamable-http-jsonrpc2',
       endpoint: '/functions/v1/mcp-server',
-      tools: tools.map((t) => t.name),
-      docs: isRoot ? 'POST JSON-RPC 2.0 envelopes to this endpoint.' : undefined,
+      health: '/functions/v1/mcp-server/health',
+      auth: 'bearer wzrd_pat_… (Settings → Agent access)',
+      tools: toolListing().map((tool) => tool.name),
     });
   }
 
@@ -279,14 +162,12 @@ Deno.serve(async (req) => {
     return jsonResponse(rpcError(null, -32700, 'Parse error'), 400);
   }
 
-  // Batch
   if (Array.isArray(payload)) {
-    const responses = await Promise.all(payload.map((p) => dispatch(p as JsonRpcRequest)));
-    const filtered = responses.filter((r) => r !== null);
-    return jsonResponse(filtered);
+    const responses = await Promise.all(payload.map((entry) => dispatch(entry as JsonRpcRequest, req.headers)));
+    return jsonResponse(responses.filter((response) => response !== null));
   }
 
-  const result = await dispatch(payload as JsonRpcRequest);
+  const result = await dispatch(payload as JsonRpcRequest, req.headers);
   if (result === null) return new Response(null, { status: 204, headers: corsHeaders });
   return jsonResponse(result);
 });

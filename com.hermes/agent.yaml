@@ -1,0 +1,108 @@
+# Hermes harness mapping for the WZRD Studio universal plugin.
+# `.hermes/agent.yaml` includes this file; keep both in sync via `bun run plugin:validate`.
+name: wzrd-studio
+version: 1.1.0
+skills: plugin/skills
+mcp:
+  server: wzrd-remote
+  url: https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server
+  transport: streamable-http
+  auth:
+    type: bearer
+    token_env: WZRD_PAT
+
+# Draft/approve is mandatory for every tool that can move credits. Hermes must
+# render the draft (the dryRun quote) and collect an explicit human approval of the
+# quoted credit number before the tool is executed with confirm: true.
+tools:
+  - name: get_credits
+    mode: direct
+    scope: read
+  - name: list_models
+    mode: direct
+    scope: read
+  - name: setup_project
+    mode: direct
+    scope: write
+  - name: get_timeline
+    mode: direct
+    scope: read
+  - name: get_storyboard
+    mode: direct
+    scope: read
+    render: storyboard_table
+  - name: storyboard_propose
+    mode: direct
+    scope: write
+  - name: storyboard_diff
+    mode: direct
+    scope: read
+    render: storyboard_table
+  - name: storyboard_commit
+    mode: direct
+    scope: write
+  - name: update_shot
+    mode: direct
+    scope: write
+  - name: get_continuity_graph
+    mode: direct
+    scope: read
+  - name: seedance_handoff
+    mode: draft_approve
+    scope: read
+    draft:
+      arguments: { mode: review }
+    approve:
+      note: >-
+        mode "auto" spends credits and is currently refused (Seedance 2.5 pricing
+        is unverified). Only review mode may run.
+  - name: generate_shot_image
+    mode: draft_approve
+    scope: generate
+    draft:
+      arguments: { dryRun: true }
+      quote_field: credits_quoted
+    approve:
+      arguments: { confirm: true }
+      require_idempotency_key: true
+  - name: render_timeline
+    mode: draft_approve
+    scope: generate
+    draft:
+      arguments: { dryRun: true }
+      quote_field: credits_quoted
+    approve:
+      arguments: { confirm: true }
+      require_idempotency_key: true
+  - name: export_video
+    mode: draft_approve
+    scope: generate
+    draft:
+      arguments: { dryRun: true }
+      quote_field: credits_quoted
+    approve:
+      arguments: { confirm: true }
+      require_idempotency_key: true
+  - name: run_studio_graph
+    mode: draft_approve
+    scope: generate
+    approve:
+      arguments: { confirm: true }
+      note: Requires a user session JWT in authToken.
+  - name: get_job
+    mode: direct
+    scope: read
+  # Billing tool: produces a checkout URL only. It never charges and never changes
+  # a saved payment method, but it is still surfaced for approval so the human sees
+  # the plan or credit pack before a checkout link is created.
+  - name: create_checkout_session
+    mode: draft_approve
+    scope: billing
+    approve:
+      note: Creates a Stripe checkout URL for the human to complete themselves.
+
+renderers:
+  storyboard_table:
+    type: markdown_table
+    columns: [scene, shot, shot_type, prompt, frame]
+    inline_images: true

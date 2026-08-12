@@ -1,0 +1,16 @@
+{
+  "name": "wzrd-studio",
+  "version": "1.1.0",
+  "description": "Storyboard, generate, and export AI film projects in WZRD Studio — with credit-safe spending gates.",
+  "author": { "name": "WZRD Studio", "url": "https://studio.wzrd.tech" },
+  "homepage": "https://studio.wzrd.tech",
+  "skills": "../plugin/skills",
+  "commands": "./commands",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": {
+    "wzrd-remote": {
+      "type": "http",
+      "url": "https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server"
+    }
+  }
+}

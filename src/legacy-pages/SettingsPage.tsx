@@ -272,6 +272,23 @@ const SettingsPage = () => {
           </Card>
         </div>
 
+        {/* ---- Agent access ---- */}
+        <Card className="mb-6 border-zinc-800/80 bg-zinc-950/70 p-6">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500">Agent access</p>
+              <h2 className="mt-1.5 text-2xl font-bold">Connect a coding agent</h2>
+              <p className="mt-1.5 max-w-xl text-sm text-zinc-500">
+                Drive WZRD from Claude Code, Codex, Hermes, OpenClaw, or your IDE over MCP. Storyboarding is free; every
+                spend needs your explicit approval of an exact credit number.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm" className="border-zinc-700 bg-zinc-900/70 text-zinc-200 hover:bg-zinc-800">
+              <Link to={appRoutes.settings.agentAccess}>Set up agent access</Link>
+            </Button>
+          </div>
+        </Card>
+
         {/* ---- Usage chart ---- */}
         <Card className="border-zinc-800/80 bg-zinc-950/70 p-6">
           <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-zinc-500">
