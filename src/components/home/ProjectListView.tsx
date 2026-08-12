@@ -1,5 +1,7 @@
-import { useState } from 'react';
-import { MoreVertical, Trash2, Edit2, Check, X, ExternalLink } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { MoreVertical, Trash2, Edit2, Check, X, ExternalLink, ArrowDown } from 'lucide-react';
+
+import { SelectionBar } from '@/components/craft/SelectionBar';
 import { format } from 'date-fns';
 import { z } from 'zod';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -42,7 +44,24 @@ export const ProjectListView = ({ projects, onOpenProject, onRefresh }: ProjectL
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [editError, setEditError] = useState('');
+  const [sort, setSort] = useState<{ key: 'title' | 'updated'; dir: 1 | -1 } | null>(null);
   const { deleteProject } = useProjectActions();
+
+  const sortedProjects = useMemo(() => {
+    if (!sort) return projects;
+    return [...projects].sort((a, b) => {
+      const value =
+        sort.key === 'title'
+          ? a.title.localeCompare(b.title)
+          : new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+      return value * sort.dir;
+    });
+  }, [projects, sort]);
+
+  const toggleSort = (key: 'title' | 'updated') =>
+    setSort((current) =>
+      current?.key === key ? { key, dir: (current.dir * -1) as 1 | -1 } : { key, dir: 1 },
+    );
   const { toast } = useToast();
 
   const toggleSelectMode = () => {
@@ -160,20 +179,16 @@ export const ProjectListView = ({ projects, onOpenProject, onRefresh }: ProjectL
               <Button onClick={selectAll} variant="ghost" size="sm">
                 Select All
               </Button>
-              <Button onClick={deselectAll} variant="ghost" size="sm">
-                Deselect All
-              </Button>
-              {selectedProjects.size > 0 && (
-                <Button
+              <SelectionBar count={selectedProjects.size} onClear={deselectAll}>
+                <button
+                  type="button"
                   onClick={() => setDeleteDialogOpen(true)}
-                  variant="destructive"
-                  size="sm"
-                  className="ml-2"
+                  className="flex h-6 items-center gap-1.5 rounded-full px-2 text-[12.5px] font-medium text-red-500 transition-colors duration-100 hover:bg-red-500/10"
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete ({selectedProjects.size})
-                </Button>
-              )}
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </button>
+              </SelectionBar>
             </>
           )}
         </div>
@@ -186,13 +201,41 @@ export const ProjectListView = ({ projects, onOpenProject, onRefresh }: ProjectL
             <thead>
               <tr className="border-b border-border-default bg-surface-2 dark:border-white/[0.08] dark:bg-white/[0.02]">
                 <th className="px-6 py-3 text-left text-xs font-medium text-text-tertiary uppercase tracking-wider dark:text-white/60">
-                  Title
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('title')}
+                    className="flex items-center gap-1 uppercase tracking-wider transition-colors hover:text-text-primary dark:hover:text-white"
+                  >
+                    Title
+                    <ArrowDown
+                      className={`h-3 w-3 transition-[opacity,transform] duration-200 ${
+                        sort?.key === 'title' ? 'opacity-100' : 'opacity-0'
+                      }`}
+                      style={{
+                        transform: sort?.key === 'title' && sort.dir === -1 ? 'rotate(180deg)' : undefined,
+                      }}
+                    />
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-text-tertiary uppercase tracking-wider dark:text-white/60">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-text-tertiary uppercase tracking-wider dark:text-white/60">
-                  Updated
+                  <button
+                    type="button"
+                    onClick={() => toggleSort('updated')}
+                    className="flex items-center gap-1 uppercase tracking-wider transition-colors hover:text-text-primary dark:hover:text-white"
+                  >
+                    Updated
+                    <ArrowDown
+                      className={`h-3 w-3 transition-[opacity,transform] duration-200 ${
+                        sort?.key === 'updated' ? 'opacity-100' : 'opacity-0'
+                      }`}
+                      style={{
+                        transform: sort?.key === 'updated' && sort.dir === -1 ? 'rotate(180deg)' : undefined,
+                      }}
+                    />
+                  </button>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-text-tertiary uppercase tracking-wider dark:text-white/60">
                   Visibility
@@ -208,7 +251,7 @@ export const ProjectListView = ({ projects, onOpenProject, onRefresh }: ProjectL
               </tr>
             </thead>
             <tbody className="divide-y divide-border-default dark:divide-white/[0.08]">
-              {projects.map((project) => (
+              {sortedProjects.map((project) => (
                 <tr
                   key={project.id}
                   className="hover:bg-surface-2 transition-colors dark:hover:bg-white/[0.02]"
@@ -348,6 +391,19 @@ export const ProjectListView = ({ projects, onOpenProject, onRefresh }: ProjectL
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t border-border-default bg-surface-2 dark:border-white/[0.08] dark:bg-white/[0.02]">
+                <td
+                  colSpan={isSelectMode ? 6 : 5}
+                  className="px-6 py-2.5 text-xs text-text-tertiary tabular-nums dark:text-white/50"
+                >
+                  <span className="font-semibold text-text-secondary dark:text-white/70">
+                    {projects.length}
+                  </span>{' '}
+                  {projects.length === 1 ? 'project' : 'projects'}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
