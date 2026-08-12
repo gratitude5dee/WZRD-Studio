@@ -44,13 +44,11 @@ export const ProjectListView = ({ projects, onOpenProject, onRefresh }: ProjectL
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
   const [editError, setEditError] = useState('');
-  const [sort, setSort] = useState<{ key: 'title' | 'updated'; dir: 1 | -1 }>({
-    key: 'updated',
-    dir: -1,
-  });
+  const [sort, setSort] = useState<{ key: 'title' | 'updated'; dir: 1 | -1 } | null>(null);
   const { deleteProject } = useProjectActions();
 
   const sortedProjects = useMemo(() => {
+    if (!sort) return projects;
     return [...projects].sort((a, b) => {
       const value =
         sort.key === 'title'
@@ -62,7 +60,7 @@ export const ProjectListView = ({ projects, onOpenProject, onRefresh }: ProjectL
 
   const toggleSort = (key: 'title' | 'updated') =>
     setSort((current) =>
-      current.key === key ? { key, dir: (current.dir * -1) as 1 | -1 } : { key, dir: 1 },
+      current?.key === key ? { key, dir: (current.dir * -1) as 1 | -1 } : { key, dir: 1 },
     );
   const { toast } = useToast();
 
@@ -211,10 +209,10 @@ export const ProjectListView = ({ projects, onOpenProject, onRefresh }: ProjectL
                     Title
                     <ArrowDown
                       className={`h-3 w-3 transition-[opacity,transform] duration-200 ${
-                        sort.key === 'title' ? 'opacity-100' : 'opacity-0'
+                        sort?.key === 'title' ? 'opacity-100' : 'opacity-0'
                       }`}
                       style={{
-                        transform: sort.key === 'title' && sort.dir === -1 ? 'rotate(180deg)' : undefined,
+                        transform: sort?.key === 'title' && sort.dir === -1 ? 'rotate(180deg)' : undefined,
                       }}
                     />
                   </button>
@@ -231,10 +229,10 @@ export const ProjectListView = ({ projects, onOpenProject, onRefresh }: ProjectL
                     Updated
                     <ArrowDown
                       className={`h-3 w-3 transition-[opacity,transform] duration-200 ${
-                        sort.key === 'updated' ? 'opacity-100' : 'opacity-0'
+                        sort?.key === 'updated' ? 'opacity-100' : 'opacity-0'
                       }`}
                       style={{
-                        transform: sort.key === 'updated' && sort.dir === -1 ? 'rotate(180deg)' : undefined,
+                        transform: sort?.key === 'updated' && sort.dir === -1 ? 'rotate(180deg)' : undefined,
                       }}
                     />
                   </button>
