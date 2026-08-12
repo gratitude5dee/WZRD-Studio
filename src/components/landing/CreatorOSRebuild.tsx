@@ -4,9 +4,6 @@ import {
   ArrowDown,
   ArrowUpRight,
   Menu,
-  Pause,
-  Play,
-  SlidersHorizontal,
   X,
 } from 'lucide-react';
 import { createElement, type CSSProperties, type KeyboardEvent, type PointerEvent, type RefObject, useEffect, useRef, useState } from 'react';
@@ -18,7 +15,7 @@ import styles from './CreatorOSRebuild.module.css';
 type FxMode = 'full' | 'calm' | 'off';
 type SkyElement = HTMLElement & { progress: number };
 
-const FX_MODE_STORAGE_KEY = 'wzrd:creator-os-motion';
+
 const ENTER_STUDIO_HREF = buildLoginPath(appRoutes.kanvas);
 
 const BUBBLE_NAV = [
@@ -95,27 +92,12 @@ function timecodeFromProgress(progress: number) {
   return [hours, minutes, seconds].map(part => String(part).padStart(2, '0')).join(':');
 }
 
-function readStoredFxMode(): FxMode {
-  if (typeof window === 'undefined') return 'full';
-  try {
-    const stored = window.sessionStorage.getItem(FX_MODE_STORAGE_KEY);
-    return stored === 'calm' || stored === 'off' ? stored : 'full';
-  } catch {
-    return 'full';
-  }
-}
-
-function useFxMode() {
-  const [userMode, setUserMode] = useState<FxMode>('full');
+function useFxMode(): FxMode {
   const [systemReducedMotion, setSystemReducedMotion] = useState(false);
 
   useEffect(() => {
-    const storedMode = readStoredFxMode();
-    setUserMode(storedMode);
-    document.documentElement.dataset.wzrdCreatorMotion = storedMode;
-    // `matchMedia` is universally present in current browsers, but the
-    // Creator OS should still render its static composition in embedded or
-    // older webviews where it is unavailable.
+    // System motion preference is the single source of truth. The landing still
+    // paints a complete static composition when motion is reduced or unavailable.
     if (typeof window.matchMedia !== 'function') return;
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => setSystemReducedMotion(query.matches);
@@ -124,24 +106,7 @@ function useFxMode() {
     return () => query.removeEventListener?.('change', sync);
   }, []);
 
-  const cycleMode = () => {
-    setUserMode(current => {
-      const next: FxMode = current === 'full' ? 'calm' : current === 'calm' ? 'off' : 'full';
-      try {
-        window.sessionStorage.setItem(FX_MODE_STORAGE_KEY, next);
-      } catch {
-        // Session state is still valid when storage has been disabled.
-      }
-      document.documentElement.dataset.wzrdCreatorMotion = next;
-      return next;
-    });
-  };
-
-  return {
-    cycleMode,
-    fxMode: systemReducedMotion ? ('off' as FxMode) : userMode,
-    systemReducedMotion,
-  };
+  return systemReducedMotion ? 'off' : 'full';
 }
 
 function useSectionMotionActivity(rootRef: RefObject<HTMLDivElement | null>, fxMode: FxMode) {
@@ -422,7 +387,7 @@ export default function CreatorOSRebuild() {
   const [enhanced, setEnhanced] = useState(false);
   const [shaderFailed, setShaderFailed] = useState(false);
   const [studioTime, setStudioTime] = useState('00:00:00');
-  const { cycleMode, fxMode, systemReducedMotion } = useFxMode();
+  const fxMode = useFxMode();
   const desktop = useDesktopViewport();
   const { canUseShader, registered } = useProgressiveSky(fxMode, desktop);
 
@@ -516,13 +481,16 @@ export default function CreatorOSRebuild() {
     let nextTime = '00:00:00';
     const apply = () => {
       animationFrame = 0;
-      const dashboardProgress = clamp((heroProgress - 0.38) / 0.48);
-      const copyProgress = clamp((heroProgress - 0.52) / 0.36);
+      // The hero and the device state are separate acts: let the poster disappear
+      // completely before the Creator OS device view begins to arrive.
+      const copyProgress = clamp((heroProgress - 0.50) / 0.16);
+      const dashboardProgress = clamp((heroProgress - 0.62) / 0.20);
       root.style.setProperty('--hero-progress', heroProgress.toFixed(4));
       root.style.setProperty('--dashboard-opacity', dashboardProgress.toFixed(4));
+      root.style.setProperty('--dashboard-scrim-opacity', (dashboardProgress * 0.94).toFixed(4));
       root.style.setProperty('--dashboard-shift', `${(1 - dashboardProgress) * 4.5}rem`);
-      root.style.setProperty('--hero-copy-opacity', (1 - copyProgress * 0.58).toFixed(4));
-      root.style.setProperty('--hero-copy-shift', `${copyProgress * -2.2}rem`);
+      root.style.setProperty('--hero-copy-opacity', (1 - copyProgress).toFixed(4));
+      root.style.setProperty('--hero-copy-shift', `${copyProgress * -1.6}rem`);
       root.style.setProperty('--studio-progress', studioProgress.toFixed(4));
       if (sky) sky.progress = heroProgress;
       setStudioTime(current => current === nextTime ? current : nextTime);
@@ -562,7 +530,6 @@ export default function CreatorOSRebuild() {
   }, [registered]);
 
   const showSky = registered && canUseShader && !shaderFailed && fxMode !== 'off';
-  const motionLabel = systemReducedMotion ? 'Reduced' : fxMode === 'full' ? 'Motion' : fxMode === 'calm' ? 'Calm' : 'Still';
   const closeMenu = (target?: string) => {
     menuFocusTarget.current = target ?? null;
     setMenuOpen(false);
@@ -582,17 +549,6 @@ export default function CreatorOSRebuild() {
           <img alt="WZRD.tech" height="396" src="/creator-os/wzrd-wordmark-1600.png" width="1600" />
         </a>
         <div className={styles.headerControls}>
-          <button
-            aria-label={systemReducedMotion ? 'Motion is reduced by your device setting' : `Atmosphere: ${motionLabel}. Change motion setting.`}
-            aria-pressed={fxMode !== 'off'}
-            className={styles.motionControl}
-            disabled={systemReducedMotion}
-            onClick={cycleMode}
-            type="button"
-          >
-            {fxMode === 'off' ? <Play aria-hidden="true" /> : fxMode === 'calm' ? <SlidersHorizontal aria-hidden="true" /> : <Pause aria-hidden="true" />}
-            <span>{motionLabel}</span>
-          </button>
           <button
             aria-controls="creator-os-menu"
             aria-expanded={menuOpen}
@@ -640,32 +596,24 @@ export default function CreatorOSRebuild() {
             }) : null}
             <div aria-hidden="true" className={styles.heroDither} data-motion={fxMode} />
             <div aria-hidden="true" className={styles.heroGrain} />
-            <div aria-hidden="true" className={styles.heroMarks}>
-              <span>LAT 34.0224° N</span>
-              <span>ALT +∞</span>
-            </div>
-
             <div className={styles.heroCopy}>
               <h1 className={styles.screenReaderOnly} id="hero-title">WZRD.tech Creator OS</h1>
               <p className={styles.heroEyebrow}>A creator operating system</p>
               <img alt="WZRD.tech" className={styles.heroWordmark} fetchPriority="high" height="396" src="/creator-os/wzrd-wordmark-1600.png" width="1600" />
               <p className={styles.heroTitle}><span>Creative</span><span>Infrastructure</span></p>
-              <p className={styles.heroStatement}>Building digital and physical generative media studio to create, distribute, and monetize across all channels on one platform.</p>
+              <p className={styles.heroStatement}>A generative media studio for making, releasing, and owning what moves culture.</p>
               <a className={styles.heroEnter} href="#studio">Scroll to enter <ArrowDown aria-hidden="true" /></a>
             </div>
 
+            <div aria-hidden="true" className={styles.heroDashboardScrim} />
             <div aria-hidden="true" className={styles.heroDashboard}>
-              <div className={styles.dashboardScrim} />
               <div className={styles.dashboardCopy}>
                 <p>An Attention Engine</p>
-                <strong>Your unified creative infrastructure to take action across 1000s of models, applications, and integrations.</strong>
+                <strong>One operating system for your models, media, and next move.</strong>
               </div>
               <img alt="" height="373" src="/creator-os/devices.png" width="669" />
             </div>
 
-            <div aria-hidden="true" className={styles.heroHud}>
-              <span>Scroll to enter</span><i /><span>01 / 05</span>
-            </div>
           </div>
         </section>
 

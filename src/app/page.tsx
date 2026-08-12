@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 
 import CreatorOSRebuild from "@/components/landing/CreatorOSRebuild";
 
@@ -38,12 +37,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return (
-    <>
-      <Script id="wzrd-creator-motion-bootstrap" strategy="beforeInteractive">
-        {`try { const mode = sessionStorage.getItem('wzrd:creator-os-motion'); if (mode === 'calm' || mode === 'off') document.documentElement.dataset.wzrdCreatorMotion = mode; } catch {}`}
-      </Script>
-      <CreatorOSRebuild />
-    </>
-  );
+  return <CreatorOSRebuild />;
 }

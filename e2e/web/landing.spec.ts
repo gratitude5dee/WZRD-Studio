@@ -10,12 +10,29 @@ test("paints the Creator OS hero and its static atmosphere without the legacy sh
   await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech Creator OS" })).toBeVisible();
   await expect(page.getByText("Creative", { exact: true })).toBeVisible();
   await expect(page.getByText("Infrastructure", { exact: true })).toBeVisible();
-  await expect(page.getByText("Building digital and physical generative media studio to create, distribute, and monetize across all channels on one platform.")).toBeVisible();
+  await expect(page.getByText("A generative media studio for making, releasing, and owning what moves culture.")).toBeVisible();
   await expect(page.getByRole("link", { name: "WZRD.tech home" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
   await expect(page.locator("[class*='heroAtmosphere']")).toBeVisible();
   await expect(page.getByRole("link", { name: /Make the next signal/i })).toHaveAttribute("href", enterStudioHref);
 
+  await expect(page.getByText("ALT +∞", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("01 / 05", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Atmosphere:|Motion is reduced/i })).toHaveCount(0);
   expect(await page.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
+});
+
+test("hands off from the hero poster to a centered device state without competing copy", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  const hero = page.locator("section#top");
+  const heroCopy = page.locator("[class*='heroCopy']");
+  const dashboard = page.locator("[class*='heroDashboard']").filter({ has: page.locator("img[src='/creator-os/devices.png']") });
+  await page.evaluate(() => window.scrollTo(0, window.innerHeight * 2.2));
+  await expect.poll(() => heroCopy.evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity))).toBeLessThan(0.05);
+  await expect.poll(() => dashboard.evaluate((element) => Number.parseFloat(getComputedStyle(element).opacity))).toBeGreaterThan(0.9);
+  await expect(hero).toBeVisible();
 });
 
 test("opens a keyboard-accessible Creator OS menu and preserves the Studio handoff", async ({ page }) => {
@@ -124,7 +141,7 @@ test("uses an unpinned, complete composition for reduced motion", async ({ page 
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  await expect(page.getByRole("button", { name: /Motion is reduced/i })).toBeDisabled();
+  await expect(page.getByRole("button", { name: /Atmosphere:|Motion is reduced/i })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Make the cut without leaving the conversation." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Zap is the recipe runtime behind every release." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Enter the Creative Universe." })).toBeVisible();

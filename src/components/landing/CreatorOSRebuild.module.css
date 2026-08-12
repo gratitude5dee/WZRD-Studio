@@ -87,7 +87,6 @@
 }
 
 .logoControl,
-.motionControl,
 .menuControl {
   pointer-events: auto;
 }
@@ -142,7 +141,6 @@
   align-items: center;
 }
 
-.motionControl,
 .menuControl {
   display: inline-flex;
   min-width: clamp(2.8rem, 9vw, 3.15rem);
@@ -158,30 +156,11 @@
   -webkit-backdrop-filter: blur(16px) saturate(160%);
 }
 
-.motionControl {
-  position: absolute;
-  right: calc(100% + 0.55rem);
-  gap: 0.45rem;
-  border-radius: 999px;
-  padding: 0 0.8rem;
-  font-family: var(--font-azeret-mono), 'Azeret Mono', monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.motionControl:disabled {
-  cursor: default;
-  opacity: 0.62;
-}
-
-.motionControl svg,
 .menuControl svg {
   width: 1rem;
   height: 1rem;
 }
 
-.motionControl:hover:not(:disabled),
 .menuControl:hover {
   color: var(--air);
 }
@@ -266,6 +245,15 @@
   padding: 6.25rem clamp(1.15rem, 4.5vw, 1.7rem) 5rem;
 }
 
+.heroFrame::after {
+  border: 1px solid rgba(229, 223, 205, 0.16);
+  content: '';
+  inset: 1.1rem;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
 .hero[data-motion-section][data-motion-active='true'] .heroFrame {
   position: sticky;
   top: 0;
@@ -285,9 +273,7 @@
 .heroAtmosphere,
 .heroSky,
 .heroDither,
-.heroGrain,
-.heroDashboard,
-.heroMarks {
+.heroGrain {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -323,25 +309,6 @@
   mix-blend-mode: soft-light;
   opacity: 0.15;
 }
-
-.heroMarks {
-  z-index: 3;
-  border: 1px solid rgba(220, 230, 242, 0.17);
-  inset: 1.25rem;
-  color: var(--mist);
-  font-family: var(--font-azeret-mono), 'Azeret Mono', monospace;
-  font-size: 0.58rem;
-  letter-spacing: 0.08em;
-}
-
-.heroMarks span {
-  position: absolute;
-  left: 0.75rem;
-  text-transform: uppercase;
-}
-
-.heroMarks span:last-child { bottom: 0.75rem; }
-.heroMarks span:first-child { top: 0.75rem; }
 
 .heroCopy {
   position: relative;
@@ -389,8 +356,8 @@
   color: var(--bone);
   font-size: clamp(2.7rem, 7.4vw, 7.2rem);
   font-weight: 400;
-  letter-spacing: -0.065em;
-  line-height: 0.9;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
 }
 
 .heroStatement {
@@ -423,47 +390,61 @@
 .heroEnter:hover, .inlineLink:hover, .earthAside a:hover { border-color: var(--air); color: var(--air); }
 .heroEnter svg, .inlineLink svg, .earthAside svg, .cardLink svg { width: 1rem; height: 1rem; }
 
+.heroDashboardScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: var(--dashboard-scrim-opacity, 0);
+  background:
+    radial-gradient(ellipse at 50% 44%, rgba(13, 24, 48, 0.98) 0%, rgba(5, 7, 10, 0.94) 56%, rgba(5, 7, 10, 0) 78%),
+    linear-gradient(180deg, rgba(5, 7, 10, 0.04), rgba(5, 7, 10, 0.74));
+}
+
 .heroDashboard {
+  position: absolute;
+  inset: 0;
   z-index: 4;
   display: grid;
-  width: min(84vw, 68rem);
-  height: min(72svh, 42rem);
-  inset: auto 50% 10%;
-  grid-template-columns: minmax(14rem, 0.8fr) minmax(0, 1.2fr);
-  align-items: end;
+  width: min(100% - 3rem, 52rem);
+  margin: auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: center;
+  justify-items: center;
   opacity: var(--dashboard-opacity, 0);
-  transform: translate(-50%, var(--dashboard-shift, 4.5rem));
+  pointer-events: none;
+  text-align: center;
+  transform: translateY(var(--dashboard-shift, 4.5rem));
 }
 
-.dashboardScrim {
-  position: absolute;
-  inset: -18%;
-  z-index: -1;
-  background: radial-gradient(ellipse at 50% 42%, #0d1830 0%, rgba(5, 7, 10, 0.8) 58%, rgba(5, 7, 10, 0) 74%);
+.dashboardCopy {
+  width: min(100%, 38rem);
+  padding: 0 1rem clamp(1.5rem, 3vw, 2.4rem);
 }
 
-.dashboardCopy { padding: 0 0 3rem; }
-.dashboardCopy p { color: var(--air); font-size: 0.62rem; }
-.dashboardCopy strong { display: block; max-width: 22rem; margin-top: 0.9rem; font-size: clamp(1.8rem, 3.1vw, 3.7rem); font-weight: 400; letter-spacing: -0.055em; line-height: 0.96; }
-.heroDashboard img { display: block; width: min(100%, 43rem); height: auto; justify-self: end; filter: drop-shadow(0 1.5rem 3rem rgba(0, 0, 0, 0.48)); }
-
-.heroHud {
-  position: absolute;
-  bottom: 3.1rem;
-  left: 50%;
-  z-index: 5;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  color: var(--mist);
-  font-family: var(--font-azeret-mono), 'Azeret Mono', monospace;
-  font-size: 0.56rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  transform: translateX(-50%);
+.dashboardCopy p {
+  color: var(--air);
+  font-size: clamp(0.62rem, 0.76vw, 0.84rem);
 }
 
-.heroHud i { width: 3rem; height: 1px; background: currentColor; }
+.dashboardCopy strong {
+  display: block;
+  max-width: 38rem;
+  margin: 0.9rem auto 0;
+  color: var(--bone);
+  font-size: clamp(1.9rem, 3.6vw, 3.4rem);
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+
+.heroDashboard img {
+  display: block;
+  width: min(100%, 42rem);
+  height: auto;
+  filter: drop-shadow(0 1.5rem 3rem rgba(0, 0, 0, 0.52));
+}
 
 .chapter {
   position: relative;
@@ -636,16 +617,14 @@
 @media (max-width: 859px) {
   .header { padding: 0.85rem 1rem; }
   .logoControl { width: 8.9rem; }
-  .motionControl span { display: none; }
-  .motionControl { position: static; min-width: clamp(2.8rem, 9vw, 3.15rem); padding: 0; }
   .hero[data-motion-section] { height: auto; }
   .heroFrame { min-height: 45rem; padding-top: 6rem; }
-  .heroMarks { inset: 0.7rem; }
-  .heroDashboard { position: relative; inset: auto; display: grid; width: min(100%, 40rem); height: auto; grid-template-columns: 1fr; margin: 3.5rem auto 0; opacity: 1; transform: none; }
-  .dashboardCopy { padding: 0 1rem 1rem; text-align: left; }
+  .heroFrame::after { inset: 0.7rem; }
+  .heroDashboardScrim { display: none; }
+  .heroDashboard { position: relative; inset: auto; display: grid; grid-template-columns: 1fr; width: min(100%, 40rem); margin: 3.5rem auto 0; opacity: 1; transform: none; }
+  .dashboardCopy { padding: 0 1rem 1.25rem; text-align: center; }
   .dashboardCopy strong { font-size: clamp(1.65rem, 8vw, 2.6rem); }
   .heroDashboard img { justify-self: center; }
-  .heroHud { display: none; }
   .heroCopy { transform: none; }
   .chapter { min-height: auto; padding-right: 1.2rem; padding-left: 1.2rem; }
   .studioLayout, .zapLayout, .earthLayout, .airLayout { grid-template-columns: 1fr; }
