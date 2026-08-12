@@ -3,7 +3,7 @@ import { TimelineElement } from "@qcut-app/types/timeline";
 import { useTimelineStore } from "@qcut-app/stores/timeline/timeline-store";
 import { useEffectsStore } from "@qcut-app/stores/ai/effects-store";
 import { Slider } from "@qcut-app/components/ui/slider";
-import { Input } from "@qcut-app/components/ui/input";
+import { ScrubField } from "@qcut-app/components/ui/scrub-field";
 import { Button } from "@qcut-app/components/ui/button";
 import {
 	PropertyItem,
@@ -107,13 +107,13 @@ export function TransformProperties({
 					<PropertyItemLabel>X Position</PropertyItemLabel>
 					<PropertyItemValue>
 						<div className="flex items-center gap-2">
-							<Input
-								type="number"
+							<ScrubField
+								label="X"
 								value={transform.x}
-								onChange={(e) =>
-									handleChange("x", parseInt(e.target.value, 10) || 0)
-								}
-								className="w-20"
+								onChange={(value) => handleChange("x", value)}
+								min={-500}
+								max={500}
+								className="w-24"
 							/>
 							<Slider
 								value={[transform.x]}
@@ -138,13 +138,13 @@ export function TransformProperties({
 					<PropertyItemLabel>Y Position</PropertyItemLabel>
 					<PropertyItemValue>
 						<div className="flex items-center gap-2">
-							<Input
-								type="number"
+							<ScrubField
+								label="Y"
 								value={transform.y}
-								onChange={(e) =>
-									handleChange("y", parseInt(e.target.value, 10) || 0)
-								}
-								className="w-20"
+								onChange={(value) => handleChange("y", value)}
+								min={-500}
+								max={500}
+								className="w-24"
 							/>
 							<Slider
 								value={[transform.y]}
@@ -171,13 +171,13 @@ export function TransformProperties({
 					<PropertyItemLabel>Width</PropertyItemLabel>
 					<PropertyItemValue>
 						<div className="flex items-center gap-2">
-							<Input
-								type="number"
+							<ScrubField
+								label="W"
 								value={transform.width}
-								onChange={(e) =>
-									handleChange("width", parseInt(e.target.value, 10) || 50)
-								}
-								className="w-20"
+								onChange={(value) => handleChange("width", value)}
+								min={50}
+								max={1920}
+								className="w-24"
 							/>
 							<Slider
 								value={[transform.width]}
@@ -202,13 +202,13 @@ export function TransformProperties({
 					<PropertyItemLabel>Height</PropertyItemLabel>
 					<PropertyItemValue>
 						<div className="flex items-center gap-2">
-							<Input
-								type="number"
+							<ScrubField
+								label="H"
 								value={transform.height}
-								onChange={(e) =>
-									handleChange("height", parseInt(e.target.value, 10) || 50)
-								}
-								className="w-20"
+								onChange={(value) => handleChange("height", value)}
+								min={50}
+								max={1080}
+								className="w-24"
 							/>
 							<Slider
 								value={[transform.height]}
@@ -235,13 +235,14 @@ export function TransformProperties({
 					<PropertyItemLabel>Angle (degrees)</PropertyItemLabel>
 					<PropertyItemValue>
 						<div className="flex items-center gap-2">
-							<Input
-								type="number"
+							<ScrubField
+								label="∠"
 								value={transform.rotation}
-								onChange={(e) =>
-									handleChange("rotation", parseInt(e.target.value, 10) || 0)
-								}
-								className="w-20"
+								onChange={(value) => handleChange("rotation", value)}
+								min={-180}
+								max={180}
+								suffix="°"
+								className="w-24"
 							/>
 							<Slider
 								value={[transform.rotation]}
