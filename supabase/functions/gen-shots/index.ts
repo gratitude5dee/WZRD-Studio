@@ -331,7 +331,6 @@ serve(async (req) => {
                 holdId: creditReservation.holdId,
                 skipped: creditReservation.skipped,
                 amount: actualCredits,
-                reservedAmount: creditReservation.requestedAmount,
                 metadata: {
                   endpoint: 'gen-shots',
                   scene_id: targetSceneId,
