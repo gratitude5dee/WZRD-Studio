@@ -18,7 +18,7 @@ vi.mock('sonner', () => ({
 }));
 
 const characters: Character[] = [
-  { id: 'char-1', project_id: 'p1', name: 'Ada', description: 'A keeper' },
+  { id: 'char-1', name: 'Ada', description: 'A keeper' },
 ];
 
 const renderCast = (onGenerateAllImages: () => Promise<void>) =>

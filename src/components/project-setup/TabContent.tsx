@@ -1,5 +1,6 @@
 import { Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Lock } from 'lucide-react';
 import { useProjectContext } from './ProjectContext';
 import { TabErrorBoundary } from './TabErrorBoundary';
 
@@ -27,7 +28,8 @@ const TabFallback = () => (
 );
 
 const TabContent = () => {
-  const { activeTab, projectData, updateProjectData, isTabUnlocked } = useProjectContext();
+  const { activeTab, projectData, updateProjectData, isTabUnlocked, getTabLockReason } =
+    useProjectContext();
 
   const tabContentVariants = {
     hidden: { opacity: 0, x: 20 },
@@ -78,7 +80,7 @@ const TabContent = () => {
               </Suspense>
             </motion.div>
           )}
-          {activeTab === 'breakdown' && isTabUnlocked('breakdown') && (
+          {activeTab === 'breakdown' && (
             <motion.div
               key="breakdown"
               variants={tabContentVariants}
@@ -86,9 +88,24 @@ const TabContent = () => {
               animate="visible"
               exit="exit"
             >
-              <Suspense fallback={<TabFallback />}>
-                <BreakdownTab projectData={projectData} updateProjectData={updateProjectData} />
-              </Suspense>
+              {isTabUnlocked('breakdown') ? (
+                <Suspense fallback={<TabFallback />}>
+                  <BreakdownTab projectData={projectData} updateProjectData={updateProjectData} />
+                </Suspense>
+              ) : (
+                <div
+                  role="status"
+                  data-testid="breakdown-locked"
+                  className="mx-auto max-w-md px-6 py-16 text-center"
+                >
+                  <Lock className="mx-auto h-8 w-8 text-text-muted" aria-hidden />
+                  <p className="mt-4 text-base font-medium text-white">Breakdown is not ready yet</p>
+                  <p className="mt-2 text-sm text-text-muted">
+                    {getTabLockReason('breakdown') ??
+                      'Finish the earlier steps before opening the breakdown.'}
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

@@ -28,6 +28,9 @@ interface CastTabProps {
   onAddCharacter: (name: string, description: string) => void;
   onDeleteCharacter: (id: string) => void;
   onGenerateAllImages?: () => void | Promise<void>;
+  /** Voice-selection wiring, threaded from the Project brief step. */
+  isCharacterSelected?: (character: Character) => boolean;
+  onSelectCharacter?: (character: Character) => void;
 }
 
 function getErrorMessage(error: unknown): string {
@@ -41,6 +44,8 @@ export function CastTab({
   onAddCharacter,
   onDeleteCharacter,
   onGenerateAllImages,
+  isCharacterSelected,
+  onSelectCharacter,
 }: CastTabProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newName, setNewName] = useState('');
@@ -189,6 +194,8 @@ export function CastTab({
                     character={char}
                     onDelete={onDeleteCharacter}
                     styleReferenceUrl={styleReferenceUrl}
+                    isVoiceSelected={isCharacterSelected?.(char) ?? false}
+                    onSelect={onSelectCharacter}
                   />
                   {/* Wardrobe button */}
                   <button

@@ -17,6 +17,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { supabaseService } from '@/services/supabaseService';
 import { cn } from '@/lib/utils';
+import { useVoiceSelection } from '@/voice/VoiceSelectionContext';
 import { useProjectContext } from './ProjectContext';
 import { CastTab } from './CastTab';
 import { StyleReferenceUploader } from './StyleReferenceUploader';
@@ -54,6 +55,7 @@ const ratioBoxClass = (ratio: AspectRatioOption) =>
 
 const ProjectBriefTab = ({ projectData, updateProjectData }: ProjectBriefTabProps) => {
   const { projectId, generationCompletedSignal } = useProjectContext();
+  const { isSelected, selectTarget } = useVoiceSelection();
 
   const selectedAspectRatio: AspectRatioOption = isAspectRatio(projectData.aspectRatio)
     ? projectData.aspectRatio
@@ -418,6 +420,16 @@ const ProjectBriefTab = ({ projectData, updateProjectData }: ProjectBriefTabProp
           onAddCharacter={handleAddCharacter}
           onDeleteCharacter={handleDeleteCharacter}
           onGenerateAllImages={handleGenerateAllImages}
+          isCharacterSelected={(character) => isSelected('character', character.id)}
+          onSelectCharacter={(character) =>
+            selectTarget({
+              type: 'character',
+              id: character.id,
+              label: character.name,
+              projectId,
+              sourceImageUrl: character.image_url ?? null,
+            })
+          }
         />
       </div>
     </div>

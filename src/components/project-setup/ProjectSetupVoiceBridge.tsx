@@ -84,7 +84,8 @@ export function ProjectSetupVoiceBridge() {
     projectData,
     updateProjectData,
     activeTab,
-    setActiveTab,
+    goToTab,
+    getTabLockReason,
     saveProjectData,
     generateStoryline,
     finalizeProjectSetup,
@@ -148,8 +149,8 @@ export function ProjectSetupVoiceBridge() {
             updateProjectData(fields);
             projectDataRef.current = { ...projectDataRef.current, ...fields };
           }
-          if (isProjectSetupTab(tab)) {
-            setActiveTab(tab);
+          if (isProjectSetupTab(tab) && !goToTab(tab)) {
+            return invalid(getTabLockReason(tab) ?? `The ${tab} step is not available yet.`);
           }
 
           if ((save || shouldGenerateStoryline || finalize) && !context.confirmed) {
@@ -219,7 +220,7 @@ export function ProjectSetupVoiceBridge() {
             if (latestData.conceptOption === 'ai') {
               await generateStoryline(savedProjectId, overrides);
             }
-            setActiveTab('storyline');
+            goToTab('storyline');
             return completed('Storyline is open and generation has started.', {
               projectId: savedProjectId,
               activeSetupTab: 'storyline',
@@ -228,13 +229,15 @@ export function ProjectSetupVoiceBridge() {
 
           if (activeTab === 'storyline') {
             await saveProjectData();
-            setActiveTab('settings');
-            return completed('Settings and Cast is open.', { activeSetupTab: 'settings', projectId });
+            goToTab('settings');
+            return completed('Project brief is open.', { activeSetupTab: 'settings', projectId });
           }
 
           if (activeTab === 'settings') {
             await saveProjectData();
-            setActiveTab('breakdown');
+            if (!goToTab('breakdown')) {
+              return invalid(getTabLockReason('breakdown') ?? 'Breakdown is not available yet.');
+            }
             return completed('Breakdown is open for review.', { activeSetupTab: 'breakdown', projectId });
           }
 
@@ -289,8 +292,8 @@ export function ProjectSetupVoiceBridge() {
         scope: 'project-setup',
         handler: async () => {
           await saveProjectData();
-          setActiveTab('settings');
-          return completed('Storyline confirmed. Settings and Cast is open.', {
+          goToTab('settings');
+          return completed('Storyline confirmed. Project brief is open.', {
             projectId,
             activeSetupTab: 'settings',
           });
@@ -323,7 +326,7 @@ export function ProjectSetupVoiceBridge() {
             projectId,
             sourceImageUrl: character.image_url ?? null,
           });
-          setActiveTab('settings');
+          goToTab('settings');
           scrollVoiceTargetIntoView(`[data-voice-character-id="${character.id}"]`);
           return completed(`${character.name} is selected.`, { character });
         },
@@ -355,7 +358,9 @@ export function ProjectSetupVoiceBridge() {
             projectId,
             sceneNumber: scene.scene_number,
           });
-          setActiveTab('breakdown');
+          if (!goToTab('breakdown')) {
+            return invalid(getTabLockReason('breakdown') ?? 'Breakdown is not available yet.');
+          }
           scrollVoiceTargetIntoView(`[data-voice-scene-id="${scene.id}"]`);
           return completed(`${scene.location || scene.title || `Scene ${scene.scene_number}`} is selected.`, { scene });
         },
@@ -482,7 +487,9 @@ export function ProjectSetupVoiceBridge() {
             projectId,
             sceneNumber: scene.scene_number,
           });
-          setActiveTab('breakdown');
+          if (!goToTab('breakdown')) {
+            return invalid(getTabLockReason('breakdown') ?? 'Breakdown is not available yet.');
+          }
           scrollVoiceTargetIntoView(`[data-voice-scene-id="${scene.id}"]`);
           return completed(`Scene ${scene.scene_number} updated.`, { sceneId: scene.id, updates: compactUpdates });
         },
@@ -521,7 +528,8 @@ export function ProjectSetupVoiceBridge() {
       selectedTargets.character,
       selectedTargets.location,
       selectedTargets.scene,
-      setActiveTab,
+      goToTab,
+      getTabLockReason,
       updateProjectData,
     ],
   );

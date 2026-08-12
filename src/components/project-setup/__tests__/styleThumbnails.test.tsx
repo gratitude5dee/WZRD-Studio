@@ -28,23 +28,26 @@ vi.mock('../ProjectContext', () => ({
 }));
 
 import ProjectBriefTab from '../ProjectBriefTab';
+import { VoiceSelectionProvider } from '@/voice/VoiceSelectionContext';
 
 const PUBLIC_DIR = join(process.cwd(), 'public');
 
 const renderBrief = () =>
   render(
-    <ProjectBriefTab
-      projectData={{
-        title: 'Test',
-        concept: '',
-        genre: '',
-        tone: '',
-        format: 'custom',
-        addVoiceover: false,
-        conceptOption: 'ai',
-      }}
-      updateProjectData={vi.fn()}
-    />,
+    <VoiceSelectionProvider>
+      <ProjectBriefTab
+        projectData={{
+          title: 'Test',
+          concept: '',
+          genre: '',
+          tone: '',
+          format: 'custom',
+          addVoiceover: false,
+          conceptOption: 'ai',
+        }}
+        updateProjectData={vi.fn()}
+      />
+    </VoiceSelectionProvider>,
   );
 
 describe('style thumbnails', () => {

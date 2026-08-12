@@ -58,6 +58,13 @@ interface ProjectContextProps {
   getTabLockReason: (tab: ProjectSetupTab) => string | null;
   /** Gated navigation: no-ops when the target tab's prerequisites are unmet. */
   goToTab: (tab: ProjectSetupTab) => boolean;
+  /**
+   * True when Storyline generation failed and the user may explicitly proceed
+   * without a storyline, so a failure is never a dead end.
+   */
+  canOverrideStorylineGate: boolean;
+  /** Consumes the escape hatch: unlocks Breakdown after a failed Storyline. */
+  overrideStorylineGate: () => void;
 }
 
 const defaultProjectData: ProjectData = {
@@ -133,7 +140,8 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectData, setProjectData] = useState<ProjectData>(defaultProjectData);
   const [generationCompletedSignal, setGenerationCompletedSignal] = useState(0);
-  const [storylineStatus, setStorylineStatus] = useState<StorylineProgressStatus>('idle');
+  const [storylineStatus, setStorylineStatusState] = useState<StorylineProgressStatus>('idle');
+  const [storylineGateOverridden, setStorylineGateOverridden] = useState(false);
   
   // Track option changes for smooth transitions
   useEffect(() => {
@@ -328,16 +336,36 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // ── Wizard navigation state (single source of truth) ──────────────────
+  // Changing the status also revokes a granted escape hatch, so a retry
+  // re-establishes the strict gate.
+  const setStorylineStatus = useCallback((status: StorylineProgressStatus) => {
+    setStorylineStatusState(status);
+    if (status !== 'failed') setStorylineGateOverridden(false);
+  }, []);
+
+  const canOverrideStorylineGate = storylineStatus === 'failed' && !storylineGateOverridden;
+
+  const overrideStorylineGate = useCallback(() => {
+    setStorylineGateOverridden(true);
+  }, []);
+
   const getTabLockReason = useCallback(
     (tab: ProjectSetupTab): string | null => {
       const tabs = getVisibleTabs();
       if (!tabs.includes(tab)) return null;
       if (tab === 'breakdown' && tabs.includes('storyline') && storylineStatus !== 'complete') {
+        if (storylineStatus === 'failed') {
+          // A failure must never trap the user: they can retry, or explicitly
+          // continue without a storyline.
+          return storylineGateOverridden
+            ? null
+            : 'Storyline generation failed — retry it, or continue without a storyline.';
+        }
         return 'Finish the Storyline step first — the scene breakdown is generated from it.';
       }
       return null;
     },
-    [projectData.conceptOption, storylineStatus]
+    [projectData.conceptOption, storylineStatus, storylineGateOverridden]
   );
 
   const isTabUnlocked = useCallback(
@@ -447,7 +475,9 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
       setStorylineStatus,
       isTabUnlocked,
       getTabLockReason,
-      goToTab
+      goToTab,
+      canOverrideStorylineGate,
+      overrideStorylineGate
     }}>
       {children}
     </ProjectContext.Provider>

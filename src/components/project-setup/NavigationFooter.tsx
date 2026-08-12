@@ -20,7 +20,9 @@ const NavigationFooter = () => {
     generateStoryline,
     finalizeProjectSetup,
     projectData,
-    projectId
+    projectId,
+    canOverrideStorylineGate,
+    overrideStorylineGate
   } = useProjectContext();
 
   const { activeTab, visibleTabs, currentStep } = wizardState;
@@ -137,6 +139,16 @@ const NavigationFooter = () => {
         </div>
       </div>
       
+      {isNextBlocked && canOverrideStorylineGate && (
+        <Button
+          onClick={overrideStorylineGate}
+          variant="outline"
+          className="mr-2 min-h-[44px] border-status-warning/40 text-status-warning hover:bg-status-warning/10 hover:text-status-warning"
+        >
+          Continue anyway
+        </Button>
+      )}
+
       <Button
         onClick={handleNext}
         disabled={isProcessing || isNextBlocked}
