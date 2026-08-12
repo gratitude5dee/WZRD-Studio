@@ -601,7 +601,7 @@ export default function CreatorOSRebuild() {
               <p className={styles.heroEyebrow}>A creator operating system</p>
               <img alt="WZRD.tech" className={styles.heroWordmark} fetchPriority="high" height="396" src="/creator-os/wzrd-wordmark-1600.png" width="1600" />
               <p className={styles.heroTitle}><span>Creative</span><span>Infrastructure</span></p>
-              <p className={styles.heroStatement}>A generative media studio for making, releasing, and owning what moves culture.</p>
+              <p className={styles.heroStatement}>A digital and physical generative media studio to create, distribute, and monetize across all channels on one platform.</p>
               <a className={styles.heroEnter} href="#studio">Scroll to enter <ArrowDown aria-hidden="true" /></a>
             </div>
 

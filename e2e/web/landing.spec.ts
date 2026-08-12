@@ -10,7 +10,7 @@ test("paints the Creator OS hero and its static atmosphere without the legacy sh
   await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech Creator OS" })).toBeVisible();
   await expect(page.getByText("Creative", { exact: true })).toBeVisible();
   await expect(page.getByText("Infrastructure", { exact: true })).toBeVisible();
-  await expect(page.getByText("A generative media studio for making, releasing, and owning what moves culture.")).toBeVisible();
+  await expect(page.getByText("A digital and physical generative media studio to create, distribute, and monetize across all channels on one platform.")).toBeVisible();
   await expect(page.getByRole("link", { name: "WZRD.tech home" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
   await expect(page.locator("[class*='heroAtmosphere']")).toBeVisible();
