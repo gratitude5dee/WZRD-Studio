@@ -440,7 +440,7 @@ export function AuraAssetStore({ projects = [] }: AuraAssetStoreProps) {
       </div>
 
       <div className="grid gap-5 2xl:grid-cols-[minmax(0,1.55fr)_440px]">
-        <section className="overflow-hidden rounded-lg border border-white/10 bg-[#0c0c0f]/90 shadow-[0_22px_80px_rgba(0,0,0,0.28)]">
+        <section className="dark overflow-hidden rounded-lg border border-white/10 bg-[#0c0c0f]/90 shadow-[0_22px_80px_rgba(0,0,0,0.28)]">
           <div className="border-b border-white/[0.06] p-4">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_130px_150px_170px]">
               <SearchField

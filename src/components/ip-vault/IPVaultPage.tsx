@@ -276,7 +276,7 @@ export function IPVaultPage() {
         </header>
 
         {/* Page content */}
-        <div className="bg-[#08080b] text-white min-h-[calc(100vh-64px)]" data-testid="ip-vault-page">
+        <div className="dark bg-[#08080b] text-white min-h-[calc(100vh-64px)]" data-testid="ip-vault-page">
           <IPVaultVoiceBridge
             items={items}
             selectedItem={selectedItem}
