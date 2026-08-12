@@ -1,89 +1,45 @@
-# WZRD Studio Desktop (macOS)
+# WZRD Studio
 
-WZRD Studio Desktop is the packaged macOS build of **WZRD**, an AI creative studio for moving from concept → storyline → node-based generation → editing → final delivery in one workflow.
+**A creator operating system** — take a project from concept → storyboard → AI generation → editing → final delivery, in one workflow.
 
-This repo contains:
+- **Web app**: [studio.wzrd.tech](https://studio.wzrd.tech)
+- **Docs**: [studio.wzrd.tech/docs](https://studio.wzrd.tech/docs)
+- **Desktop**: packaged macOS (Apple Silicon) app with native FFmpeg export, PTY terminal, and `wzrd://` deep links
 
-- React/Vite renderer
-- Electron shell (desktop deep-links + desktop-friendly auth)
-- Supabase Edge Functions + migrations (including Postz)
+Every project carries three connected surfaces:
 
----
+| Surface | What it does |
+|---|---|
+| **Studio** | Node-based generation canvas with a prompt-to-workflow generator (the "video agent"). Wire image/video/audio model blocks into executable graphs. |
+| **Timeline** | Storyboard: scenes → shots → prompts → generated frames, with character/setting continuity and one-click scene generation. Director's Cut assembles shot videos into a final cut. |
+| **Editor** | Full video editor: multi-track timeline, undo/redo, effect keyframes, text animations, karaoke captions, AI panels, and client-side export (WebCodecs MP4 / WebM / GIF) or native FFmpeg on desktop. |
 
-## Highlights / Features
+## Feature highlights
 
-- **Studio canvas**: node-based generation workflows (React Flow)
-- **Video editing + preview**: Remotion-powered editor pipeline
-- **Desktop deep-link support**: `wzrd://...` routes handled by Electron
-- **Desktop auth plumbing**: Thirdweb in-app wallet auth bridged into Supabase sessions
-- **Postz (social scheduler)**:
-  - OAuth channel connect flow that returns to the desktop app via deep-link
-  - Multi-channel composer + per-channel validation
-  - Calendar view with drag/move + state filters (Draft / Queue / Publishing / Published / Error)
-  - Attach media from project assets
+- **Project setup wizard** — concept, storyline, settings & cast, breakdown; AI-developed or stick-to-script.
+- **Kanvas AI studios** — focused image / video / cinema / lipsync / lyric-video / remix tools.
+- **Clip Studio, Sourcify & Postz** — find viral clips, source content, and schedule posts across channels (OAuth connect, multi-channel composer, calendar).
+- **IP Vault** — register creative assets on-chain via Story Protocol.
+- **Credits & billing** — every AI call priced server-side from a model catalog (1 credit = 1¢), strict pricing, no provider keys in the browser.
+- **Agent plugin & MCP** — drive WZRD from Claude Code, Codex, Hermes, OpenClaw and other harnesses via the MCP server and `agent-skills/` bundle. Discovery: `/.well-known/agents.json`.
 
----
+Full feature documentation lives at **[/docs](https://studio.wzrd.tech/docs)** (source: `src/docs/`).
 
-## Install (DMG)
+## Stack
 
-This project currently builds an **unsigned** DMG named:
+React 18 + TypeScript + Vite (renderer) · Next.js App Router (web shell on Vercel) · Electron (desktop) · Tailwind + shadcn/ui · Zustand · Remotion · Supabase (auth, DB, Deno Edge Functions) · Thirdweb wallet auth · fal.ai / GMI / Gemini / Groq / ElevenLabs providers · Story Protocol
 
-```text
-wzrdstudiofinal555-apfs.dmg
+## Development
+
+Requirements: Bun, Node.js, Supabase project credentials.
+
+```bash
+bun install          # dependencies
+bun run dev          # web renderer (Vite)
+bun run desktop:dev  # Electron desktop app
 ```
 
-### Install steps
-
-1. Download (or build) the DMG.
-2. Double-click `wzrdstudiofinal555-apfs.dmg` to mount it.
-3. Drag **WZRD Studio.app** into **Applications**.
-4. Eject the mounted DMG.
-
-### First launch (Gatekeeper)
-
-Because the DMG is unsigned/notarized, macOS may block the first launch.
-
-Try one of these:
-
-- **Right-click** (or Control-click) **WZRD Studio.app** → **Open** → confirm.
-- Or go to **System Settings → Privacy & Security** and choose **Open Anyway** for WZRD Studio.
-
----
-
-## Desktop deep-links
-
-Auth callback:
-
-```text
-wzrd://auth/thirdweb
-```
-
-Postz channel connect callback:
-
-```text
-wzrd://postz/connected
-```
-
-Desktop deep-link diagnostics are written with auth values redacted:
-
-```text
-~/Library/Logs/WZRD Studio/desktop.log
-```
-
----
-
-## Requirements
-
-- macOS (Apple Silicon / `arm64` for the current packaged target)
-- Bun
-- Node.js compatible with the project toolchain
-- Supabase project credentials (and any provider keys you use)
-
----
-
-## Environment
-
-Create a local `.env` file with the required public Supabase and provider values. At minimum:
+Create a local `.env` with at minimum:
 
 ```bash
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
@@ -91,77 +47,51 @@ VITE_SUPABASE_ANON_KEY=<anon-key>
 VITE_THIRDWEB_CLIENT_ID=<thirdweb-client-id>
 ```
 
-Additional provider keys may be required depending on which generation workflows or Postz providers you enable.
-
----
-
-## Development
-
-Install dependencies:
+### Verification
 
 ```bash
-bun install
+bun run lint                 # eslint
+bunx vitest run              # unit tests
+bun run build                # production build
+bun run desktop:test         # desktop smoke test
 ```
 
-Start the web renderer:
+## Desktop app (macOS)
 
-```bash
-bun run dev
-```
-
-Start the Electron desktop app in development:
-
-```bash
-bun run desktop:dev
-```
-
----
-
-## Verification
-
-Run targeted unit tests:
-
-```bash
-bun x vitest run src/lib/thirdweb/wallets.test.ts src/lib/desktop.test.ts electron/deep-links.test.js
-```
-
-Run the desktop smoke test:
-
-```bash
-bun run desktop:test
-```
-
-Run lint:
-
-```bash
-bun run lint
-```
-
----
-
-## Packaging (build the APFS DMG)
-
-Build the macOS Apple Silicon DMG:
+Build the Apple Silicon DMG:
 
 ```bash
 bun run desktop:dist:mac
 ```
 
-Outputs:
+Outputs `release/wzrdstudiofinal555-apfs.dmg` and `release/mac-arm64/WZRD Studio.app`. The DMG build is forced to **APFS** via `hdiutil`.
 
-```text
-release/wzrdstudiofinal555-apfs.dmg
-release/mac-arm64/WZRD Studio.app
-```
+### Install
 
-> Note: the DMG build is forced to **APFS** via `hdiutil` to avoid issues observed with HFS+ DMGs on this machine.
+1. Mount the DMG and drag **WZRD Studio.app** into **Applications**.
+2. First launch (unsigned build): **right-click → Open**, or allow it under **System Settings → Privacy & Security**.
 
----
+### Deep links
 
-## Repo notes
+| Purpose | URL |
+|---|---|
+| Auth callback | `wzrd://auth/thirdweb` |
+| Postz channel connect | `wzrd://postz/connected` |
 
-- Generated build outputs are ignored (for example: `dist/`, `release/`)
-- Desktop shell code lives in `electron/`
-- Renderer app code lives in `src/`
-- Supabase Edge Functions live in `supabase/functions/`
-- Supabase migrations live in `supabase/migrations/`
+Deep-link diagnostics (auth values redacted): `~/Library/Logs/WZRD Studio/desktop.log`
+
+## Repo layout
+
+- `src/` — renderer app (pages, components, features, `src/qcut/` editor engine, `src/docs/` docs site)
+- `src/app/` — Next.js App Router shell
+- `electron/` — desktop shell (deep links, FFmpeg, PTY)
+- `supabase/functions/` — Deno Edge Functions (generation, billing, MCP server)
+- `supabase/migrations/` — database migrations
+- `agent-skills/` — agent-agnostic skill bundle; per-harness configs in `.claude/`, `.codex/`, `.openclaw/`, `.hermes/`
+- `docs/` — architecture and goal specs
+
+Generated outputs (`dist/`, `release/`) are ignored.
+
+## For agents
+
+Start at [`agents.md`](agents.md) — the canonical entry point for coding agents working in this repo (allowed/forbidden paths, commands, per-harness configs).

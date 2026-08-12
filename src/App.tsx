@@ -4,6 +4,7 @@ import { appRoutes } from '@/lib/routes';
 import { AppProviders } from './app/providers';
 
 const Landing = lazy(() => import('./legacy-pages/Landing'));
+const DocsPage = lazy(() => import('./docs/DocsPage'));
 const LoginRoute = lazy(() => import('./app/LoginRoute'));
 const AuthenticatedRoutes = lazy(() => import('./app/AuthenticatedRoutes'));
 
@@ -15,6 +16,7 @@ const App = () => {
           <Routes>
             {/* Public — no auth, no wallet, no studio providers */}
             <Route path={appRoutes.landing} element={<Landing />} />
+            <Route path={appRoutes.docs} element={<DocsPage />} />
 
             {/* Login — auth + wallet only */}
             <Route path={appRoutes.login} element={<LoginRoute />} />

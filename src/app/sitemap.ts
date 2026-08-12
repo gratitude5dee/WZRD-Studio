@@ -8,5 +8,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1,
       url: "https://wzrd.tech",
     },
+    {
+      changeFrequency: "weekly",
+      lastModified: new Date(),
+      priority: 0.8,
+      url: "https://studio.wzrd.tech/docs",
+    },
   ];
 }
