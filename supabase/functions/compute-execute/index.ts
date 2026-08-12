@@ -49,6 +49,7 @@ import {
   reserveCredits,
   shouldSkipCreditBilling,
 } from "../_shared/credits.ts";
+import { AuthError, assertProjectOwnership, resolveRequestIdentity } from "../_shared/auth.ts";
 import {
   getNodeExecutionWarning,
   getNodePreflightError,
@@ -130,22 +131,19 @@ serve(async (req) => {
   }
 
   try {
-    // Create supabase client with user token
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    );
-
-    // Authenticate user
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      console.error('[ComputeExecute] Auth error:', authError);
+    // Resolve the acting user (JWT caller or internal MCP actor)
+    let identity;
+    try {
+      identity = await resolveRequestIdentity(req.headers);
+    } catch (authError) {
+      console.error('[ComputeExecute] Auth error:', authError instanceof AuthError ? authError.message : authError);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+    const supabaseClient = identity.client;
+    const user = { id: identity.userId };
 
     const { projectId, nodeIds, useCache = true, requestId }: ExecuteRequest = await req.json();
     console.log('[ComputeExecute] Starting execution for project:', projectId);
@@ -153,6 +151,17 @@ serve(async (req) => {
     if (!projectId) {
       return new Response(JSON.stringify({ error: 'projectId is required' }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Graph reads below are keyed only by project_id, so ownership has to be
+    // asserted here rather than left to RLS (internal callers bypass it).
+    try {
+      await assertProjectOwnership(supabaseClient, user.id, projectId);
+    } catch {
+      return new Response(JSON.stringify({ error: 'Project not found or access denied' }), {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -245,6 +254,7 @@ serve(async (req) => {
       estimatedCredits > 0
         ? await reserveCredits({
             supabase: supabaseClient,
+            tokenId: identity.tokenId,
             userId: user.id,
             resourceType: 'generation',
             requestedAmount: estimatedCredits,
@@ -558,6 +568,7 @@ serve(async (req) => {
             if (actualCredits > 0) {
               await commitCredits({
                 supabase: supabaseClient,
+                tokenId: identity.tokenId,
                 holdId: reservation.holdId,
                 skipped: reservation.skipped,
                 amount: actualCredits,
@@ -571,6 +582,8 @@ serve(async (req) => {
             } else {
               await releaseCredits({
                 supabase: supabaseClient,
+                tokenId: identity.tokenId,
+                amount: reservation.requestedAmount,
                 holdId: reservation.holdId,
                 skipped: reservation.skipped,
                 reason: 'no_billable_nodes_succeeded',
@@ -606,6 +619,7 @@ serve(async (req) => {
             if (actualCredits > 0) {
               await commitCredits({
                 supabase: supabaseClient,
+                tokenId: identity.tokenId,
                 holdId: reservation.holdId,
                 skipped: reservation.skipped,
                 amount: actualCredits,
@@ -620,6 +634,8 @@ serve(async (req) => {
             } else {
               await releaseCredits({
                 supabase: supabaseClient,
+                tokenId: identity.tokenId,
+                amount: reservation.requestedAmount,
                 holdId: reservation.holdId,
                 skipped: reservation.skipped,
                 reason: 'execution_error',

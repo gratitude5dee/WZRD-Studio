@@ -1,0 +1,21 @@
+{
+  "name": "@wzrd/mcp-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "description": "stdio ↔ Streamable HTTP bridge for the WZRD Studio MCP server",
+  "type": "module",
+  "main": "index.mjs",
+  "bin": {
+    "wzrd-mcp-bridge": "index.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "optionalDependencies": {
+    "keytar": "7.9.0"
+  },
+  "files": [
+    "index.mjs"
+  ],
+  "license": "UNLICENSED"
+}

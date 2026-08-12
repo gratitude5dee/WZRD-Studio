@@ -7,6 +7,7 @@ import {
   processAssetsRemote,
 } from '../_shared/export-helpers.ts';
 import { safeLog } from '../_shared/safe-logger.ts';
+import { AuthError, resolveRequestIdentity } from '../_shared/auth.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -508,21 +509,14 @@ serve(async (req) => {
   let requestBody: RequestBody | null = null;
   try {
     const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    let user: { id: string } | null = null;
+    try {
+      user = { id: (await resolveRequestIdentity(req.headers)).userId };
+    } catch (authError) {
+      console.error('[DirectorCut] Auth error:', authError instanceof AuthError ? authError.message : authError);
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const {
-      data: { user },
-      error: authError,
-    } = await supabaseAdmin.auth.getUser(token);
-
-    if (authError || !user) {
+    if (!user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

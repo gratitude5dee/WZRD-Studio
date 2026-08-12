@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { AuthError, resolveRequestIdentity } from "../_shared/auth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,22 +26,18 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization') ?? '';
-    
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !user) {
-      console.error('Auth error:', authError);
+    let identity;
+    try {
+      identity = await resolveRequestIdentity(req.headers);
+    } catch (authError) {
+      console.error('Auth error:', authError instanceof AuthError ? authError.message : authError);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+    const supabaseClient = identity.client;
+    const user = { id: identity.userId };
 
     const { projectId, nodes, edges, viewState }: SaveGraphRequest = await req.json();
     console.log('Saving compute graph for project:', projectId, { nodeCount: nodes?.length, edgeCount: edges?.length });
@@ -93,8 +89,25 @@ serve(async (req) => {
       .select('id')
       .eq('project_id', projectId);
 
-    const existingNodeIds = new Set((existingNodes || []).map(n => n.id));
+    const existingNodeIds = new Set((existingNodes || []).map((n: { id: string }) => n.id));
     const newNodeIds = new Set((nodes || []).map(n => n.id));
+
+    // Upserting by primary key would otherwise let a graph claim a node that
+    // belongs to another project (internal callers run without RLS).
+    if (newNodeIds.size > 0) {
+      const { data: foreignNodes } = await supabaseClient
+        .from('compute_nodes')
+        .select('id')
+        .in('id', [...newNodeIds])
+        .neq('project_id', projectId);
+
+      if ((foreignNodes || []).length > 0) {
+        return new Response(JSON.stringify({ error: 'Graph references nodes from another project' }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    }
 
     // Delete nodes that are no longer in the graph
     const nodesToDelete = [...existingNodeIds].filter(id => !newNodeIds.has(id));
@@ -144,7 +157,7 @@ serve(async (req) => {
       .select('id')
       .eq('project_id', projectId);
 
-    const existingEdgeIds = new Set((existingEdges || []).map(e => e.id));
+    const existingEdgeIds = new Set((existingEdges || []).map((e: { id: string }) => e.id));
     const newEdgeIds = new Set((edges || []).map(e => e.id));
 
     // Delete edges that are no longer in the graph

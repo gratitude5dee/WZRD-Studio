@@ -43,6 +43,7 @@ const Home = lazyWithRetry(() => import('@/legacy-pages/Home'));
 const SettingsPage = lazyWithRetry(() => import('@/legacy-pages/SettingsPage'));
 const SettingsBillingPage = lazyWithRetry(() => import('@/legacy-pages/SettingsBillingPage'));
 const SettingsBillingDocsPage = lazyWithRetry(() => import('@/legacy-pages/SettingsBillingDocsPage'));
+const SettingsAgentAccessPage = lazyWithRetry(() => import('@/legacy-pages/SettingsAgentAccessPage'));
 const ProjectSetup = lazyWithRetry(() => import('@/legacy-pages/ProjectSetup'));
 const StudioPage = lazyWithRetry(() => import('@/legacy-pages/StudioPage'));
 const LearningStudioPage = lazyWithRetry(() => import('@/legacy-pages/LearningStudioPage'));
@@ -189,6 +190,10 @@ const AuthenticatedRoutes = () => {
                   <Route
                     path={appRoutes.settings.billingDocs}
                     element={<ProtectedRoute><SettingsBillingDocsPage /></ProtectedRoute>}
+                  />
+                  <Route
+                    path={appRoutes.settings.agentAccess}
+                    element={<ProtectedRoute><SettingsAgentAccessPage /></ProtectedRoute>}
                   />
                   <Route
                     path={appRoutes.storyboardGenerator}

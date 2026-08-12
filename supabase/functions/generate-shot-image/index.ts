@@ -25,6 +25,7 @@ import {
   shouldSkipCreditBilling,
 } from "../_shared/credits.ts";
 import { resolveImageGenerationPlan } from "../_shared/image-fallback.ts";
+import { AuthError, resolveRequestIdentity } from "../_shared/auth.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL") as string;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") as string;
@@ -87,18 +88,17 @@ serve(async (req) => {
     });
   }
 
-  // Authenticate the request
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return new Response(
-      JSON.stringify({ success: false, error: "Missing authorization" }),
-      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+  // Authenticate the request (user JWT or internal MCP actor)
+  let user: { id: string } | null = null;
+  let tokenId: string | undefined;
+  try {
+    const identity = await resolveRequestIdentity(req.headers);
+    user = { id: identity.userId };
+    tokenId = identity.tokenId;
+  } catch (authError) {
+    console.error('[generate-shot-image] Auth error:', authError instanceof AuthError ? authError.message : authError);
   }
-
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !user) {
+  if (!user) {
     return new Response(
       JSON.stringify({ success: false, error: "Invalid or expired token" }),
       { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -218,6 +218,7 @@ serve(async (req) => {
       const gmiCreditCost = getCreditCostForModel(selectedImageModel, 'image');
       creditReservation = await reserveCredits({
         supabase,
+        tokenId,
         userId: user.id,
         resourceType: 'image',
         requestedAmount: gmiCreditCost,
@@ -283,6 +284,8 @@ serve(async (req) => {
         console.warn(`[generate-shot-image][Shot ${shotId}] All GMI models unavailable, falling through to FAL path`);
         await releaseCredits({
           supabase,
+          tokenId,
+          amount: creditReservation.requestedAmount,
           holdId: creditReservation.holdId,
           skipped: creditReservation.skipped,
           reason: 'gmi_unavailable_fallback_to_fal',
@@ -361,6 +364,7 @@ serve(async (req) => {
 
         await commitCredits({
           supabase,
+          tokenId,
           holdId: creditReservation.holdId,
           skipped: creditReservation.skipped,
           amount: gmiCreditCost,
@@ -426,6 +430,7 @@ serve(async (req) => {
     const creditCost = getCreditCostForModel(finalModelId, 'image');
     creditReservation = await reserveCredits({
       supabase,
+      tokenId,
       userId: user.id,
       resourceType: 'image',
       requestedAmount: creditCost,
@@ -634,6 +639,7 @@ serve(async (req) => {
 
       await commitCredits({
         supabase,
+        tokenId,
         holdId: creditReservation.holdId,
         skipped: creditReservation.skipped,
         amount: creditCost,
@@ -696,6 +702,8 @@ serve(async (req) => {
       if (creditReservation) {
         await releaseCredits({
           supabase,
+          tokenId,
+          amount: creditReservation.requestedAmount,
           holdId: creditReservation.holdId,
           skipped: creditReservation.skipped,
           reason: 'generation_failed',
