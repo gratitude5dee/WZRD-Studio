@@ -122,6 +122,22 @@ layer (e.g. `src/services/observabilityService.ts`, returning rows only when
 `git status --porcelain` is clean. Always disclose in the report that such a panel was verified
 against seeded data, not real data.
 
+## Verifying clipboard "copy" buttons
+
+Headless-profile Chrome here allows `navigator.clipboard.writeText` but **denies** `readText`
+(`NotAllowedError: Read permission denied`, and running it from the devtools console pops a
+permission prompt that lands on top of the app — dismiss it before taking screenshots). `xclip`/
+`xsel` are not installed. Practical proof that a copy button really copied the right text:
+
+1. Click the copy button (an icon swap to a check only happens after `writeText` resolves).
+2. Focus the browser URL bar and paste with `xdotool key ctrl+v` on `DISPLAY=:0`, then screenshot
+   the full screen (`import -window root`) — the pasted text is legible in the omnibox.
+3. Press `Escape` and click back into the page.
+
+Because the check icon reverts after ~1.5s, a saved screenshot of it needs the click and the capture
+in one shell command: `xdotool mousemove X Y click 1; sleep 0.6; import -window root out.png`.
+Screen is 1600x1122 while browser-tool coordinates are 1024 wide — scale accordingly.
+
 ## Interaction tips
 
 * ReactFlow pan: a synthetic click is not enough — use a real held drag
