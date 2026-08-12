@@ -55,6 +55,57 @@ test("keeps the static landing intact when WebGL is unavailable", async ({ page 
   expect(await page.locator("canvas:visible").count()).toBe(0);
 });
 
+test("accepts the shader mode property when progressive WebGL enhancement mounts", async ({ page }) => {
+  await page.addInitScript(() => {
+    const webgl = {
+      ARRAY_BUFFER: 0x8892,
+      COMPILE_STATUS: 0x8b81,
+      FLOAT: 0x1406,
+      FRAGMENT_SHADER: 0x8b30,
+      LINK_STATUS: 0x8b82,
+      STATIC_DRAW: 0x88e4,
+      TRIANGLES: 0x0004,
+      VERTEX_SHADER: 0x8b31,
+      attachShader() {},
+      bindBuffer() {},
+      bufferData() {},
+      compileShader() {},
+      createBuffer: () => ({}),
+      createProgram: () => ({}),
+      createShader: () => ({}),
+      deleteShader() {},
+      drawArrays() {},
+      enableVertexAttribArray() {},
+      getAttribLocation: () => 0,
+      getExtension: () => null,
+      getProgramInfoLog: () => null,
+      getProgramParameter: () => true,
+      getShaderInfoLog: () => null,
+      getShaderParameter: () => true,
+      getUniformLocation: () => ({}),
+      linkProgram() {},
+      shaderSource() {},
+      uniform1f() {},
+      uniform2f() {},
+      useProgram() {},
+      vertexAttribPointer() {},
+      viewport() {},
+    };
+
+    Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+      configurable: true,
+      value(contextId: string) {
+        return String(contextId).toLowerCase() === "webgl" ? webgl : null;
+      },
+      writable: true,
+    });
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.locator("wz-sky")).toHaveCount(1);
+  await expect(page.getByRole("heading", { name: "The signal needs a fresh start." })).toHaveCount(0);
+});
+
 test("falls back to the static composition when matchMedia is unavailable", async ({ page }) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, "matchMedia", {
