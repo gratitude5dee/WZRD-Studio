@@ -340,7 +340,7 @@ export function WorkflowGeneratorTab({
           </div>
         </div>
 
-        <div className={cn('space-y-3', isPopup ? 'px-0' : 'px-0')}>
+        <div className="space-y-3">
           <Composer
             className={cn(
               'dark',
@@ -353,7 +353,7 @@ export function WorkflowGeneratorTab({
                 <ComposerContextChip>
                   {phase === 'ready_to_run' ? 'Ready' : 'Nodes only'}
                 </ComposerContextChip>
-                <ComposerContextChip>New workflow</ComposerContextChip>
+                {isPopup ? <ComposerContextChip>New workflow</ComposerContextChip> : null}
                 {selectedNodeLabel ? (
                   <ComposerContextChip accent>{selectedNodeLabel}</ComposerContextChip>
                 ) : null}
@@ -371,7 +371,7 @@ export function WorkflowGeneratorTab({
                 onClick={primaryAction}
                 disabled={!canSubmit}
                 aria-label={primaryLabel}
-                className="inline-flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isGenerating ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -380,6 +380,7 @@ export function WorkflowGeneratorTab({
                 ) : (
                   <Send className="size-4" />
                 )}
+                <span>{primaryLabel}</span>
               </button>
             }
           >
@@ -397,13 +398,18 @@ export function WorkflowGeneratorTab({
                 onBlur={handlePromptBlur}
                 placeholder="Describe the workflow you want to create..."
                 className={cn(
-                  'min-h-[96px] w-full resize-none bg-transparent px-1 py-1 text-sm text-foreground placeholder:text-muted-foreground outline-none',
+                  'w-full resize-none bg-transparent px-1 py-1 text-sm text-foreground placeholder:text-muted-foreground outline-none',
                   isPopup ? 'min-h-[108px]' : 'min-h-[96px]'
                 )}
                 disabled={isGenerating}
               />
             </div>
           </Composer>
+          {isPopup ? (
+            <p className="px-1 text-[11px] text-muted-foreground">
+              Uses your current canvas context
+            </p>
+          ) : null}
           {assistantMessage ? (
             <div className="mt-3 rounded-[18px] border border-[rgba(249,115,22,0.12)] bg-[#171717] px-3 py-3 text-xs leading-5 text-zinc-300">
               {assistantMessage}
@@ -469,7 +475,7 @@ export function WorkflowGeneratorTab({
             </motion.div>
           ) : null}
         </AnimatePresence>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
           <button
             type="button"
             onClick={resetAgent}
