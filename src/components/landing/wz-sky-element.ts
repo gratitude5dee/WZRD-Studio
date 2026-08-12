@@ -133,6 +133,7 @@ class WzSkyElement extends HTMLElement {
   private intersectionObserver: IntersectionObserver | null = null;
   private animationFrame = 0;
   private releaseTimer = 0;
+  private calmTimer = 0;
   private visible = false;
   private startedAt = performance.now();
   private progressValue = 0;
@@ -153,8 +154,9 @@ class WzSkyElement extends HTMLElement {
     shadow.append(style, this.canvas);
   }
 
-  get mode() {
-    return this.getAttribute('mode') === 'off' ? 'off' : 'full';
+  get mode(): 'full' | 'calm' | 'off' {
+    const mode = this.getAttribute('mode');
+    return mode === 'off' || mode === 'calm' ? mode : 'full';
   }
 
   get progress() {
@@ -205,6 +207,8 @@ class WzSkyElement extends HTMLElement {
     this.animationFrame = 0;
     window.clearTimeout(this.releaseTimer);
     this.releaseTimer = 0;
+    window.clearTimeout(this.calmTimer);
+    this.calmTimer = 0;
     this.resizeObserver?.disconnect();
     this.intersectionObserver?.disconnect();
     window.removeEventListener('resize', this.onWindowResize);
@@ -247,9 +251,11 @@ class WzSkyElement extends HTMLElement {
       this.resize();
       this.draw(performance.now());
       this.syncAnimation();
-      this.dispatchEvent(new CustomEvent('wz-sky-ready', { bubbles: true }));
+      this.dataset.wzSkyStatus = 'ready';
+      this.dispatchEvent(new CustomEvent('wz-sky-ready', { bubbles: true, composed: true }));
     } catch {
-      this.dispatchEvent(new CustomEvent('wz-sky-error', { bubbles: true }));
+      this.dataset.wzSkyStatus = 'error';
+      this.dispatchEvent(new CustomEvent('wz-sky-error', { bubbles: true, composed: true }));
       this.style.display = 'none';
     }
   }
@@ -307,6 +313,8 @@ class WzSkyElement extends HTMLElement {
     if (!shouldRun) {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = 0;
+      window.clearTimeout(this.calmTimer);
+      this.calmTimer = 0;
       this.draw(performance.now());
       return;
     }
@@ -317,6 +325,16 @@ class WzSkyElement extends HTMLElement {
     this.animationFrame = 0;
     if (!this.visible || document.hidden || this.mode === 'off' || this.contextLost) return;
     this.draw(timestamp);
+    if (this.mode === 'calm') {
+      window.clearTimeout(this.calmTimer);
+      this.calmTimer = window.setTimeout(() => {
+        this.calmTimer = 0;
+        if (this.visible && !document.hidden && this.mode === 'calm' && !this.contextLost) {
+          this.animationFrame = requestAnimationFrame(this.tick);
+        }
+      }, 180);
+      return;
+    }
     this.animationFrame = requestAnimationFrame(this.tick);
   };
 
@@ -344,7 +362,8 @@ class WzSkyElement extends HTMLElement {
     cancelAnimationFrame(this.animationFrame);
     this.animationFrame = 0;
     if (!this.intentionallyReleased) {
-      this.dispatchEvent(new CustomEvent('wz-sky-error', { bubbles: true }));
+      this.dataset.wzSkyStatus = 'error';
+      this.dispatchEvent(new CustomEvent('wz-sky-error', { bubbles: true, composed: true }));
     }
   };
 

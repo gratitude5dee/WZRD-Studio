@@ -1,51 +1,39 @@
 import { expect, test } from "@playwright/test";
 
 const enterStudioHref = "/login?next=%2Fkanvas";
+const creatorOsSections = ["top", "studio", "zap", "earth", "air", "coming-soon", "enter"] as const;
 
-test("paints the semantic hero and permanent atmosphere without the legacy shell", async ({ page }) => {
+test("paints the Creator OS hero and its static atmosphere without the legacy shell", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
   await expect(page.locator("iframe")).toHaveCount(0);
-  await expect(page.getByRole("heading", { level: 1, name: "Build the world around the record." })).toBeVisible();
-  await expect(page.locator("[data-static-atmosphere]")).toBeVisible();
-  await expect(page.locator("wz-sky[data-hero-sky]")).toHaveCount(1);
-  await expect(page.getByRole("link", { name: "Enter Studio" }).first()).toHaveAttribute("href", enterStudioHref);
-  await expect(page.getByRole("link", { name: "Product tour" }).first()).toHaveAttribute("href", "#product-tour");
+  await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech Creator OS" })).toBeVisible();
+  await expect(page.getByText("Creative", { exact: true })).toBeVisible();
+  await expect(page.getByText("Infrastructure", { exact: true })).toBeVisible();
+  await expect(page.getByText("Building digital and physical generative media studio to create, distribute, and monetize across all channels on one platform.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "WZRD.tech home" })).toBeVisible();
+  await expect(page.locator("[class*='heroAtmosphere']")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Make the next signal/i })).toHaveAttribute("href", enterStudioHref);
 
-  await expect(page.locator("video")).toHaveCount(0);
-  await page.getByText("Watch the WZRD intro film").click();
-  const film = page.locator("video");
-  await expect(film).toHaveCount(1);
-  await expect(film).toHaveAttribute("preload", "metadata");
-  expect(await film.evaluate((video: HTMLVideoElement) => video.autoplay)).toBe(false);
+  expect(await page.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
 });
 
-test("operates the product tour as a keyboard tablist", async ({ page }) => {
+test("opens a keyboard-accessible Creator OS menu and preserves the Studio handoff", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  const tabs = page.getByRole("tablist", { name: "Product tour steps" });
-  const first = tabs.getByRole("tab").nth(0);
-  const second = tabs.getByRole("tab").nth(1);
-  await first.focus();
-  await first.press("ArrowRight");
+  const menuButton = page.getByRole("button", { name: "Open navigation" });
+  await menuButton.click();
+  const navigation = page.getByRole("navigation", { name: "Creator OS chapters" });
+  await expect(navigation).toBeVisible();
+  await expect(navigation.getByRole("link", { name: "enter studio" })).toHaveAttribute("href", enterStudioHref);
 
-  await expect(second).toBeFocused();
-  await expect(second).toHaveAttribute("aria-selected", "true");
-  await expect(page.getByRole("tabpanel")).toContainText("Branch the treatment without losing the idea.");
-
-  await second.press("End");
-  await expect(tabs.getByRole("tab").nth(2)).toHaveAttribute("aria-selected", "true");
+  await page.keyboard.press("Escape");
+  await expect(navigation).toBeHidden();
+  await expect(menuButton).toBeFocused();
 });
 
-test("shows an honest product-capture fallback when media cannot load", async ({ page }) => {
-  await page.route("**/lovable-uploads/4e20f36a-2bff-48d8-b07b-257334e35506.png", route => route.abort());
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-
-  await expect(page.getByRole("status")).toContainText("Preview unavailable");
-  await expect(page.getByRole("status")).toContainText("/kanvas?studio=cinema");
-});
-
-test("keeps the static atmosphere when WebGL is unavailable", async ({ page }) => {
+test("keeps the static landing intact when WebGL is unavailable", async ({ page }) => {
   await page.addInitScript(`
     (() => {
       const nativeGetContext = HTMLCanvasElement.prototype.getContext;
@@ -61,47 +49,32 @@ test("keeps the static atmosphere when WebGL is unavailable", async ({ page }) =
   `);
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { level: 1, name: "Build the world around the record." })).toBeVisible();
-  await expect(page.locator("[data-static-atmosphere]")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech Creator OS" })).toBeVisible();
+  await expect(page.getByText("Creative", { exact: true })).toBeVisible();
+  await expect(page.locator("wz-sky")).toHaveCount(0);
   expect(await page.locator("canvas:visible").count()).toBe(0);
 });
 
-test("uses at most one hero canvas and parks it offscreen", async ({ page }) => {
-  await page.goto("/", { waitUntil: "networkidle" });
+test("uses an unpinned, complete composition for reduced motion", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  const sky = page.locator("wz-sky[data-hero-sky]");
-  const initial = await sky.evaluate((element) => {
-    const state = element as unknown as Record<string, unknown>;
-    return {
-      canvasCount: element.shadowRoot?.querySelectorAll("canvas").length ?? 0,
-      hasContext: Boolean(state.gl),
-    };
-  });
-  expect(initial.canvasCount).toBeLessThanOrEqual(1);
-
-  await page.locator("#system").scrollIntoViewIfNeeded();
-  await expect.poll(() => sky.evaluate((element) => {
-    const state = element as unknown as Record<string, unknown>;
-    return Number(state.animationFrame ?? 0);
-  })).toBe(0);
-
-  if (initial.hasContext) {
-    await expect.poll(() => sky.evaluate((element) => {
-      const state = element as unknown as Record<string, unknown>;
-      return Boolean(state.gl);
-    }), { timeout: 8_000 }).toBe(false);
-  }
+  await expect(page.getByRole("button", { name: /Motion is reduced/i })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: "Make the cut without leaving the conversation." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Zap is the recipe runtime behind every release." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Enter the Creative Universe." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Air by WZRD Tech/i })).toBeVisible();
+  expect(await page.locator("canvas:visible").count()).toBe(0);
 });
 
-test.describe("reduced motion", () => {
-  test.use({ reducedMotion: "reduce" });
+test("keeps all Creator OS chapters in source order", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  test("exposes complete content with the shader and reveals disabled", async ({ page }) => {
-    await page.goto("/", { waitUntil: "domcontentloaded" });
-
-    await expect(page.getByRole("heading", { level: 1, name: "Build the world around the record." })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "The brief stays with the work." })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Reduced motion" })).toBeDisabled();
-    expect(await page.locator("canvas:visible").count()).toBe(0);
-  });
+  const sectionIds = await page.locator("main section[id]").evaluateAll((sections) =>
+    sections.map((section) => section.id),
+  );
+  expect(sectionIds).toEqual(creatorOsSections);
+  for (const id of creatorOsSections) {
+    await expect(page.locator(`section#${id}`)).toHaveCount(1);
+  }
 });

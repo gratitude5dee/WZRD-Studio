@@ -272,7 +272,11 @@ const StudioCanvasInner: React.FC<StudioCanvasProps> = ({
     sourcePortId: string;
   } | null>(null);
   const [activeEdgeInsertion, setActiveEdgeInsertion] = useState<{ edgeId: string } | null>(null);
-  const [showGrid, setShowGrid] = useState(true);
+  // Keep the canvas quiet by default. Technical guide lines remain available
+  // through the existing Grid control (and the G shortcut) when a user needs
+  // them for alignment.
+  const [showGrid, setShowGrid] = useState(false);
+  const [interactionMode, setInteractionMode] = useState<'pan' | 'select'>('pan');
   const [promptDraft, setPromptDraft] = useState('');
   const [isPromptSubmitting, setIsPromptSubmitting] = useState(false);
 
@@ -1098,6 +1102,14 @@ const StudioCanvasInner: React.FC<StudioCanvasProps> = ({
         toggleMode();
       }
 
+      if ((event.key === 'h' || event.key === 'H') && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        setInteractionMode('pan');
+      }
+
+      if ((event.key === 'v' || event.key === 'V') && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        setInteractionMode('select');
+      }
+
       if (event.key === '+' || event.key === '=') {
         event.preventDefault();
         zoomIn();
@@ -1134,20 +1146,49 @@ const StudioCanvasInner: React.FC<StudioCanvasProps> = ({
   return (
     <div
       ref={canvasContainerRef}
-      className="relative h-full w-full overflow-hidden bg-[#0A0A0A]"
+      className="relative isolate h-full w-full overflow-hidden bg-[#060605]"
       data-walkthrough="canvas"
       onPointerMove={handleCanvasPointerMove}
       onPointerLeave={handleCanvasPointerLeave}
     >
       <div
-        className="pointer-events-none absolute inset-0"
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0"
         style={{
-          backgroundImage: 'radial-gradient(circle at center, rgba(255,255,255,0.08) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-          opacity: 0.6,
+          backgroundImage:
+            'radial-gradient(ellipse at 50% 0%, rgba(193, 103, 48, 0.10), transparent 45%), radial-gradient(ellipse at 12% 95%, rgba(133, 70, 34, 0.07), transparent 37%), radial-gradient(ellipse at 88% 86%, rgba(104, 75, 48, 0.06), transparent 40%)',
         }}
       />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(212,165,116,0.08),transparent_42%),radial-gradient(circle_at_72%_18%,rgba(249,115,22,0.08),transparent_22%),radial-gradient(circle_at_bottom,rgba(0,0,0,0.46),transparent_48%)]" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 z-0 opacity-70"
+        style={{
+          backgroundImage:
+            'radial-gradient(circle at 25% 25%, rgba(244, 185, 132, 0.26) 0 0.45px, transparent 0.68px), radial-gradient(circle at 75% 75%, rgba(211, 126, 69, 0.14) 0 0.38px, transparent 0.62px)',
+          backgroundSize: '4px 4px, 4px 4px',
+          maskImage: 'radial-gradient(ellipse at 50% 48%, black 0%, rgba(0,0,0,0.72) 39%, transparent 78%)',
+          WebkitMaskImage: 'radial-gradient(ellipse at 50% 48%, black 0%, rgba(0,0,0,0.72) 39%, transparent 78%)',
+        }}
+      />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-6 top-6 z-[2] hidden h-px bg-[#e5c6a6]/[0.12] sm:block" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-6 bottom-6 z-[2] hidden h-px bg-[#e5c6a6]/[0.08] sm:block" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute left-7 top-9 z-[3] hidden items-center gap-3 text-[9px] uppercase tracking-[0.2em] text-[#897d70] sm:flex"
+        style={{ fontFamily: 'var(--font-system)' }}
+      >
+        <span className="h-1.5 w-1.5 bg-[#df8a4d]" />
+        <span>Creator OS / Studio</span>
+        <span className="h-px w-12 bg-[#e5c6a6]/25" />
+        <span>Void canvas</span>
+      </div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute right-7 top-9 z-[3] hidden text-[9px] uppercase tracking-[0.2em] text-[#706960] sm:block"
+        style={{ fontFamily: 'var(--font-system)' }}
+      >
+        Build / arrange / render
+      </div>
 
       <FloraCollaboratorCursors
         users={onlineUsers}
@@ -1219,6 +1260,8 @@ const StudioCanvasInner: React.FC<StudioCanvasProps> = ({
           connectionRadius={30}
           isValidConnection={isValidConnection}
           defaultEdgeOptions={defaultEdgeOptions}
+          panOnDrag={interactionMode === 'pan'}
+          selectionOnDrag={interactionMode === 'select'}
           nodesDraggable
           nodesConnectable
           elementsSelectable
@@ -1230,13 +1273,14 @@ const StudioCanvasInner: React.FC<StudioCanvasProps> = ({
           minZoom={0.1}
           maxZoom={2}
           deleteKeyCode={null}
-          className="bg-transparent"
+          className="relative z-[1] bg-transparent"
         >
           {showGrid ? (
             <Background
-              color="rgba(255,255,255,0.08)"
-              gap={40}
-              variant={BackgroundVariant.Dots}
+              color="rgba(232, 171, 115, 0.08)"
+              gap={96}
+              variant={BackgroundVariant.Lines}
+              lineWidth={1}
             />
           ) : null}
         </ReactFlow>
@@ -1292,8 +1336,8 @@ const StudioCanvasInner: React.FC<StudioCanvasProps> = ({
         onCancelExecution={cancelExecution}
         onSave={projectId ? () => saveGraph(projectId) : undefined}
         isSaving={isSaving}
-        interactionMode="select"
-        onToggleInteractionMode={() => {}}
+        interactionMode={interactionMode}
+        onToggleInteractionMode={() => setInteractionMode(current => current === 'pan' ? 'select' : 'pan')}
       />
 
       <KeyboardShortcutsOverlay triggerClassName="left-[56px]" />

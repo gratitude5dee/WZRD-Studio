@@ -47,6 +47,9 @@ interface CanvasToolbarProps {
   onToggleInteractionMode?: () => void;
 }
 
+const toolButton = 'h-10 w-10 rounded-none border border-transparent text-[#aaa096] transition-colors hover:border-[#e5c6a6]/20 hover:bg-[#e4a267]/[0.07] hover:text-[#f2e9df] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#edbc8e]';
+const railTooltip = 'flex items-center gap-2 border-[#e5c6a6]/20 bg-[#0d0b09] text-[#eee6dc]';
+
 export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
   connectionMode,
   onToggleConnectionMode,
@@ -75,9 +78,8 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
       data-walkthrough="toolbar"
       className={cn(
         'absolute bottom-6 left-[calc(50%-150px)] ml-[-10px] -translate-x-1/2 z-50',
-        'flex items-center gap-1 px-2 py-1.5',
-        'rounded-[18px] border border-white/10 bg-[#151515]/92 backdrop-blur-md',
-        'shadow-xl shadow-black/40',
+        'flex items-center gap-1 border-y border-[#e5c6a6]/[0.2] bg-[#0a0907]/[0.96] px-1 py-1 backdrop-blur-md',
+        'shadow-[0_14px_38px_rgba(0,0,0,0.42)]',
         className
       )}
     >
@@ -91,7 +93,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 bg-[#4a2323]/50 text-[#d98c8c] hover:bg-[#643131]/60"
+                    className={`${toolButton} border-[#a45d52]/35 bg-[#452622]/45 text-[#e1a39a] hover:bg-[#55302a]/65`}
                     onClick={onCancelExecution}
                   >
                     <Square className="h-4 w-4" />
@@ -100,30 +102,30 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 bg-[#221a10] text-[#d4a574] hover:bg-[#2d2214]"
+                    className={`${toolButton} border-[#d98248]/45 bg-[#d98248] text-[#180f09] hover:bg-[#edaa73] hover:text-[#180f09]`}
                     onClick={onExecute}
                   >
                     <Play className="h-4 w-4" />
                   </Button>
                 )}
               </TooltipTrigger>
-              <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
+              <TooltipContent side="top" className={railTooltip}>
                 <span>{isExecuting ? 'Stop Execution' : 'Run Graph'}</span>
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">⌘R</kbd>
+                <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">⌘R</kbd>
               </TooltipContent>
             </Tooltip>
 
             {/* Execution Progress */}
             {isExecuting && executionProgress && (
-              <div className="flex items-center gap-2 px-2">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#d4a574]" />
-                <span className="text-xs text-zinc-300">
+              <div className="flex items-center gap-2 px-2" style={{ fontFamily: 'var(--font-system)' }}>
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#df965b]" />
+                <span className="text-[10px] text-[#d2c7ba]">
                   {executionProgress.completed}/{executionProgress.total}
                 </span>
               </div>
             )}
 
-            <Separator orientation="vertical" className="h-6 bg-border-subtle" />
+            <Separator orientation="vertical" className="h-6 bg-[#e5c6a6]/15" />
           </>
         )}
 
@@ -136,7 +138,7 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'h-9 w-9 transition-all',
+                    toolButton,
                     isSaving && 'opacity-50 cursor-not-allowed'
                   )}
                   onClick={onSave}
@@ -149,37 +151,37 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
+              <TooltipContent side="top" className={railTooltip}>
                 <span>Save Graph</span>
-                <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">⌘S</kbd>
+                <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">⌘S</kbd>
               </TooltipContent>
             </Tooltip>
 
-            <Separator orientation="vertical" className="h-6 bg-border-subtle" />
+            <Separator orientation="vertical" className="h-6 bg-[#e5c6a6]/15" />
           </>
         )}
 
         {/* Pan/Select Mode Toggle */}
         {onToggleInteractionMode && (
           <>
-            <div className="flex items-center rounded-full bg-[#111111] p-0.5">
+            <div className="flex items-center border border-[#e5c6a6]/10 bg-[#0a0907]">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      'h-8 w-8 transition-all rounded-md',
-                      interactionMode === 'pan' && 'bg-[#1d1d1d] text-white'
+                      'h-9 w-9 rounded-none border border-transparent text-[#aaa096] transition-colors hover:bg-[#e4a267]/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#edbc8e]',
+                      interactionMode === 'pan' && 'border-[#e5c6a6]/20 bg-[#e4a267]/[0.07] text-[#f2e9df]'
                     )}
                     onClick={() => interactionMode !== 'pan' && onToggleInteractionMode()}
                   >
                     <Hand className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
+                <TooltipContent side="top" className={railTooltip}>
                   <span>Pan Mode</span>
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">H</kbd>
+                  <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">H</kbd>
                 </TooltipContent>
               </Tooltip>
 
@@ -189,22 +191,22 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                     variant="ghost"
                     size="icon"
                     className={cn(
-                      'h-8 w-8 transition-all rounded-md',
-                      interactionMode === 'select' && 'bg-[#251c0e] text-[#f97316]'
+                      'h-9 w-9 rounded-none border border-transparent text-[#aaa096] transition-colors hover:bg-[#e4a267]/[0.07] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#edbc8e]',
+                      interactionMode === 'select' && 'border-[#d98248]/45 bg-[#e4a267]/[0.09] text-[#e99b5e]'
                     )}
                     onClick={() => interactionMode !== 'select' && onToggleInteractionMode()}
                   >
                     <MousePointer className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
+                <TooltipContent side="top" className={railTooltip}>
                   <span>Select Mode</span>
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">V</kbd>
+                  <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">V</kbd>
                 </TooltipContent>
               </Tooltip>
             </div>
 
-            <Separator orientation="vertical" className="h-6 bg-border-subtle" />
+            <Separator orientation="vertical" className="h-6 bg-[#e5c6a6]/15" />
           </>
         )}
 
@@ -215,8 +217,8 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               variant="ghost"
               size="icon"
               className={cn(
-                'h-9 w-9 transition-all',
-                connectionMode === 'click' && 'bg-[#251c0e] text-[#f97316] hover:bg-[#2d2214]'
+                toolButton,
+                connectionMode === 'click' && 'border-[#d98248]/45 bg-[#e4a267]/[0.09] text-[#e99b5e] hover:bg-[#e4a267]/[0.14]'
               )}
               onClick={onToggleConnectionMode}
             >
@@ -227,9 +229,9 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               )}
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
+          <TooltipContent side="top" className={railTooltip}>
             <span>{connectionMode === 'drag' ? 'Drag to Connect' : 'Click to Connect'}</span>
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">C</kbd>
+            <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">C</kbd>
           </TooltipContent>
         </Tooltip>
 
@@ -240,17 +242,17 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               variant="ghost"
               size="icon"
               className={cn(
-                'h-9 w-9 transition-all',
-                showGrid && 'bg-[#1d1d1d]'
+                toolButton,
+                showGrid && 'border-[#e5c6a6]/25 bg-[#e4a267]/[0.07] text-[#f2e9df]'
               )}
               onClick={onToggleGrid}
             >
               <Grid3x3 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
-            <span>Toggle Grid</span>
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">G</kbd>
+          <TooltipContent side="top" className={railTooltip}>
+            <span>Toggle Guides</span>
+            <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">G</kbd>
           </TooltipContent>
         </Tooltip>
 
@@ -260,15 +262,15 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9"
+              className={toolButton}
               onClick={onFitView}
             >
               <Maximize2 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
+          <TooltipContent side="top" className={railTooltip}>
             <span>Fit View</span>
-            <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">F</kbd>
+            <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">F</kbd>
           </TooltipContent>
         </Tooltip>
 
@@ -278,15 +280,15 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9"
+                className={toolButton}
                 onClick={onZoomOut}
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
+            <TooltipContent side="top" className={railTooltip}>
               <span>Zoom Out</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">-</kbd>
+              <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">-</kbd>
             </TooltipContent>
           </Tooltip>
 
@@ -295,15 +297,15 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-9 w-9"
+                className={toolButton}
                 onClick={onZoomIn}
               >
                 <ZoomIn className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
+            <TooltipContent side="top" className={railTooltip}>
               <span>Zoom In</span>
-              <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">+</kbd>
+              <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">+</kbd>
             </TooltipContent>
           </Tooltip>
         </div>
@@ -311,10 +313,10 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
         {/* Selection Actions */}
         {selectedCount > 0 && (
           <>
-            <Separator orientation="vertical" className="h-6 bg-border-subtle" />
+            <Separator orientation="vertical" className="h-6 bg-[#e5c6a6]/15" />
             
             <div className="flex items-center gap-1">
-              <Badge variant="secondary" className="h-7 bg-[#1d1d1d] px-2 text-xs text-zinc-300">
+              <Badge variant="secondary" className="h-7 rounded-none border border-[#e5c6a6]/15 bg-[#e4a267]/[0.07] px-2 text-xs text-[#ddd2c4]">
                 <Layers className="h-3 w-3 mr-1" />
                 {selectedCount}
               </Badge>
@@ -324,15 +326,15 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 hover:bg-[#251c0e] hover:text-[#f97316]"
+                    className={`${toolButton} hover:text-[#e99b5e]`}
                     onClick={onDuplicateSelected}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
+                <TooltipContent side="top" className={railTooltip}>
                   <span>Duplicate</span>
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">⌘D</kbd>
+                  <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">⌘D</kbd>
                 </TooltipContent>
               </Tooltip>
 
@@ -341,15 +343,15 @@ export const CanvasToolbar: React.FC<CanvasToolbarProps> = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 hover:bg-[#4a2323]/50 hover:text-[#d98c8c]"
+                    className={`${toolButton} hover:border-[#a45d52]/35 hover:bg-[#452622]/45 hover:text-[#e1a39a]`}
                     onClick={onDeleteSelected}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="flex items-center gap-2 border-white/10 bg-[#121212] text-zinc-100">
+                <TooltipContent side="top" className={railTooltip}>
                   <span>Delete</span>
-                  <kbd className="px-1.5 py-0.5 text-[10px] font-mono bg-zinc-800 rounded">⌫</kbd>
+                  <kbd className="border border-white/10 bg-black/20 px-1.5 py-0.5 text-[10px] font-mono">⌫</kbd>
                 </TooltipContent>
               </Tooltip>
             </div>

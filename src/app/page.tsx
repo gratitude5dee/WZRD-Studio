@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 
-import NativeCreatorLanding from "@/components/landing/NativeCreatorLanding";
+import CreatorOSRebuild from "@/components/landing/CreatorOSRebuild";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://wzrd.tech"),
   alternates: {
     canonical: "/",
   },
-  title: "WZRD.tech — Build the World Around the Record",
-  description: "Turn a reference, lyric, or treatment into artist visuals, camera-ready scenes, and release assets in one creative system.",
+  title: "WZRD.tech — Creator OS",
+  description: "Creative infrastructure for generative media, artist discovery, and the work that turns a signal into culture.",
   openGraph: {
-    description: "Turn a reference, lyric, or treatment into artist visuals, camera-ready scenes, and release assets in one creative system.",
+    description: "Creative infrastructure for generative media, artist discovery, and the work that turns a signal into culture.",
     images: [
       {
         alt: "WZRD.tech — Creator OS",
@@ -21,7 +22,7 @@ export const metadata: Metadata = {
       },
     ],
     siteName: "WZRD.tech",
-    title: "WZRD.tech — Build the World Around the Record",
+    title: "WZRD.tech — Creator OS",
     type: "website",
     url: "/",
   },
@@ -32,10 +33,17 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     images: ["/creator-os/og-creator-os.svg"],
-    title: "WZRD.tech — Build the World Around the Record",
+    title: "WZRD.tech — Creator OS",
   },
 };
 
 export default function Page() {
-  return <NativeCreatorLanding />;
+  return (
+    <>
+      <Script id="wzrd-creator-motion-bootstrap" strategy="beforeInteractive">
+        {`try { const mode = sessionStorage.getItem('wzrd:creator-os-motion'); if (mode === 'calm' || mode === 'off') document.documentElement.dataset.wzrdCreatorMotion = mode; } catch {}`}
+      </Script>
+      <CreatorOSRebuild />
+    </>
+  );
 }
