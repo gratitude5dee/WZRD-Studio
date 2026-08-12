@@ -316,13 +316,43 @@ export const DOCS_SECTIONS: DocsSection[] = [
           'WZRD exposes its functionality to AI agents through an MCP (Model Context Protocol) server and an Agent Plugins-format package, so you can set up projects, iterate storyboards, and trigger generation from inside Claude Code, Codex, Hermes, OpenClaw, and any Agent Skills host.',
         ],
         code: {
-          label: 'MCP server (Streamable HTTP)',
+          label: 'MCP server (Streamable HTTP, JSON-RPC 2.0)',
           text: 'https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server',
         },
         bullets: [
-          'Tools include list_models, get_credits, create_project, get_timeline, run_studio_graph, and create_checkout_session, with the full storyboarding surface on the roadmap.',
-          'Agent-agnostic skills ship in the repo under agent-skills/, with per-harness configs (.claude/, .codex/, .openclaw/, .hermes/).',
-          'Discovery endpoint: /.well-known/agents.json.',
+          'Discovery endpoint: /.well-known/agents.json. Health endpoint: /mcp-server/health (reports version, tool count, and commit).',
+          'Per-harness setup snippets, install commands, and token minting live in Settings → Agent access.',
+        ],
+      },
+      {
+        heading: 'Authentication',
+        body: [
+          'Agents authenticate with a personal access token minted at Settings → Agent access, sent as "Authorization: Bearer wzrd_pat_…". Tokens carry scopes — read (browse projects and storyboards), generate (spend credits on generation), billing (checkout links) — plus optional monthly credit caps and per-minute rate limits. initialize and tools/list are public; every tools/call requires a token.',
+        ],
+      },
+      {
+        heading: 'Tool surface',
+        body: [
+          'The server exposes ~29 tools across the whole production loop:',
+        ],
+        bullets: [
+          'Projects & cast: setup_project, list_projects, get_project, update_project_settings, add_character, generate_character_image.',
+          'Storyboarding (free): get_storyboard, storyboard_propose, storyboard_diff, storyboard_commit (optimistic concurrency via revision), update_shot, get_continuity_graph, evaluate_storyboard.',
+          'Generation (spends credits): generate_shot_image, generate_scene_images, run_studio_graph, export_video — all support dryRun for a free cost preview and idempotencyKey to prevent double charges.',
+          'Seedance handoff: seedance_handoff compiles per-shot reference packets (character refs, setting ref, style anchor, graph-resolved continuity frame). mode:"review" is free; mode:"auto" is refused until Seedance catalog pricing is published.',
+          'Billing & jobs: get_credits, list_models, create_checkout_session, get_job for long-running operations that return { jobId }.',
+        ],
+      },
+      {
+        heading: 'The safety loop',
+        body: [
+          'Every bundled skill teaches the same spending discipline: check get_credits, iterate for free in text, preview costs with dryRun: true, get explicit user confirmation of the exact credit number, then spend once with an idempotencyKey and share the project deep link (…/project/<id>?tab=timeline).',
+        ],
+      },
+      {
+        heading: 'Plugin package & skills',
+        body: [
+          'The plugin ships in the repo as an Agent Plugins-format package: plugin/ (mcp.json manifest, schemas, and nine skills under plugin/skills/), plus per-harness extensions — .claude-plugin/ (marketplace, /wzrd:* commands, storyboard-rendering hook), com.openai.codex/, ai.openclaw/, and com.hermes/. A harness with none of these extensions still gets a fully working plugin from skills + mcp.json alone.',
         ],
       },
     ],
