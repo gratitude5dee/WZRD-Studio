@@ -14,11 +14,16 @@
 - [Clip Studio, Sourcify & Postz](https://studio.wzrd.tech/docs/clip-studio): Viral clip finding, content sourcing, and multi-channel post scheduling.
 - [IP Vault](https://studio.wzrd.tech/docs/ip-vault): On-chain IP registration via Story Protocol.
 - [Credits & billing](https://studio.wzrd.tech/docs/credits-billing): Server-side per-generation pricing; 1 credit = 1 US cent.
-- [Agent plugin & MCP](https://studio.wzrd.tech/docs/agent-plugin): Drive WZRD from Claude Code, Codex, Hermes, OpenClaw, and other agent harnesses via the MCP server.
+- [Agent plugin & MCP](https://studio.wzrd.tech/docs/agent-plugin): Drive WZRD from Claude Code, Codex, Hermes, OpenClaw, and other agent harnesses via the MCP server — PAT auth, tool surface, free storyboarding, and the credit-safety loop.
 - [Desktop app (macOS)](https://studio.wzrd.tech/docs/desktop): Native FFmpeg export, terminal, and wzrd:// deep links.
 
 ## For agents
 
-- MCP server (Streamable HTTP): https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server
+- MCP server (Streamable HTTP, JSON-RPC 2.0): https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server
+- Health: https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server/health
 - Agent discovery: https://studio.wzrd.tech/.well-known/agents.json
+- Auth: mint a personal access token at https://studio.wzrd.tech/settings/agent-access and send it as `Authorization: Bearer wzrd_pat_…`. Scopes: read, generate, billing. `initialize` and `tools/list` are public; `tools/call` requires a token.
+- Tools (~29): project setup and cast (setup_project, add_character), free storyboarding (storyboard_propose / storyboard_diff / storyboard_commit, get_storyboard, get_continuity_graph), generation (generate_shot_image, generate_scene_images, run_studio_graph, export_video — all with dryRun cost preview and idempotencyKey), seedance_handoff (mode:"review" is free; mode:"auto" refused until Seedance catalog pricing is published), billing (get_credits, list_models, create_checkout_session), and get_job for long operations.
+- Safety loop: check get_credits → iterate free in text → dryRun cost preview → explicit user confirmation of the credit number → spend once with an idempotencyKey → share the project deep link (…/project/<id>?tab=timeline).
+- Plugin package: `plugin/` (mcp.json + nine skills under `plugin/skills/`) with per-harness extensions in `.claude-plugin/`, `com.openai.codex/`, `ai.openclaw/`, `com.hermes/`. Skills + mcp.json alone are a complete integration.
 - Source: https://github.com/gratitude5dee/WZRD-Studio
