@@ -327,7 +327,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
       {
         heading: 'Authentication',
         body: [
-          'Agents authenticate with a personal access token minted at Settings → Agent access, sent as "Authorization: Bearer wzrd_pat_…". Tokens carry scopes — read (browse projects and storyboards), generate (spend credits on generation), billing (checkout links) — plus optional monthly credit caps and per-minute rate limits. initialize and tools/list are public; every tools/call requires a token.',
+          'Agents authenticate with a personal access token minted at Settings → Agent access, sent as "Authorization: Bearer wzrd_pat_…". Tokens carry scopes — read (browse projects and storyboards), generate (spend credits on generation), billing (checkout links) — plus optional daily credit caps and per-minute rate limits. initialize and tools/list are public; every tools/call requires a token.',
         ],
       },
       {
