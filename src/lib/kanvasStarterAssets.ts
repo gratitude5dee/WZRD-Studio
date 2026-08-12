@@ -26,9 +26,13 @@ export type KanvasStarterAsset = {
   label: 'Example';
 };
 
-const example = (id: string, src: string, alt: string): KanvasStarterAsset => ({
+type ImageSource = string | { src: string };
+
+const imageUrl = (src: ImageSource): string => (typeof src === 'string' ? src : src.src);
+
+const example = (id: string, src: ImageSource, alt: string): KanvasStarterAsset => ({
   id,
-  src: staticAssetUrl(src),
+  src: staticAssetUrl(imageUrl(src)),
   alt,
   label: 'Example',
 });
