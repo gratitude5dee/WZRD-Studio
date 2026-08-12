@@ -461,11 +461,14 @@ export async function enforceTokenSpendGuard(input: {
   tokenId: string;
   credits?: number;
   dryRun?: boolean;
+  /** Set false when the request was already counted earlier in the same call. */
+  countRequest?: boolean;
 }): Promise<{ used: number; cap: number; resetsAt: string | null }> {
   const { data, error } = await input.supabase.rpc('wzrd_token_spend_guard', {
     p_token_id: input.tokenId,
     p_credits: Math.max(0, Math.ceil(input.credits ?? 0)),
     p_dry_run: input.dryRun === true,
+    p_count_request: input.countRequest !== false,
   });
 
   if (error) {
@@ -528,8 +531,22 @@ export async function reserveCredits(input: ReserveCreditsInput): Promise<Credit
       supabase: input.supabase,
       tokenId: input.tokenId,
       credits: requestedAmount,
+      // A `tokenId` only reaches here on a call the MCP server already counted
+      // against the token's rate limit, so this pass prices credits only.
+      countRequest: false,
     });
   }
+
+  // From here on the token's daily headroom is already charged, so every exit
+  // that leaves no hold behind has to give it back.
+  const refundGuard = async () => {
+    if (!input.tokenId) return;
+    await releaseTokenSpend({
+      supabase: input.supabase,
+      tokenId: input.tokenId,
+      credits: requestedAmount,
+    });
+  };
 
   const { data, error } = await input.supabase.rpc('credits_reserve', {
     resource_type: input.resourceType,
@@ -545,6 +562,7 @@ export async function reserveCredits(input: ReserveCreditsInput): Promise<Credit
   });
 
   if (error) {
+    await refundGuard();
     const msg = error.message || '';
     if (msg.includes('Insufficient credits')) {
       const match = msg.match(/available=([0-9.]+)/);
@@ -560,6 +578,7 @@ export async function reserveCredits(input: ReserveCreditsInput): Promise<Credit
   const payload = parseRpcPayload(data);
   const success = payload.success === true;
   if (!success) {
+    await refundGuard();
     const code = typeof payload.code === 'string' ? payload.code : 'credit_reservation_failed';
     if (code === 'insufficient_credits') {
       throw new InsufficientCreditsError(
@@ -615,6 +634,20 @@ export async function commitCredits(input: CreditSettleInput): Promise<void> {
   if (payload.success === false) {
     throw new Error(`Credit commit failed: ${String(payload.code || 'unknown_error')}`);
   }
+
+  // The daily headroom was charged for the whole reservation, so a commit that
+  // settles for less gives the difference back. The reservation is read from the
+  // hold rather than passed in, so a caller cannot forget to reconcile.
+  if (input.tokenId && typeof input.amount === 'number') {
+    const { error: reconcileError } = await input.supabase.rpc('wzrd_token_commit_reconcile', {
+      p_token_id: input.tokenId,
+      p_hold_id: input.holdId,
+      p_actual: input.amount,
+    });
+    if (reconcileError) {
+      console.error('commitCredits: token headroom reconcile failed', reconcileError.message);
+    }
+  }
 }
 
 export async function releaseCredits(input: CreditSettleInput): Promise<void> {
@@ -630,14 +663,6 @@ export async function releaseCredits(input: CreditSettleInput): Promise<void> {
     },
   });
 
-  if (input.tokenId && typeof input.amount === 'number') {
-    await releaseTokenSpend({
-      supabase: input.supabase,
-      tokenId: input.tokenId,
-      credits: input.amount,
-    });
-  }
-
   if (error) {
     console.error('releaseCredits: release failed', error.message);
     return;
@@ -646,6 +671,17 @@ export async function releaseCredits(input: CreditSettleInput): Promise<void> {
   const payload = parseRpcPayload(data);
   if (payload.success === false) {
     console.error('releaseCredits: release failed', String(payload.code || 'unknown_error'));
+    return;
+  }
+
+  // Only give the daily headroom back once the hold is actually gone, otherwise
+  // the token could start work the account's held credits cannot pay for.
+  if (input.tokenId && typeof input.amount === 'number') {
+    await releaseTokenSpend({
+      supabase: input.supabase,
+      tokenId: input.tokenId,
+      credits: input.amount,
+    });
   }
 }
 

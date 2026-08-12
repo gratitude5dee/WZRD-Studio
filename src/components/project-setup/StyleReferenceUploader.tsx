@@ -144,7 +144,7 @@ export const StyleReferenceUploader: React.FC<StyleReferenceUploaderProps> = ({
             exit={{ opacity: 0, scale: 0.95 }}
             className="relative group"
           >
-            <div className="aspect-video rounded-lg overflow-hidden border border-zinc-700 bg-[#111319]">
+            <div className="aspect-video rounded-lg overflow-hidden border border-zinc-700 bg-surface-raised">
               <img
                 src={styleReferenceUrl}
                 alt="Style Reference"
@@ -180,7 +180,7 @@ export const StyleReferenceUploader: React.FC<StyleReferenceUploaderProps> = ({
               'relative border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all',
               isDragging
                 ? 'border-primary bg-primary/5'
-                : 'border-zinc-700 hover:border-zinc-500 bg-[#18191E]'
+                : 'border-zinc-700 hover:border-zinc-500 bg-surface-raised'
             )}
           >
             <input

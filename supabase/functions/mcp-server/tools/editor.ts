@@ -76,6 +76,7 @@ export const editorTools: ToolDefinition[] = [
   },
   {
     name: 'edit_timeline',
+    mutates: true,
     description:
       'Use to add, move, trim or delete timeline clips and titles; operations apply in order and all fail together. Free.',
     scope: 'read',
@@ -124,6 +125,7 @@ export const editorTools: ToolDefinition[] = [
   },
   {
     name: 'export_video',
+    mutates: true,
     description:
       'Use to assemble the storyboard into a rendered cut and track the render job. Free to queue; the shot generations it consumes are billed when they run.',
     scope: 'generate',
@@ -167,6 +169,7 @@ export const editorTools: ToolDefinition[] = [
   },
   {
     name: 'transcribe_captions',
+    mutates: true,
     description:
       'Use to transcribe an audio or video URL into caption segments with timings. Costs the catalog price of fal-ai/whisper (about 1 credit per short clip).',
     scope: 'generate',

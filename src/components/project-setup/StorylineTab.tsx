@@ -43,7 +43,7 @@ const StorylineTab = ({ projectData, updateProjectData }: StorylineTabProps) => 
   const [alternativeStorylines, setAlternativeStorylines] = useState<Storyline[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { projectId: contextProjectId, saveProjectData } = useProjectContext();
+  const { projectId: contextProjectId, saveProjectData, setStorylineStatus } = useProjectContext();
   const navigate = useNavigate();
   const params = useParams();
   
@@ -77,6 +77,23 @@ const StorylineTab = ({ projectData, updateProjectData }: StorylineTabProps) => 
       }),
     );
   }, []);
+
+  // Report completion upstream: tab gating depends on storyline completion, not
+  // visit order. A complete storyline (including one from a previous visit) wins
+  // over the local stream state, so a failed *extra* generation never re-locks
+  // the Breakdown step.
+  const hasCompleteStoryline =
+    !!selectedStoryline && (selectedStoryline.status ?? 'complete') === 'complete';
+
+  useEffect(() => {
+    if (hasCompleteStoryline || streamingStatus === 'complete') {
+      setStorylineStatus('complete');
+    } else if (streamingStatus === 'failed') {
+      setStorylineStatus('failed');
+    } else if (streamingStatus !== 'idle') {
+      setStorylineStatus('generating');
+    }
+  }, [hasCompleteStoryline, streamingStatus, setStorylineStatus]);
 
   // Fetch storylines when component mounts or when project ID changes
   useEffect(() => {

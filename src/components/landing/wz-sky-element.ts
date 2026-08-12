@@ -159,6 +159,13 @@ class WzSkyElement extends HTMLElement {
     return mode === 'off' || mode === 'calm' ? mode : 'full';
   }
 
+  // React assigns custom-element props as properties once the element has
+  // been registered. Keep the property API writable so <wz-sky mode="…">
+  // can mount without falling into the route error boundary.
+  set mode(value: 'full' | 'calm' | 'off') {
+    this.setAttribute('mode', value === 'calm' || value === 'off' ? value : 'full');
+  }
+
   get progress() {
     return this.progressValue;
   }

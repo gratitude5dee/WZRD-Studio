@@ -173,14 +173,14 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
           data-voice-character-id={character.id}
           onClick={() => onSelect?.(character)}
           className={cn(
-            'relative bg-[#18191E] border border-zinc-700/60 w-56 aspect-[3/4] flex flex-col overflow-hidden transition-all duration-300 group hover:border-zinc-600 hover:shadow-lg hover:shadow-black/20',
+            'relative bg-surface-raised border border-zinc-700/60 w-56 aspect-[3/4] flex flex-col overflow-hidden transition-all duration-300 group hover:border-zinc-600 hover:shadow-lg hover:shadow-black/20',
             onSelect && 'cursor-pointer',
             isVoiceSelected &&
-              'border-[#f97316]/70 ring-2 ring-[#f97316]/50 shadow-[0_0_0_4px_rgba(249,115,22,0.12),0_0_34px_rgba(249,115,22,0.28)]',
+              'border-accent-ember/70 ring-2 ring-accent-ember/50 shadow-[0_0_0_4px_rgba(249,115,22,0.12),0_0_34px_rgba(249,115,22,0.28)]',
           )}
         >
           {isVoiceSelected && (
-            <div className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] border border-[#fed7aa]/40" />
+            <div className="pointer-events-none absolute inset-0 z-20 rounded-[inherit] border border-accent-mineral/40" />
           )}
           {/* Status Badge */}
           {badge && (
@@ -207,7 +207,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
           )}
 
           {/* Image Area */}
-          <div className="flex-1 bg-[#0D0E12] flex items-center justify-center relative overflow-hidden">
+          <div className="flex-1 bg-surface-canvas flex items-center justify-center relative overflow-hidden">
             <AnimatePresence mode="wait">
               {character.image_url ? (
                 <motion.img
@@ -316,7 +316,7 @@ const CharacterCard: React.FC<CharacterCardProps> = ({
           </div>
 
           {/* Info Footer */}
-          <CardContent className="p-3 bg-[#18191E] border-t border-zinc-800/50">
+          <CardContent className="p-3 bg-surface-raised border-t border-zinc-800/50">
             <h3 className="font-medium text-sm text-white truncate">{character.name}</h3>
             <p className="text-xs text-zinc-500 mt-0.5 line-clamp-1">
               {character.description || 'No description'}
