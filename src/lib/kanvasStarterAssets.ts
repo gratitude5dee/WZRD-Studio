@@ -17,13 +17,17 @@ import rnbBlueRoom from '@/assets/generated/kanvas/starter/v2/music/rnb-blue-roo
 import technoWarehouse from '@/assets/generated/kanvas/starter/v2/music/techno-warehouse-v02.jpg';
 import headphonesCobalt from '@/assets/generated/kanvas/starter/v2/ecommerce/headphones-cobalt-v02.jpg';
 import vinylMerch from '@/assets/generated/kanvas/starter/v2/ecommerce/vinyl-merch-v02.jpg';
-import afrobeatsRooftop from '@/assets/generated/kanvas/starter/v3/music/afrobeats-rooftop-v03.jpg';
-import indieGreenhouse from '@/assets/generated/kanvas/starter/v3/music/indie-greenhouse-v03.png';
-import latinPopCourtyard from '@/assets/generated/kanvas/starter/v3/music/latin-pop-courtyard-v03.jpg';
-import automotiveBlueHour from '@/assets/generated/kanvas/starter/v3/ecommerce/automotive-blue-hour-v03.jpg';
-import beautyCrimson from '@/assets/generated/kanvas/starter/v3/ecommerce/beauty-crimson-v03.jpg';
-import streetwearSneaker from '@/assets/generated/kanvas/starter/v3/ecommerce/streetwear-sneaker-v03.jpg';
 import { staticAssetUrl } from '@/lib/staticAsset';
+
+// Generated v3 starters are public runtime assets. Keeping these out of the
+// Next image-import pipeline avoids build-time metadata parsing for media
+// created outside the repository toolchain.
+const afrobeatsRooftop = '/generated/kanvas/starter/v3/music/afrobeats-rooftop-v03.jpg';
+const indieGreenhouse = '/generated/kanvas/starter/v3/music/indie-greenhouse-v03.png';
+const latinPopCourtyard = '/generated/kanvas/starter/v3/music/latin-pop-courtyard-v03.jpg';
+const automotiveBlueHour = '/generated/kanvas/starter/v3/ecommerce/automotive-blue-hour-v03.jpg';
+const beautyCrimson = '/generated/kanvas/starter/v3/ecommerce/beauty-crimson-v03.jpg';
+const streetwearSneaker = '/generated/kanvas/starter/v3/ecommerce/streetwear-sneaker-v03.jpg';
 
 export type KanvasStarterAsset = {
   id: string;
