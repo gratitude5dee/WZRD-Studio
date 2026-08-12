@@ -324,6 +324,7 @@ serve(async (req) => {
                 holdId: creditReservation.holdId,
                 skipped: creditReservation.skipped,
                 amount: fallbackCost,
+                reservedAmount: creditReservation.requestedAmount,
                 userId: claimsData.user.id,
                 metadata: {
                   endpoint: 'fal-stream',
