@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -321,6 +322,9 @@ const ProjectBriefTab = ({ projectData, updateProjectData }: ProjectBriefTabProp
             <DialogContent className="border-line-subtle bg-surface-canvas text-white sm:max-w-2xl max-h-[80vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>All Video Styles</DialogTitle>
+                <DialogDescription className="text-text-muted">
+                  Pick the look every shot in this project is generated in.
+                </DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-4">
                 {VIDEO_STYLES.map((style) => {
