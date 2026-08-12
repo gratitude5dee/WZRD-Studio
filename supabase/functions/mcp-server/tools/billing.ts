@@ -85,6 +85,8 @@ export function buildBillingTools(toolCount: () => number): ToolDefinition[] {
       name: 'create_checkout_session',
       description: 'Use to hand the user a Stripe link for a credit pack or plan upgrade. Free.',
       scope: 'billing',
+      // Creates a Stripe session, so harnesses must not treat it as a safe read.
+      mutates: true,
       inputSchema: readSchema(
         {
           checkoutMode: { type: 'string', enum: ['pack', 'subscription'] },

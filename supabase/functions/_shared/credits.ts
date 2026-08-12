@@ -612,11 +612,6 @@ interface CreditSettleInput {
   userId?: string;
   /** Agent PAT the spend is attributed to, when the caller is the MCP server. */
   tokenId?: string;
-  /**
-   * Amount originally reserved. When a commit settles for less, the difference
-   * is returned to the PAT's daily headroom, which was charged up front.
-   */
-  reservedAmount?: number;
 }
 
 export async function commitCredits(input: CreditSettleInput): Promise<void> {
@@ -640,12 +635,18 @@ export async function commitCredits(input: CreditSettleInput): Promise<void> {
     throw new Error(`Credit commit failed: ${String(payload.code || 'unknown_error')}`);
   }
 
-  if (input.tokenId && typeof input.reservedAmount === 'number' && typeof input.amount === 'number') {
-    await releaseTokenSpend({
-      supabase: input.supabase,
-      tokenId: input.tokenId,
-      credits: input.reservedAmount - input.amount,
+  // The daily headroom was charged for the whole reservation, so a commit that
+  // settles for less gives the difference back. The reservation is read from the
+  // hold rather than passed in, so a caller cannot forget to reconcile.
+  if (input.tokenId && typeof input.amount === 'number') {
+    const { error: reconcileError } = await input.supabase.rpc('wzrd_token_commit_reconcile', {
+      p_token_id: input.tokenId,
+      p_hold_id: input.holdId,
+      p_actual: input.amount,
     });
+    if (reconcileError) {
+      console.error('commitCredits: token headroom reconcile failed', reconcileError.message);
+    }
   }
 }
 
