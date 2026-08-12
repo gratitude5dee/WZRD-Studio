@@ -1,0 +1,31 @@
+{
+  "name": "wzrd-studio",
+  "version": "0.2.0",
+  "owner": {
+    "name": "5-DEE",
+    "url": "https://wzrd.tech"
+  },
+  "plugins": [
+    {
+      "name": "wzrd-studio",
+      "version": "0.2.0",
+      "source": "github:gratitude5dee/WZRD-Studio",
+      "description": "Drive WZRD Studio from your agent: set up projects, storyboard, generate shots, run studio graphs, edit timelines and export video.",
+      "homepage": "https://wzrd.tech",
+      "keywords": [
+        "film",
+        "video",
+        "storyboard",
+        "generative",
+        "wzrd"
+      ],
+      "skills": "plugin/skills",
+      "mcpServers": {
+        "wzrd-remote": {
+          "type": "http",
+          "url": "https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server"
+        }
+      }
+    }
+  ]
+}

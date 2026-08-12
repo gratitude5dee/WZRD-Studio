@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "name": "wzrd-studio",
+  "version": "0.2.0",
+  "displayName": "WZRD Studio",
+  "description": "Storyboard, generate, and export AI film projects in WZRD Studio. Storyboard iteration is free; every credit spend requires an explicit confirmed quote.",
+  "publisher": { "name": "WZRD Studio", "url": "https://studio.wzrd.tech" },
+  "repository": "https://github.com/gratitude5dee/WZRD-Studio",
+  "categories": ["media", "video", "creative"],
+  "skills": "plugin/skills",
+  "mcp": {
+    "servers": {
+      "wzrd-remote": {
+        "type": "http",
+        "url": "https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server",
+        "bearer_token_env_var": "WZRD_PAT"
+      }
+    }
+  },
+  "install": {
+    "codex": [
+      "codex mcp add wzrd-remote --url https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server --bearer-token-env-var WZRD_PAT",
+      "npx skills add github:gratitude5dee/WZRD-Studio/plugin/skills"
+    ]
+  },
+  "notes": [
+    "Create the token in the WZRD web app under Settings → Agent access and export it as WZRD_PAT.",
+    "seedance_handoff mode \"auto\" is disabled until Seedance 2.5 catalog pricing is published."
+  ]
+}

@@ -27,7 +27,7 @@ async function loadSnapshot(ctx: ToolContext, projectId: string): Promise<QcutSn
     console.error('mcp-server: snapshot load failed', error.message);
     throw internalError('Could not load the project timeline.');
   }
-  if (!data) throw notFoundError(`No project ${projectId} for this user.`);
+  if (!data) throw notFoundError(`Project ${projectId} not found.`);
 
   const snapshot = data.qcut_project_json;
   if (!snapshot || typeof snapshot !== 'object') {

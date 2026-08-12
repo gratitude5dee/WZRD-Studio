@@ -1,0 +1,196 @@
+name: plugin
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+
+concurrency:
+  group: plugin-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: validate (schemas, skills, drift, secrets)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # Manifest + mcp.json schemas, SKILL.md lint, tool-name length ≤ 40,
+      # mirror/version drift between plugin/mcp.json and .mcp.json.
+      - name: Validate plugin
+        run: bun run plugin:validate
+
+      - name: Schema + skill unit tests (incl. negative cases)
+        run: bun run test tests/plugin
+
+      - name: Build the distributable plugin
+        run: bun run plugin:build
+
+      - name: Assert skills copy verbatim and unnested into dist
+        run: |
+          set -euo pipefail
+          for dir in plugin/skills/*/; do
+            name="$(basename "$dir")"
+            diff -q "plugin/skills/$name/SKILL.md" "dist/skills/$name/SKILL.md"
+            diff -q "plugin/skills/$name/SKILL.md" "dist/wzrd-studio/skills/$name/SKILL.md"
+          done
+          test -z "$(find dist/skills -mindepth 3 -name SKILL.md)"
+
+      - name: Assert .well-known/agents.json is regenerated
+        run: |
+          bun run plugin:wellknown
+          git diff --exit-code public/.well-known/agents.json
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+
+  conformance:
+    name: conformance (MCP suite vs supabase functions serve)
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The committed migration history does not replay from scratch (legacy
+      # file names the CLI skips, production-first drift repairs). The script
+      # swaps in a local baseline fixture plus the replayable tail, then
+      # starts/reset the stack; the committed files are untouched.
+      - name: Start the local Supabase stack (baseline fixture + replayable migrations)
+        run: bash scripts/plugin/local-stack.sh
+
+      - name: Serve edge functions
+        run: |
+          # CI-only env for the served functions: the mock-generation seam and
+          # the signing secret for internal actor headers between the MCP
+          # server and downstream functions (not a real credential).
+          printf 'WZRD_MOCK_GENERATION=1\nWZRD_INTERNAL_ACTOR_SECRET=ci-internal-actor-secret\n' \
+            > supabase/functions/.env
+          nohup supabase functions serve --no-verify-jwt --env-file supabase/functions/.env > functions.log 2>&1 &
+          for _ in $(seq 1 60); do
+            curl -sf http://127.0.0.1:54321/functions/v1/mcp-server/health && break
+            sleep 2
+          done
+
+      - name: Export local keys
+        run: |
+          echo "SUPABASE_URL=http://127.0.0.1:54321" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status -o env | grep '^SERVICE_ROLE_KEY=' | cut -d= -f2- | tr -d '\"')" >> "$GITHUB_ENV"
+
+      - name: MCP conformance
+        run: bun run plugin:conformance
+
+      - name: Golden-path integration (real ledger, mocked provider)
+        run: bun run plugin:integration
+
+      - name: Adversarial pass
+        run: bun run plugin:adversarial
+
+      - name: Upload function logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-functions-log
+          path: functions.log
+
+  release:
+    name: release (tarball + marketplace)
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    needs: [validate, conformance]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Assert the tag matches the plugin version
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          version="$(node -p "require('./plugin/src/plugin.meta.json').version")"
+          test "$tag" = "$version" || { echo "tag $tag != plugin version $version"; exit 1; }
+
+      - name: Build the tarball
+        run: |
+          bun run plugin:build
+          cp "dist/wzrd-studio-${GITHUB_REF_NAME#v}.tgz" "wzrd-studio-plugin-${GITHUB_REF_NAME}.tgz"
+
+      # marketplace.json is published at the repo-root path Claude Code expects,
+      # so `/plugin marketplace add gratitude5dee/WZRD-Studio` resolves it.
+      - name: Attach artifacts to the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            wzrd-studio-plugin-${{ github.ref_name }}.tgz
+            .claude-plugin/marketplace.json
+
+  wellknown:
+    name: wellknown (regenerate + deploy)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: validate
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Regenerate the discovery document
+        run: bun run plugin:wellknown
+
+      - name: Commit any change
+        run: |
+          set -euo pipefail
+          if git diff --quiet public/.well-known/agents.json; then
+            echo "agents.json already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/.well-known/agents.json
+          git commit -m "chore(plugin): regenerate .well-known/agents.json"
+          git push
+
+      - name: Trigger the Vercel deploy
+        env:
+          VERCEL_DEPLOY_HOOK_URL: ${{ secrets.VERCEL_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "${VERCEL_DEPLOY_HOOK_URL:-}" ]; then
+            echo "VERCEL_DEPLOY_HOOK_URL is not configured; skipping the deploy trigger"
+            exit 0
+          fi
+          curl -fsS -X POST "$VERCEL_DEPLOY_HOOK_URL"

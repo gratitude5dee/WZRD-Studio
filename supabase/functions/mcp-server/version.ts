@@ -7,7 +7,7 @@
  * mirrored constants rather than a JSON import.
  */
 export const PLUGIN_NAME = 'wzrd-studio';
-export const PLUGIN_VERSION = '0.1.0';
+export const PLUGIN_VERSION = '0.2.0';
 
 /** MCP protocol revision this server implements. */
 export const MCP_PROTOCOL_VERSION = '2025-03-26';

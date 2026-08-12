@@ -1,0 +1,44 @@
+{
+  "note": "Claude Code reads .claude-plugin/. Both the repo-root copy (for `/plugin marketplace add`) and the copy inside the tarball are generated from this template, with the relative paths rewritten per target, so a version or a path can never drift.",
+  "plugin": {
+    "name": "{{name}}",
+    "version": "{{version}}",
+    "description": "{{description}}",
+    "author": { "name": "{{author}}", "url": "{{homepage}}" },
+    "homepage": "{{homepage}}",
+    "skills": "{{skillsPath}}",
+    "commands": "./commands",
+    "hooks": "./hooks/hooks.json",
+    "mcpServers": {
+      "wzrd-remote": {
+        "type": "http",
+        "url": "{{mcpUrl}}"
+      }
+    }
+  },
+  "marketplace": {
+    "name": "{{name}}",
+    "version": "{{version}}",
+    "owner": {
+      "name": "{{author}}",
+      "url": "{{homepage}}"
+    },
+    "plugins": [
+      {
+        "name": "{{name}}",
+        "version": "{{version}}",
+        "source": "{{marketplaceSource}}",
+        "description": "{{description}}",
+        "homepage": "{{homepage}}",
+        "keywords": ["film", "video", "storyboard", "generative", "wzrd"],
+        "skills": "{{marketplaceSkillsPath}}",
+        "mcpServers": {
+          "wzrd-remote": {
+            "type": "http",
+            "url": "{{mcpUrl}}"
+          }
+        }
+      }
+    ]
+  }
+}

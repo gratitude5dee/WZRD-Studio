@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-plugin
+wzrd-studio-plugin-*.tgz
 .next
 release
 # electron-builder outputs that can be multiple gigabytes; keep them out of git
@@ -45,3 +47,4 @@ worldlabsedit.mp4
 # local git history backups (created during repo re-initialization)
 .git.backup-*
 .vercel
+live-harness-report.md

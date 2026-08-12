@@ -198,6 +198,45 @@ serve(async (req) => {
       enabledOnly: false,
     });
 
+    // ── Test seam ─────────────────────────────────────────────────────────
+    // Replaces only the provider call, for every provider branch: credits are
+    // still reserved and committed against the real ledger at the catalog price,
+    // so the integration suite can assert quoted-vs-charged without paying a
+    // provider.
+    if (Deno.env.get('WZRD_MOCK_GENERATION') === '1') {
+      const mockCost = getCreditCostForModel(selectedImageModel, 'image');
+      creditReservation = await reserveCredits({
+        supabase,
+        tokenId,
+        userId: user.id,
+        resourceType: 'image',
+        requestedAmount: mockCost,
+        referenceType: 'shot_image_generation',
+        referenceId: shotId,
+        idempotencyKey: buildCreditIdempotencyKey('generate-shot-image', shotId, requestId, selectedImageModel),
+        metadata: { endpoint: 'generate-shot-image', shot_id: shotId, model: selectedImageModel, provider: 'mock' },
+        skipBilling: shouldSkipCreditBilling(req.headers),
+      });
+      const mockUrl = `https://mock.invalid/shots/${shotId}.png`;
+      await supabase
+        .from('shots')
+        .update({ image_url: mockUrl, image_status: 'completed', image_progress: 100 })
+        .eq('id', shotId);
+      await commitCredits({
+        supabase,
+        tokenId,
+        amount: creditReservation.requestedAmount,
+        holdId: creditReservation.holdId,
+        skipped: creditReservation.skipped,
+        userId: user.id,
+        metadata: { endpoint: 'generate-shot-image', shot_id: shotId, provider: 'mock' },
+      });
+      return new Response(
+        JSON.stringify({ success: true, image_url: mockUrl, mock: true, credits: mockCost }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     // ── GMI Cloud path ──────────────────────────────────────────────────────
     if (selectedCatalogModel?.provider === 'gmi-cloud') {
       const gmiApiModelId = selectedCatalogModel.endpointId;

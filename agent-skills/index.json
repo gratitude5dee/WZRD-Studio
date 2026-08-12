@@ -1,54 +1,76 @@
 {
-  "version": "1.0",
+  "version": "2.0",
+  "note": "Skill bodies live in plugin/skills/<name>/SKILL.md and ship in the plugin tarball as dist/skills/. This index is the agent-agnostic discovery map; mcp_tools are the real tool names exposed by supabase/functions/mcp-server.",
   "skills": [
     {
-      "id": "list-models",
-      "title": "List available models with credits",
-      "description": "Read the WZRD model catalog including credit cost.",
-      "doc": "agent-skills/list-models/skill.md",
-      "mcp_tool": "list_models"
+      "id": "wzrd-setup-project",
+      "title": "Set up a WZRD Studio project",
+      "description": "Draft a project's storyline, scenes and shots after quoting and confirming the cost (3 credits plus 1 per shot), then hand the user the timeline deep link.",
+      "doc": "plugin/skills/wzrd-setup-project/SKILL.md",
+      "mcp_tools": ["get_credits", "setup_project", "get_timeline", "list_models", "get_job"]
     },
     {
-      "id": "generate-shot",
-      "title": "Generate a shot via SSE stream",
-      "description": "Stream image/video generation for a single shot.",
-      "doc": "agent-skills/generate-shot/skill.md",
-      "mcp_tool": "start_shot_stream"
+      "id": "wzrd-storyboard",
+      "title": "Storyboard a project for free (propose / diff / commit)",
+      "description": "Stage scene and shot deltas, review the diff and continuity warnings, then commit at the revision you diffed against. Free.",
+      "doc": "plugin/skills/wzrd-storyboard/SKILL.md",
+      "mcp_tools": [
+        "get_storyboard",
+        "storyboard_propose",
+        "storyboard_diff",
+        "storyboard_commit",
+        "update_shot",
+        "get_continuity_graph"
+      ]
     },
     {
-      "id": "render-timeline",
-      "title": "Auto-generate every shot in a timeline",
-      "description": "Drive the project-wide auto-generate workflow.",
-      "doc": "agent-skills/render-timeline/skill.md",
-      "mcp_tool": "render_timeline"
+      "id": "wzrd-generate-shot",
+      "title": "Generate one shot image (spends credits)",
+      "description": "dryRun cost preview, explicit confirmation of the exact credit number, then one idempotent spend.",
+      "doc": "plugin/skills/wzrd-generate-shot/SKILL.md",
+      "mcp_tools": ["generate_shot_image", "get_job", "get_credits"]
     },
     {
-      "id": "run-studio-graph",
-      "title": "Execute a Studio compute graph",
-      "description": "Invoke compute-execute on a saved node graph.",
-      "doc": "agent-skills/run-studio-graph/skill.md",
-      "mcp_tool": "run_studio_graph"
+      "id": "wzrd-seedance-handoff",
+      "title": "Compile and review the Seedance reference packet",
+      "description": "Review mode is free and stops before submitting; auto mode is refused while Seedance 2.5 pricing is unverified.",
+      "doc": "plugin/skills/wzrd-seedance-handoff/SKILL.md",
+      "mcp_tools": ["seedance_handoff", "get_continuity_graph", "evaluate_storyboard", "get_timeline"]
     },
     {
-      "id": "make-magic",
-      "title": "End-to-end project to Director's Cut",
-      "description": "Project setup → timeline → Director's Cut polling.",
-      "doc": "agent-skills/make-magic/skill.md",
-      "mcp_tool": "make_magic"
+      "id": "wzrd-studio-graph",
+      "title": "Execute a Studio compute graph (spends credits)",
+      "description": "Run a saved node graph after explicit confirmation of a quote that is a floor, not an exact total.",
+      "doc": "plugin/skills/wzrd-studio-graph/SKILL.md",
+      "mcp_tools": ["run_studio_graph", "get_studio_graph", "save_studio_graph", "get_credits", "list_models", "get_job"]
     },
     {
-      "id": "billing-checkout",
-      "title": "Create checkout & poll plan status",
-      "description": "Launch billing checkout for a plan or credit pack.",
-      "doc": "agent-skills/billing-checkout/skill.md",
-      "mcp_tool": "create_checkout_session"
+      "id": "wzrd-edit-timeline",
+      "title": "Edit a timeline for free",
+      "description": "Rewrite prompts, fix continuity edges, restructure scenes and shots; clip-level editing stays in the web editor.",
+      "doc": "plugin/skills/wzrd-edit-timeline/SKILL.md",
+      "mcp_tools": ["get_timeline", "edit_timeline", "update_shot", "storyboard_propose", "storyboard_diff", "storyboard_commit"]
     },
     {
-      "id": "edit-timeline",
-      "title": "Edit the QCut timeline on /editor",
-      "description": "Drive the QCut editor timeline (import, split, delete, titles, export) via MCP when /editor is open in the desktop app.",
-      "doc": "agent-skills/edit-timeline/skill.md",
-      "mcp_tool": "edit_timeline"
+      "id": "wzrd-render-timeline",
+      "title": "Render every pending shot, scene by scene (spends credits)",
+      "description": "Quote each scene with dryRun, sum the total, confirm it, then run one idempotent job per scene.",
+      "doc": "plugin/skills/wzrd-render-timeline/SKILL.md",
+      "mcp_tools": ["generate_scene_images", "get_storyboard", "get_job", "get_timeline", "get_credits"]
+    },
+    {
+      "id": "wzrd-export-video",
+      "title": "Export the final cut",
+      "description": "Assemble the Director's Cut from media that already exists; assembly is free, the shot media it needs is not.",
+      "doc": "plugin/skills/wzrd-export-video/SKILL.md",
+      "mcp_tools": ["export_video", "get_job", "get_timeline"]
+    },
+    {
+      "id": "wzrd-billing",
+      "title": "Credits, catalog prices, caps, and top-ups",
+      "description": "Explain balances, per-token daily caps, scope errors, and create a Stripe checkout URL. Free.",
+      "doc": "plugin/skills/wzrd-billing/SKILL.md",
+      "mcp_tools": ["get_credits", "list_models", "create_checkout_session"]
     }
   ]
 }

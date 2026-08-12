@@ -375,9 +375,15 @@ function toolListPayload() {
   };
 }
 
+/** Discovery methods answerable without a token. */
+function isPublicMethod(method: string): boolean {
+  return method === 'initialize' || method === 'ping' || method === 'tools/list' ||
+    method.startsWith('notifications/');
+}
+
 async function dispatch(
   request: JsonRpcRequest,
-  identity: McpIdentity,
+  identity: McpIdentity | null,
   svc: ServiceClient,
 ): Promise<unknown> {
   // Notifications carry no id and must never be answered.
@@ -400,6 +406,13 @@ async function dispatch(
       const params = (request.params ?? {}) as Record<string, unknown>;
       const name = String(params.name ?? '');
       const args = (params.arguments ?? {}) as Record<string, unknown>;
+      if (!identity) {
+        return rpcFailure(
+          request.id,
+          RPC_ERROR.auth,
+          'Missing Authorization header. Send "Authorization: Bearer wzrd_pat_…" using a token minted at /settings/agent-access.',
+        );
+      }
       try {
         const outcome = await callTool(identity, svc, name, args);
         return rpcResult(request.id, {
@@ -455,13 +468,22 @@ Deno.serve(async (req) => {
   }
 
   const svc = serviceClient();
-  let identity: McpIdentity;
-  try {
-    identity = await resolveIdentity(req.headers, svc);
-  } catch (error) {
-    const failure = rpcErrorPayload(error);
-    const id = Array.isArray(payload) ? null : (payload as JsonRpcRequest | null)?.id ?? null;
-    return jsonResponse(rpcFailure(id, failure.code, failure.message, failure.data), 401);
+
+  // Discovery (initialize, ping, tools/list) works without a token so bridges
+  // can hand-shake before the user has minted a PAT; tools/call always
+  // authenticates.
+  const entries = Array.isArray(payload) ? (payload as JsonRpcRequest[]) : [payload as JsonRpcRequest];
+  const needsAuth = entries.some((entry) => !isPublicMethod(entry?.method ?? ''));
+
+  let identity: McpIdentity | null = null;
+  if (needsAuth) {
+    try {
+      identity = await resolveIdentity(req.headers, svc);
+    } catch (error) {
+      const failure = rpcErrorPayload(error);
+      const id = Array.isArray(payload) ? null : (payload as JsonRpcRequest | null)?.id ?? null;
+      return jsonResponse(rpcFailure(id, failure.code, failure.message, failure.data), 401);
+    }
   }
 
   if (Array.isArray(payload)) {

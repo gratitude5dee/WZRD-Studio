@@ -1,0 +1,19 @@
+{
+  "name": "wzrd-studio",
+  "version": "0.2.0",
+  "description": "Drive WZRD Studio from your agent: set up projects, storyboard, generate shots, run studio graphs, edit timelines and export video.",
+  "author": {
+    "name": "5-DEE",
+    "url": "https://wzrd.tech"
+  },
+  "homepage": "https://wzrd.tech",
+  "skills": "../plugin/skills",
+  "commands": "./commands",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": {
+    "wzrd-remote": {
+      "type": "http",
+      "url": "https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server"
+    }
+  }
+}

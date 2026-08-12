@@ -1,0 +1,4 @@
+# Fake JWTs in a since-deleted test that asserted MCP responses leak no secrets.
+# The file no longer exists on the branch; these only appear in commit history.
+0f5c8bedbeb084e4e38bb5b193abf94492e2c1ac:tests/plugin/mcp-auth.test.ts:jwt:109
+0f5c8bedbeb084e4e38bb5b193abf94492e2c1ac:tests/plugin/mcp-auth.test.ts:jwt:119

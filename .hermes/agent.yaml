@@ -1,11 +1,16 @@
 name: wzrd-studio
-version: 1.0.0
+version: 0.2.0
 build: bun run build
 test: bunx vitest run
-skills: agent-skills/index.json
+skills: plugin/skills
+skills_index: agent-skills/index.json
+include: ../com.hermes/agent.yaml
 mcp:
   url: https://ixkkrousepsiorwlaycp.supabase.co/functions/v1/mcp-server
   transport: streamable-http
+  auth:
+    type: bearer
+    token_env: WZRD_PAT
 forbidden:
   - src/integrations/supabase/types.ts
   - supabase/migrations/**
