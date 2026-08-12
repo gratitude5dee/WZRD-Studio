@@ -10,7 +10,6 @@ import {
   Loader2,
   MapPin,
   Pin,
-  Search,
   ShieldCheck,
   Sparkles,
   User2,
@@ -21,6 +20,8 @@ import {
 import { toast } from 'sonner';
 
 import { MentionDropdown } from '@/components/character-creation/MentionDropdown';
+import { PixelLoader } from '@/components/craft/PixelLoader';
+import { SearchField } from '@/components/craft/SearchField';
 import { FinalizeAssetDialog } from '@/components/ip-vault/FinalizeAssetDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -442,15 +443,12 @@ export function AuraAssetStore({ projects = [] }: AuraAssetStoreProps) {
         <section className="overflow-hidden rounded-lg border border-white/10 bg-[#0c0c0f]/90 shadow-[0_22px_80px_rgba(0,0,0,0.28)]">
           <div className="border-b border-white/[0.06] p-4">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_130px_150px_170px]">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                <Input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search uploaded references..."
-                  className="h-10 rounded-2xl border-white/10 bg-black/40 pl-9 text-sm text-white placeholder:text-zinc-600 focus-visible:ring-orange-400/25"
-                />
-              </div>
+              <SearchField
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search uploaded references..."
+                className="rounded-2xl border-white/10 bg-black/40"
+              />
               <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as TypeFilter)}>
                 <SelectTrigger className="h-10 rounded-2xl border-white/10 bg-black/40 text-white">
                   <SelectValue placeholder="Type" />
@@ -532,7 +530,7 @@ export function AuraAssetStore({ projects = [] }: AuraAssetStoreProps) {
           <div className="p-4">
             {loadingAssets ? (
               <div className="flex min-h-[360px] items-center justify-center rounded-lg border border-white/[0.06] bg-black/20">
-                <Loader2 className="h-6 w-6 animate-spin text-orange-300" />
+                <PixelLoader label="Loading references" showElapsed />
               </div>
             ) : diagnostic ? (
               <div className="flex min-h-[360px] flex-col items-center justify-center rounded-lg border border-white/[0.08] bg-black/20 p-6 text-center">

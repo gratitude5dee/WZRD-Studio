@@ -3,12 +3,11 @@ import {
   FileCheck2,
   Filter,
   Image as ImageIcon,
-  Loader2,
-  Search,
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
+import { PixelLoader } from '@/components/craft/PixelLoader';
+import { SearchField } from '@/components/craft/SearchField';
 import {
   Select,
   SelectContent,
@@ -46,15 +45,12 @@ export function IPVaultGallery({
   return (
     <section className="space-y-4">
       <div className="grid gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 md:grid-cols-[minmax(0,1fr)_180px]">
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-          <Input
-            value={search}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search finalized IP…"
-            className="h-10 rounded-xl border-white/10 bg-black/40 pl-9 text-white"
-          />
-        </div>
+        <SearchField
+          value={search}
+          onChange={onSearchChange}
+          placeholder="Search finalized IP…"
+          className="border-white/10 bg-black/40"
+        />
         <Select value={statusFilter} onValueChange={(v) => onStatusFilterChange(v as StatusFilter)}>
           <SelectTrigger className="h-10 rounded-xl border-white/10 bg-black/40 text-white">
             <Filter className="mr-2 h-4 w-4 text-zinc-500" />
@@ -73,7 +69,7 @@ export function IPVaultGallery({
 
       {loading ? (
         <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-white/[0.08] bg-white/[0.02]">
-          <Loader2 className="h-7 w-7 animate-spin text-orange-300" />
+          <PixelLoader label="Loading vault" showElapsed />
         </div>
       ) : filteredItems.length === 0 ? (
         <div className="flex min-h-[420px] flex-col items-center justify-center rounded-3xl border border-dashed border-white/[0.1] bg-white/[0.02] p-8 text-center">
@@ -85,7 +81,7 @@ export function IPVaultGallery({
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {filteredItems.map((item) => {
+          {filteredItems.map((item, index) => {
             const url = previewUrl(item);
             const isSelected = selectedId === item.id;
             return (
@@ -93,8 +89,11 @@ export function IPVaultGallery({
                 key={item.id}
                 type="button"
                 onClick={() => onSelectItem(item.id)}
+                style={{
+                  animation: `craft-fade-up 400ms cubic-bezier(0.23,1,0.32,1) ${Math.min(index, 8) * 60}ms both`,
+                }}
                 className={cn(
-                  'overflow-hidden rounded-2xl border bg-[#101015] text-left transition-all',
+                  'craft-motion overflow-hidden rounded-2xl border bg-[#101015] text-left transition-all',
                   isSelected
                     ? 'border-orange-300 shadow-[0_0_0_2px_rgba(251,146,60,0.15)]'
                     : 'border-white/[0.08]',

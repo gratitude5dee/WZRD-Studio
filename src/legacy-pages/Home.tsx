@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Loader2, UserPlus, Plus, FolderKanban, Activity, Image, Sparkles, Settings, HelpCircle, ChevronDown, ChevronRight, User, LogOut, Palette, Coins, Search, Star } from 'lucide-react';
+import { UserPlus, Plus, FolderKanban, Activity, Image, Sparkles, Settings, HelpCircle, ChevronDown, ChevronRight, User, LogOut, Palette, Coins, Star } from 'lucide-react';
+import { PixelLoader } from '@/components/craft/PixelLoader';
+import { SearchField } from '@/components/craft/SearchField';
 import { motion, AnimatePresence } from 'framer-motion';
 import wzrdLogo from '@/assets/wzrd-logo.png';
 import { ProjectList } from '@/components/home/ProjectList';
@@ -254,16 +256,12 @@ export default function Home() {
           {/* Mobile Search & Filter Chips */}
           <div className="md:hidden">
             <div className="mx-4 mt-3 mb-2">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search projects..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-10 pl-9 pr-4 rounded-xl bg-muted/50 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40"
-                />
-              </div>
+              <SearchField
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search projects..."
+                className="bg-muted/50"
+              />
             </div>
             <div className="flex gap-2 px-4 pb-2 overflow-x-auto scrollbar-hide">
               {tabs.map((tab) => (
@@ -556,10 +554,7 @@ export default function Home() {
               </div>
             ) : isLoading ? (
               <div className="flex flex-col items-center justify-center py-12 md:py-20">
-                <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/15 flex items-center justify-center mb-4">
-                  <Loader2 className="w-7 h-7 md:w-8 md:h-8 animate-spin text-primary" />
-                </div>
-                <p className="text-xs md:text-sm text-text-tertiary dark:text-muted-foreground">Loading projects...</p>
+                <PixelLoader label="Loading projects" showElapsed />
               </div>
             ) : error ? (
               <div className="flex flex-col items-center justify-center py-12 md:py-20">
