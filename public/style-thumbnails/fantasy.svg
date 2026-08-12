@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="fantasy style preview">
+  <defs><linearGradient id="fan" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#2a1b57" stop-opacity="1"/><stop offset="55%" stop-color="#6d4bb0" stop-opacity="1"/><stop offset="100%" stop-color="#f3d9a4" stop-opacity="1"/></linearGradient></defs>
+  <rect width="160" height="160" fill="url(#fan)"/>
+  <circle cx="118" cy="40" r="16" fill="#fff6d0" opacity="0.9"/>
+  <path d="M0 140 L40 84 L72 140 Z" fill="#1d1440" opacity="0.9"/>
+  <path d="M56 140 L104 62 L160 140 Z" fill="#2a1b57" opacity="0.9"/>
+  <g fill="#fff6d0" opacity="0.85"><circle cx="26" cy="34" r="2"/><circle cx="52" cy="20" r="1.6"/><circle cx="84" cy="38" r="2.2"/><circle cx="140" cy="72" r="1.6"/></g>
+</svg>

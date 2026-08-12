@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Plus, Sparkles, Loader2, Shirt } from 'lucide-react';
+import { Users, Plus, Sparkles, Loader2, Shirt, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import CharacterCard from './CharacterCard';
+import { useTabErrorReporter } from './TabErrorBoundary';
 import type { Character } from './types';
 
 interface SceneAppearance {
@@ -26,7 +27,14 @@ interface CastTabProps {
   styleReferenceUrl?: string;
   onAddCharacter: (name: string, description: string) => void;
   onDeleteCharacter: (id: string) => void;
-  onGenerateAllImages?: () => void;
+  onGenerateAllImages?: () => void | Promise<void>;
+  /** Voice-selection wiring, threaded from the Project brief step. */
+  isCharacterSelected?: (character: Character) => boolean;
+  onSelectCharacter?: (character: Character) => void;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Character image generation failed';
 }
 
 export function CastTab({
@@ -36,12 +44,32 @@ export function CastTab({
   onAddCharacter,
   onDeleteCharacter,
   onGenerateAllImages,
+  isCharacterSelected,
+  onSelectCharacter,
 }: CastTabProps) {
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [wardrobeCharId, setWardrobeCharId] = useState<string | null>(null);
   const [appearances, setAppearances] = useState<Record<string, SceneAppearance[]>>({});
+  const [isGeneratingAll, setIsGeneratingAll] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const reportError = useTabErrorReporter();
+
+  const handleGenerateAll = useCallback(async () => {
+    if (!onGenerateAllImages || isGeneratingAll) return;
+    setGenerateError(null);
+    setIsGeneratingAll(true);
+    try {
+      await onGenerateAllImages();
+    } catch (error) {
+      // Never silent: inline message for the user, report for the error boundary.
+      setGenerateError(getErrorMessage(error));
+      reportError({ source: 'CastTab.generateAllImages', error });
+    } finally {
+      setIsGeneratingAll(false);
+    }
+  }, [onGenerateAllImages, isGeneratingAll, reportError]);
 
   const handleAdd = useCallback(() => {
     if (!newName.trim()) return;
@@ -101,9 +129,14 @@ export function CastTab({
               variant="outline"
               size="sm"
               className="border-zinc-700 bg-zinc-900 text-zinc-300 hover:bg-zinc-800"
-              onClick={onGenerateAllImages}
+              onClick={handleGenerateAll}
+              disabled={isGeneratingAll}
             >
-              <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+              {isGeneratingAll ? (
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+              )}
               Generate All
             </Button>
           )}
@@ -117,6 +150,30 @@ export function CastTab({
           </Button>
         </div>
       </div>
+
+      {/* Generation failure — inline, with retry */}
+      {generateError && (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-xl border border-status-danger/40 bg-status-danger/10 p-4"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-status-danger" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-status-danger">Character image generation failed</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">{generateError}</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-status-danger/40 text-status-danger hover:bg-status-danger/10"
+            onClick={handleGenerateAll}
+            disabled={isGeneratingAll}
+          >
+            <RefreshCw className={cn('mr-1.5 h-3.5 w-3.5', isGeneratingAll && 'animate-spin')} />
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Character grid */}
       {characters.length === 0 ? (
@@ -137,6 +194,8 @@ export function CastTab({
                     character={char}
                     onDelete={onDeleteCharacter}
                     styleReferenceUrl={styleReferenceUrl}
+                    isVoiceSelected={isCharacterSelected?.(char) ?? false}
+                    onSelect={onSelectCharacter}
                   />
                   {/* Wardrobe button */}
                   <button
@@ -156,7 +215,7 @@ export function CastTab({
 
       {/* Add Character Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="border-zinc-700 bg-[#111319]">
+        <DialogContent className="border-zinc-700 bg-surface-raised">
           <DialogHeader>
             <DialogTitle className="text-white">New Character</DialogTitle>
           </DialogHeader>
@@ -189,7 +248,7 @@ export function CastTab({
 
       {/* Wardrobe / Scene Appearances Dialog */}
       <Dialog open={!!wardrobeCharId} onOpenChange={(open) => !open && setWardrobeCharId(null)}>
-        <DialogContent className="max-w-2xl border-zinc-700 bg-[#111319]">
+        <DialogContent className="max-w-2xl border-zinc-700 bg-surface-raised">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-white">
               <Shirt className="h-5 w-5 text-primary" />

@@ -7,13 +7,16 @@ import { appRoutes } from '@/lib/routes';
 import { useProjectContext } from './ProjectContext';
 
 interface ProjectSetupHeaderProps {
+  /** Overrides the wizard-derived step; only used for isolated rendering/tests. */
   currentStep?: number;
   totalSteps?: number;
 }
 
-const ProjectSetupHeader = ({ currentStep = 1, totalSteps = 4 }: ProjectSetupHeaderProps) => {
+const ProjectSetupHeader = ({ currentStep, totalSteps }: ProjectSetupHeaderProps) => {
   const navigate = useNavigate();
-  const { projectId } = useProjectContext();
+  const { projectId, wizardState } = useProjectContext();
+  const step = currentStep ?? wizardState.currentStep;
+  const steps = totalSteps ?? wizardState.totalSteps;
   
   const handleBack = () => {
     navigate(appRoutes.home);
@@ -22,11 +25,11 @@ const ProjectSetupHeader = ({ currentStep = 1, totalSteps = 4 }: ProjectSetupHea
   return (
     <header className={cn(
       "w-full border-b px-6 py-4 shadow-lg",
-      "bg-[#0a0a0f]/95 backdrop-blur-xl",
-      "border-[rgba(249,115,22,0.1)]"
+      "bg-surface-canvas/95 backdrop-blur-xl",
+      "border-accent-ember/10"
     )}>
       {/* Top glow line */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[rgba(249,115,22,0.2)] to-transparent" />
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-ember/20 to-transparent" />
       
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-4 cursor-pointer" onClick={handleBack}>
@@ -44,13 +47,13 @@ const ProjectSetupHeader = ({ currentStep = 1, totalSteps = 4 }: ProjectSetupHea
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Step</span>
-            <span className="text-sm font-semibold text-[#f97316]">{currentStep}</span>
-            <span className="text-sm text-muted-foreground">of {totalSteps}</span>
+            <span className="text-sm font-semibold text-accent-ember" data-testid="wizard-current-step">{step}</span>
+            <span className="text-sm text-muted-foreground">of {steps}</span>
           </div>
           <div className="w-32 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-gradient-to-r from-[#f97316] to-[#d4a574] rounded-full transition-all duration-500"
-              style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+              className="h-full bg-gradient-to-r from-accent-ember to-accent-mineral rounded-full transition-all duration-500"
+              style={{ width: `${(step / steps) * 100}%` }}
             />
           </div>
         </div>
@@ -59,17 +62,17 @@ const ProjectSetupHeader = ({ currentStep = 1, totalSteps = 4 }: ProjectSetupHea
           {projectId ? (
             <Button
               variant="outline"
-              className="border-[rgba(249,115,22,0.2)] bg-transparent text-[#f97316] hover:bg-[rgba(249,115,22,0.08)] hover:border-[rgba(249,115,22,0.3)]"
+              className="border-accent-ember/20 bg-transparent text-accent-ember hover:bg-accent-ember/[0.08] hover:border-accent-ember/30"
               onClick={() => navigate(appRoutes.projects.observability(projectId))}
             >
               Observability
             </Button>
           ) : null}
           <ThemeToggle />
-          <Button variant="ghost" className="bg-transparent hover:bg-[rgba(249,115,22,0.08)] text-[#f97316]">
+          <Button variant="ghost" className="bg-transparent hover:bg-accent-ember/[0.08] text-accent-ember">
             Upgrade
           </Button>
-          <div className="w-8 h-8 rounded-full bg-[#f97316] flex items-center justify-center text-white font-semibold">
+          <div className="w-8 h-8 rounded-full bg-accent-ember flex items-center justify-center text-white font-semibold">
             G
           </div>
         </div>

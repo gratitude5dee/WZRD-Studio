@@ -49,6 +49,26 @@ export default tseslint.config(
     },
   },
 
+  // Project setup wizard: colors must come from craft design tokens, never raw hex.
+  {
+    files: ["src/components/project-setup/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "Literal[value=/#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\b/]",
+          message:
+            "Raw hex colors are banned under src/components/project-setup/. Use craft design tokens (e.g. bg-surface-raised, text-accent-ember).",
+        },
+        {
+          selector: "TemplateElement[value.raw=/#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\\b/]",
+          message:
+            "Raw hex colors are banned under src/components/project-setup/. Use craft design tokens (e.g. bg-surface-raised, text-accent-ember).",
+        },
+      ],
+    },
+  },
+
   // Inside `src/qcut/**`, enforce zod3 usage and relax lint rules for vendored code.
   {
     files: ["src/qcut/**/*.{ts,tsx}"],

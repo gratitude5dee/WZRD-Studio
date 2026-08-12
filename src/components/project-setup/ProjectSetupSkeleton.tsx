@@ -2,7 +2,7 @@ const shimmer = 'relative overflow-hidden rounded-lg bg-white/5 before:absolute 
 
 const ProjectSetupSkeleton = () => {
   return (
-    <div className="flex min-h-screen flex-col bg-[#111319] text-white" role="status" aria-live="polite" data-testid="project-setup-skeleton">
+    <div className="flex min-h-screen flex-col bg-surface-raised text-white" role="status" aria-live="polite" data-testid="project-setup-skeleton">
       <style>{`@keyframes shimmer { 100% { transform: translateX(100%); } }`}</style>
       <header className="border-b border-white/5 bg-black/30 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">

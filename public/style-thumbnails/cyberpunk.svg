@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="cyberpunk style preview">
+  <defs><linearGradient id="cyb" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#12002e" stop-opacity="1"/><stop offset="60%" stop-color="#3b0764" stop-opacity="1"/><stop offset="100%" stop-color="#0b0b14" stop-opacity="1"/></linearGradient></defs>
+  <rect width="160" height="160" fill="url(#cyb)"/>
+  <g stroke="#22d3ee" stroke-width="3" opacity="0.9"><line x1="20" y1="140" x2="20" y2="70"/><line x1="44" y1="140" x2="44" y2="50"/><line x1="116" y1="140" x2="116" y2="58"/><line x1="140" y1="140" x2="140" y2="84"/></g>
+  <g stroke="#f472b6" stroke-width="3" opacity="0.9"><line x1="68" y1="140" x2="68" y2="34"/><line x1="92" y1="140" x2="92" y2="62"/></g>
+  <line x1="0" y1="140" x2="160" y2="140" stroke="#22d3ee" stroke-width="2" opacity="0.6"/>
+</svg>

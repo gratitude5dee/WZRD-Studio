@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160" role="img" aria-label="horror style preview">
+  <defs><linearGradient id="hor" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#05060a" stop-opacity="1"/><stop offset="70%" stop-color="#131a1a" stop-opacity="1"/><stop offset="100%" stop-color="#2a1414" stop-opacity="1"/></linearGradient></defs>
+  <rect width="160" height="160" fill="url(#hor)"/>
+  <path d="M0 150 L28 96 L46 130 L70 78 L96 132 L120 92 L160 150 Z" fill="#04050a"/>
+  <circle cx="66" cy="52" r="26" fill="#20282a" opacity="0.9"/>
+  <g fill="#b91c1c"><circle cx="58" cy="50" r="3"/><circle cx="74" cy="50" r="3"/></g>
+</svg>

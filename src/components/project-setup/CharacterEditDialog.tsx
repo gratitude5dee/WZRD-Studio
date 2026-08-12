@@ -85,7 +85,7 @@ export const CharacterEditDialog: React.FC<CharacterEditDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-[#111319] border-zinc-700">
+      <DialogContent className="max-w-2xl bg-surface-raised border-zinc-700">
         <DialogHeader>
           <DialogTitle className="text-white">
             Edit {character.name}'s Image
@@ -129,7 +129,7 @@ export const CharacterEditDialog: React.FC<CharacterEditDialogProps> = ({
             value={editPrompt}
             onChange={(e) => setEditPrompt(e.target.value)}
             placeholder="e.g., 'Change the hair color to blonde', 'Add a smile', 'Put them in a red jacket'..."
-            className="bg-[#18191E] border-zinc-700 min-h-[80px]"
+            className="bg-surface-raised border-zinc-700 min-h-[80px]"
           />
         </div>
 
