@@ -30,6 +30,7 @@ import {
   seedUser,
   section,
   waitForJob,
+  resetRateLimit,
 } from './lib/harness.mjs';
 
 const users = [];
@@ -108,6 +109,7 @@ async function main() {
   const stale = await callTool('storyboard_commit', { projectId, revision }, { token });
   check('a stale revision is rejected', /revision_mismatch/.test(JSON.stringify(stale.error ?? stale.data ?? {})), stale);
 
+  await resetRateLimit(userId);
   section('continuity graph: scene 3 resolves scene 1');
   const review = await callTool('seedance_handoff', { projectId, mode: 'review' }, { token });
   equal('seedance review is free', review.data?.credit_cost, 0);
@@ -118,7 +120,7 @@ async function main() {
   const third = byNumber[2];
   check(
     'shot 3 continues from shot 1 (same location), not shot 2',
-    third?.continuityFrame?.predecessorShotId === first?.shotId,
+    third?.continuityFrame?.fromShotId === first?.shotId,
     { resolved: third?.continuityFrame, expected: first?.shotId },
   );
   check(
@@ -136,16 +138,17 @@ async function main() {
   );
   equal('seedance review spent no credits', await creditsUsed(userId), used);
 
+  await resetRateLimit(userId);
   section('generate_shot_image dryRun (free)');
   const shotId = shots[0].id;
-  const preview = await callTool('generate_shot_image', { projectId, shotId, dryRun: true }, { token });
+  const preview = await callTool('generate_shot_image', { shotId, dryRun: true }, { token });
   check('dryRun quotes a credit number', typeof preview.data?.credits === 'number', preview.data);
   const quoted = preview.data?.credits;
   equal('dryRun spends nothing', await creditsUsed(userId), used);
 
   section('generate_shot_image — exactly the quoted catalog price, once');
   const key = `integration-${randomUUID()}`;
-  const spend = await callTool('generate_shot_image', { projectId, shotId, idempotencyKey: key }, { token });
+  const spend = await callTool('generate_shot_image', { shotId, idempotencyKey: key }, { token });
   check('returns a jobId immediately', typeof spend.data?.jobId === 'string', spend);
 
   const settled = await waitForJob(spend.data.jobId, { token, timeoutMs: 120_000 });
@@ -156,11 +159,12 @@ async function main() {
   used = afterGenerate;
   equal('no credit hold is left open', (await openHolds(userId)).length, 0);
 
-  const replay = await callTool('generate_shot_image', { projectId, shotId, idempotencyKey: key }, { token });
+  const replay = await callTool('generate_shot_image', { shotId, idempotencyKey: key }, { token });
   equal('replaying the idempotency key returns the same job', replay.data?.jobId, spend.data?.jobId);
   check('the replay is flagged', replay.data?.replayed === true, replay.data);
   equal('replaying the idempotency key charges nothing extra', await creditsUsed(userId), used);
 
+  await resetRateLimit(userId);
   section('export_video');
   const exportPreview = await callTool('export_video', { projectId, dryRun: true }, { token });
   check('export dryRun quotes a credit number', typeof exportPreview.data?.credits === 'number', exportPreview);
@@ -183,10 +187,25 @@ async function main() {
     equal('a refused export spent nothing', await creditsUsed(userId), used);
   }
 
+  await resetRateLimit(userId);
   section('timeline visibility');
-  const timeline = await callTool('get_timeline', { projectId }, { token });
-  const timelineShots = timeline.data?.shots ?? timeline.data?.timeline?.shots ?? [];
-  check('the generated frame is on the timeline', timelineShots.some((shot) => shot.image_url), timeline.data);
+  // The web app's Timeline tab renders the project's scenes/shots — the same
+  // rows get_storyboard reads — so the frame is visible there once image_url is set.
+  const storyboard = await callTool('get_storyboard', { projectId }, { token });
+  const storyboardShots = (storyboard.data?.scenes ?? []).flatMap((scene) => scene.shots ?? []);
+  check(
+    'the generated frame is on the timeline',
+    storyboardShots.some((shot) => shot.image_url),
+    storyboard.data,
+  );
+  // A fresh project has no editor snapshot yet; get_timeline answering either
+  // a snapshot or the documented "open it in the editor once" -32005 is healthy.
+  const editorTimeline = await callTool('get_timeline', { projectId }, { token });
+  check(
+    'get_timeline answers with a snapshot or the documented no-snapshot error',
+    editorTimeline.error === null || editorTimeline.error?.code === -32005,
+    editorTimeline.error,
+  );
 }
 
 try {

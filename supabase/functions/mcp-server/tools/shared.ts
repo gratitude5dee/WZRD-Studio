@@ -40,7 +40,7 @@ export async function loadProject(ctx: ToolContext, projectId: string): Promise<
     throw internalError('Could not load the project.');
   }
   if (!data) {
-    throw notFoundError(`No project ${projectId} for this user. Use list_projects to see available projects.`);
+    throw notFoundError(`Project ${projectId} not found. Use list_projects to see available projects.`);
   }
   return data as ProjectRow;
 }

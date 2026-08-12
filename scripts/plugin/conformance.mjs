@@ -25,6 +25,7 @@ import {
   seedUser,
   section,
   waitForJob,
+  resetRateLimit,
 } from './lib/harness.mjs';
 import { pluginMeta, readTools } from './registry.mjs';
 
@@ -97,7 +98,7 @@ async function main() {
 
   const scoped = await rpc(
     'tools/call',
-    { name: 'generate_shot_image', arguments: { projectId, shotId: randomUUID() } },
+    { name: 'generate_shot_image', arguments: { shotId: randomUUID() } },
     { token: readToken },
   );
   equal('read-scope token calling generate_shot_image → -32002', scoped.body?.error?.code, -32002);
@@ -138,7 +139,7 @@ async function main() {
     'tools/call',
     {
       name: 'generate_shot_image',
-      arguments: { projectId, shotId: shotId ?? randomUUID(), idempotencyKey: randomUUID() },
+      arguments: { shotId: shotId ?? randomUUID(), idempotencyKey: randomUUID() },
     },
     { token: cappedToken },
   );
@@ -150,6 +151,7 @@ async function main() {
     capData,
   );
 
+  await resetRateLimit(owner.userId);
   section('tools/call shape for every tool');
   for (const tool of registry) {
     // dryRun on spending tools: the shape check must not start real generations.
@@ -163,13 +165,14 @@ async function main() {
   const unknown = await rpc('tools/call', { name: 'no_such_tool', arguments: {} }, { token: fullToken });
   equal('unknown tool → -32601', unknown.body?.error?.code, -32601);
 
+  await resetRateLimit(owner.userId);
   section('long operations never block');
   if (shotId) {
     const startedAt = Date.now();
     const key = `conformance-${randomUUID()}`;
     const started = await callTool(
       'generate_shot_image',
-      { projectId, shotId, idempotencyKey: key },
+      { shotId, idempotencyKey: key },
       { token: fullToken },
     );
     const elapsed = Date.now() - startedAt;
@@ -179,7 +182,7 @@ async function main() {
     section('idempotency');
     const replay = await callTool(
       'generate_shot_image',
-      { projectId, shotId, idempotencyKey: key },
+      { shotId, idempotencyKey: key },
       { token: fullToken },
     );
     equal('replaying the same idempotencyKey returns the same job', replay.data?.jobId, started.data?.jobId);
@@ -192,7 +195,7 @@ async function main() {
 
     section('dry run costs nothing');
     const before = (await ledgerEntries(owner.userId)).length;
-    const preview = await callTool('generate_shot_image', { projectId, shotId, dryRun: true }, { token: fullToken });
+    const preview = await callTool('generate_shot_image', { shotId, dryRun: true }, { token: fullToken });
     check('dryRun is echoed back', preview.data?.dryRun === true, preview.data);
     check('dryRun quotes a credit number', typeof preview.data?.credits === 'number', preview.data);
     equal('dryRun writes no ledger entry', (await ledgerEntries(owner.userId)).length, before);
@@ -200,6 +203,7 @@ async function main() {
     check('a committed shot was available for the long-operation checks', false);
   }
 
+  await resetRateLimit(owner.userId);
   section('seedance handoff');
   const review = await callTool('seedance_handoff', { projectId, mode: 'review' }, { token: fullToken });
   equal('seedance review is free', review.data?.credit_cost, 0);

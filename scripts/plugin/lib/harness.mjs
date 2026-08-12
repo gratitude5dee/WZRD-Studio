@@ -139,6 +139,19 @@ export async function mintToken({
 }
 
 /**
+ * Clear a user's request-rate buckets (not the daily credit spend). The suites
+ * fire calls far faster than a real agent, so without this they trip the
+ * 60 req/min guard mid-run and fail on rate limiting instead of the behavior
+ * under test. The over-cap and rate-limit cases still exercise the guard.
+ */
+export async function resetRateLimit(userId) {
+  const { data: tokens } = await admin.from('wzrd_api_tokens').select('id').eq('user_id', userId);
+  const ids = (tokens ?? []).map((row) => row.id);
+  if (!ids.length) return;
+  await admin.from('wzrd_api_token_usage').delete().in('token_id', ids).in('bucket', ['minute', 'hour']);
+}
+
+/**
  * Insert a bare project row directly. Fixture setup for suites that are not
  * exercising `setup_project` itself, which runs the full generation pipeline.
  */

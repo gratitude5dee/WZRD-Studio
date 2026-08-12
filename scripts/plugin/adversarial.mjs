@@ -69,7 +69,7 @@ async function main() {
   const usedBefore = await creditsUsed(big.userId);
   const ledgerBefore = (await ledgerEntries(big.userId)).length;
 
-  const preview = await callTool('generate_scene_images', { projectId: bigProject, sceneId, dryRun: true }, { token: bigToken });
+  const preview = await callTool('generate_scene_images', { sceneId, dryRun: true }, { token: bigToken });
   check(
     'dryRun quotes the 50-shot total without spending',
     typeof preview.data?.credits === 'number' && preview.data.credits >= 50,
@@ -123,7 +123,7 @@ async function main() {
       method: 'tools/call',
       params: {
         name: 'generate_shot_image',
-        arguments: { projectId, shotId: shots[0].id, idempotencyKey: key },
+        arguments: { shotId: shots[0].id, idempotencyKey: key },
       },
     }),
     signal: controller.signal,
@@ -144,7 +144,7 @@ async function main() {
   // A failing generation must release rather than charge.
   const failing = await callTool(
     'generate_shot_image',
-    { projectId, shotId: randomUUID(), idempotencyKey: `adversarial-fail-${randomUUID()}` },
+    { shotId: randomUUID(), idempotencyKey: `adversarial-fail-${randomUUID()}` },
     { token: interruptedToken },
   );
   if (failing.data?.jobId) {
@@ -168,7 +168,7 @@ async function main() {
 
   const deniedSpend = await callTool(
     'generate_shot_image',
-    { projectId, shotId: shots[0].id, idempotencyKey: randomUUID() },
+    { shotId: shots[0].id, idempotencyKey: randomUUID() },
     { token: outsiderToken },
   );
   check('cross-user spend is denied', Boolean(deniedSpend.error), deniedSpend);

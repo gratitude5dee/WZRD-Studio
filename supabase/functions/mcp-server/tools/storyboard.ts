@@ -3,6 +3,7 @@
  * read the continuity graph, edit shot copy, render shot imagery, score a packet
  * and compile the Seedance reference packet.
  */
+import { getCreditCostForModel } from '../../_shared/credits.ts';
 import { internalError, notFoundError, RpcError, validationError } from '../errors.ts';
 import { loadProject, unwrap } from './shared.ts';
 import { readSchema, spendingSchema, type ToolContext, type ToolDefinition } from './types.ts';
@@ -19,8 +20,29 @@ const EDITABLE_SHOT_FIELDS: Record<string, string> = {
   reviewStatus: 'review_status',
 };
 
-const SHOT_IMAGE_CREDITS = 2;
-const SCENE_IMAGES_CREDITS = 10;
+/** Mirrors the model fallback in generate-shot-image so quotes match charges. */
+const DEFAULT_IMAGE_MODEL = 'gmi/gemini-3.1-flash-image-preview';
+
+/**
+ * The catalog price generate-shot-image will actually charge for a project:
+ * the requested model, else the project's base image model, else the default.
+ */
+async function shotImageCredits(
+  ctx: ToolContext,
+  projectId: string,
+  imageModel: unknown,
+): Promise<{ model: string; credits: number }> {
+  let model = typeof imageModel === 'string' && imageModel ? imageModel : '';
+  if (!model) {
+    const { data } = await ctx.svc
+      .from('project_settings')
+      .select('base_image_model')
+      .eq('project_id', projectId)
+      .maybeSingle();
+    model = (data?.base_image_model as string | null) || DEFAULT_IMAGE_MODEL;
+  }
+  return { model, credits: getCreditCostForModel(model, 'image') };
+}
 
 /**
  * Storyboard-session style responses nest the useful body under `data`; the tool
@@ -271,13 +293,18 @@ export const storyboardTools: ToolDefinition[] = [
   {
     name: 'generate_shot_image',
     mutates: true,
-    description: `Use to render the still image for one shot from its visual prompt. Costs ${SHOT_IMAGE_CREDITS} credits.`,
+    description:
+      'Use to render the still image for one shot from its visual prompt. Costs the catalog price of the image model (typically 2–4 credits) — preview the exact number with dryRun.',
     scope: 'generate',
     async: true,
-    estimate: async () => ({
-      credits: SHOT_IMAGE_CREDITS,
-      breakdown: [{ step: 'generate-shot-image', credits: SHOT_IMAGE_CREDITS }],
-    }),
+    estimate: async (ctx, args) => {
+      const shot = await loadShot(ctx, String(args.shotId));
+      const { model, credits } = await shotImageCredits(ctx, shot.project_id, args.imageModel);
+      return {
+        credits,
+        breakdown: [{ step: 'generate-shot-image', credits, note: model }],
+      };
+    },
     inputSchema: spendingSchema(
       {
         shotId: { type: 'string' },
@@ -311,11 +338,19 @@ export const storyboardTools: ToolDefinition[] = [
   {
     name: 'generate_scene_images',
     mutates: true,
-    description: `Use to render still images for every shot in a scene that is missing one. Costs ${SHOT_IMAGE_CREDITS} credits per shot, about ${SCENE_IMAGES_CREDITS} credits for a typical five-shot scene.`,
+    description:
+      'Use to render still images for every shot in a scene that is missing one. Costs the catalog price of the image model per shot (typically 2–4 credits each) — preview the exact total with dryRun.',
     scope: 'generate',
     async: true,
     estimate: async (ctx, args) => {
       const sceneId = String(args.sceneId ?? '');
+      const { data: scene } = await ctx.svc
+        .from('scenes')
+        .select('id,project_id')
+        .eq('id', sceneId)
+        .maybeSingle();
+      if (!scene) throw notFoundError(`No scene ${sceneId}.`);
+      const { model, credits: perShot } = await shotImageCredits(ctx, scene.project_id, args.imageModel);
       const { data } = await ctx.svc
         .from('shots')
         .select('id,image_url')
@@ -323,9 +358,9 @@ export const storyboardTools: ToolDefinition[] = [
       const pending = (data ?? []).filter((shot: { image_url: string | null }) => !shot.image_url);
       const count = pending.length || 1;
       return {
-        credits: count * SHOT_IMAGE_CREDITS,
+        credits: count * perShot,
         breakdown: [
-          { step: 'generate-shot-image', credits: count * SHOT_IMAGE_CREDITS, note: `${count} shot(s) without an image` },
+          { step: 'generate-shot-image', credits: count * perShot, note: `${count} shot(s) without an image × ${model}` },
         ],
       };
     },

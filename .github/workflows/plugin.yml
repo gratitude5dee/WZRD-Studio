@@ -76,17 +76,21 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Start the local Supabase stack
-        run: supabase start
-
-      - name: Apply migrations
-        run: supabase db reset --no-seed
+      # The committed migration history does not replay from scratch (legacy
+      # file names the CLI skips, production-first drift repairs). The script
+      # swaps in a local baseline fixture plus the replayable tail, then
+      # starts/reset the stack; the committed files are untouched.
+      - name: Start the local Supabase stack (baseline fixture + replayable migrations)
+        run: bash scripts/plugin/local-stack.sh
 
       - name: Serve edge functions
-        env:
-          WZRD_MOCK_GENERATION: '1'
         run: |
-          nohup supabase functions serve --no-verify-jwt > functions.log 2>&1 &
+          # CI-only env for the served functions: the mock-generation seam and
+          # the signing secret for internal actor headers between the MCP
+          # server and downstream functions (not a real credential).
+          printf 'WZRD_MOCK_GENERATION=1\nWZRD_INTERNAL_ACTOR_SECRET=ci-internal-actor-secret\n' \
+            > supabase/functions/.env
+          nohup supabase functions serve --no-verify-jwt --env-file supabase/functions/.env > functions.log 2>&1 &
           for _ in $(seq 1 60); do
             curl -sf http://127.0.0.1:54321/functions/v1/mcp-server/health && break
             sleep 2

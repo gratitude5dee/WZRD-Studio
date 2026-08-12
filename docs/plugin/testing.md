@@ -17,9 +17,14 @@ Hermes, OpenClaw) and therefore stays a documented, runnable script.
 ### Running the server-backed suites locally
 
 ```bash
-supabase start
-supabase db reset --no-seed                      # applies all migrations
-WZRD_MOCK_GENERATION=1 supabase functions serve --no-verify-jwt
+# The committed migration history predates local replayability, so this swaps
+# in scripts/plugin/fixtures/local-baseline.sql plus the replayable tail and
+# resets the local stack. Committed migrations are left untouched.
+bash scripts/plugin/local-stack.sh
+
+printf 'WZRD_MOCK_GENERATION=1\nWZRD_INTERNAL_ACTOR_SECRET=local-internal-actor-secret\n' \
+  > supabase/functions/.env
+supabase functions serve --no-verify-jwt --env-file supabase/functions/.env
 
 # in another shell
 export SUPABASE_URL=http://127.0.0.1:54321
