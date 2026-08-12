@@ -113,6 +113,10 @@ function useFxMode() {
     const storedMode = readStoredFxMode();
     setUserMode(storedMode);
     document.documentElement.dataset.wzrdCreatorMotion = storedMode;
+    // `matchMedia` is universally present in current browsers, but the
+    // Creator OS should still render its static composition in embedded or
+    // older webviews where it is unavailable.
+    if (typeof window.matchMedia !== 'function') return;
     const query = window.matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => setSystemReducedMotion(query.matches);
     sync();
@@ -167,6 +171,7 @@ function useDesktopViewport() {
   const [desktop, setDesktop] = useState(false);
 
   useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
     const query = window.matchMedia('(min-width: 860px)');
     const sync = () => setDesktop(query.matches);
     sync();

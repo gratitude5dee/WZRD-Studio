@@ -5,18 +5,15 @@
  * Studio/editor routes, API responses, uploads, and user media bypass the
  * worker entirely so they cannot be persisted by this public cache.
  */
-const CACHE_NAME = "wzrd-public-shell-v1";
+const CACHE_NAME = "wzrd-public-shell-v2";
 const OFFLINE_DOCUMENT = "/offline.html";
 const PUBLIC_LANDING_DOCUMENTS = new Set([
   "/",
-  "/creator-os/wzrd-creator-os-newdesign.html",
 ]);
 const PUBLIC_STATIC_PREFIXES = ["/_next/static/", "/brand/", "/creator-os/"];
 const PUBLIC_STATIC_FILES = new Set(["/favicon.ico", "/manifest.webmanifest"]);
 const PRECACHE_URLS = [
   OFFLINE_DOCUMENT,
-  "/",
-  "/creator-os/wzrd-creator-os-newdesign.html",
   "/manifest.webmanifest",
   "/favicon.ico",
   "/brand/wzrd-icon-16.png",
@@ -67,12 +64,26 @@ async function networkFirst(request, fallback) {
   }
 }
 
+async function navigationNetworkOnly(request) {
+  try {
+    // Never persist a Next document response. A cached document can reference
+    // a prior build's client chunks after a deployment, which is exactly the
+    // failure mode a public landing must avoid.
+    return await fetch(request);
+  } catch {
+    const offline = await caches.match(OFFLINE_DOCUMENT);
+    return offline || Response.error();
+  }
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    // The complete anonymous shell is intentionally small enough to make the
-    // very first installed launch useful offline. Video and all private routes
-    // remain network-only and are never included here.
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    // Cache only the purpose-built offline document and identity assets. The
+    // live Next document stays network-only, so a deploy cannot strand a
+    // returning visitor on an incompatible client bundle.
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -105,12 +116,7 @@ self.addEventListener("fetch", (event) => {
   }
 
   if (isPublicLandingDocument(request, url)) {
-    event.respondWith(
-      networkFirst(request, async () => {
-        const offline = await caches.match(OFFLINE_DOCUMENT);
-        return offline || Response.error();
-      })
-    );
+    event.respondWith(navigationNetworkOnly(request));
     return;
   }
 

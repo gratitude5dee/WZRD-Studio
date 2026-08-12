@@ -55,6 +55,20 @@ test("keeps the static landing intact when WebGL is unavailable", async ({ page 
   expect(await page.locator("canvas:visible").count()).toBe(0);
 });
 
+test("falls back to the static composition when matchMedia is unavailable", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: undefined,
+    });
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech Creator OS" })).toBeVisible();
+  await expect(page.getByText("Creative", { exact: true })).toBeVisible();
+  await expect(page.locator("wz-sky")).toHaveCount(0);
+});
+
 test("uses an unpinned, complete composition for reduced motion", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/", { waitUntil: "domcontentloaded" });
