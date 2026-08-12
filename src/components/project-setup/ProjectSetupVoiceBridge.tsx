@@ -217,14 +217,19 @@ export function ProjectSetupVoiceBridge() {
             const savedProjectId = await saveProjectData(overrides);
             if (!savedProjectId) return invalid('I could not save the project yet.');
 
-            if (latestData.conceptOption === 'ai') {
+            // Manual mode has no Storyline step, so follow the visible flow.
+            const isAi = latestData.conceptOption === 'ai';
+            if (isAi) {
               await generateStoryline(savedProjectId, overrides);
             }
-            goToTab('storyline');
-            return completed('Storyline is open and generation has started.', {
-              projectId: savedProjectId,
-              activeSetupTab: 'storyline',
-            });
+            const nextTab: ProjectSetupTab = isAi ? 'storyline' : 'settings';
+            if (!goToTab(nextTab)) {
+              return invalid(getTabLockReason(nextTab) ?? `The ${nextTab} step is not available yet.`);
+            }
+            return completed(
+              isAi ? 'Storyline is open and generation has started.' : 'Project brief is open.',
+              { projectId: savedProjectId, activeSetupTab: nextTab },
+            );
           }
 
           if (activeTab === 'storyline') {

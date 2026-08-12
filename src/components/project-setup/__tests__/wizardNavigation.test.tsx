@@ -64,6 +64,9 @@ const Driver = ({ activeTab, storylineStatus, conceptOption }: HarnessProps) => 
       <button data-testid="try-breakdown" onClick={() => goToTab('breakdown')}>
         try breakdown
       </button>
+      <button data-testid="try-storyline" onClick={() => goToTab('storyline')}>
+        try storyline
+      </button>
     </div>
   );
 };
@@ -154,5 +157,18 @@ describe('breakdown gating', () => {
   it('keeps Breakdown reachable in manual mode, which has no Storyline step', () => {
     renderWizard({ conceptOption: 'manual' });
     expect(screen.getByTestId('wizard-tab-breakdown')).not.toBeDisabled();
+  });
+
+  it('refuses navigation to a tab outside the current flow', () => {
+    renderWizard({ conceptOption: 'manual' });
+    expect(screen.getByTestId('visible-tabs').textContent).toBe('concept,settings,breakdown');
+
+    act(() => {
+      screen.getByTestId('try-storyline').click();
+    });
+
+    // Storyline has no step number in manual mode, so the jump is refused and
+    // the indicator/footer stay in sync with the visible flow.
+    expect(currentStep()).toBe('1');
   });
 });

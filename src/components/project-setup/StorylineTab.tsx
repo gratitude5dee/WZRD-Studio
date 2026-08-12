@@ -78,23 +78,22 @@ const StorylineTab = ({ projectData, updateProjectData }: StorylineTabProps) => 
     );
   }, []);
 
-  // Report completion upstream: tab gating depends on storyline completion, not visit order.
+  // Report completion upstream: tab gating depends on storyline completion, not
+  // visit order. A complete storyline (including one from a previous visit) wins
+  // over the local stream state, so a failed *extra* generation never re-locks
+  // the Breakdown step.
+  const hasCompleteStoryline =
+    !!selectedStoryline && (selectedStoryline.status ?? 'complete') === 'complete';
+
   useEffect(() => {
-    if (streamingStatus === 'complete') {
+    if (hasCompleteStoryline || streamingStatus === 'complete') {
       setStorylineStatus('complete');
     } else if (streamingStatus === 'failed') {
       setStorylineStatus('failed');
     } else if (streamingStatus !== 'idle') {
       setStorylineStatus('generating');
     }
-  }, [streamingStatus, setStorylineStatus]);
-
-  // A previously generated storyline (e.g. on revisit) also satisfies the prerequisite.
-  useEffect(() => {
-    if (selectedStoryline && (selectedStoryline.status ?? 'complete') === 'complete') {
-      setStorylineStatus('complete');
-    }
-  }, [selectedStoryline, setStorylineStatus]);
+  }, [hasCompleteStoryline, streamingStatus, setStorylineStatus]);
 
   // Fetch storylines when component mounts or when project ID changes
   useEffect(() => {

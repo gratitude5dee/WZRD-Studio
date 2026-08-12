@@ -142,6 +142,13 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const [generationCompletedSignal, setGenerationCompletedSignal] = useState(0);
   const [storylineStatus, setStorylineStatusState] = useState<StorylineProgressStatus>('idle');
   const [storylineGateOverridden, setStorylineGateOverridden] = useState(false);
+
+  // Changing the status also revokes a granted escape hatch, so a retry
+  // re-establishes the strict gate.
+  const setStorylineStatus = useCallback((status: StorylineProgressStatus) => {
+    setStorylineStatusState(status);
+    if (status !== 'failed') setStorylineGateOverridden(false);
+  }, []);
   
   // Track option changes for smooth transitions
   useEffect(() => {
@@ -232,16 +239,21 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const generateStoryline = async (currentProjectId: string, overrides?: Partial<ProjectData>): Promise<boolean> => {
     if (!user) {
       toast.error("Please log in to generate storylines");
+      setStorylineStatus('failed');
       return false;
     }
     
     if (!currentProjectId) {
       toast.error("Cannot generate storyline without a project ID");
+      setStorylineStatus('failed');
       return false;
     }
 
     try {
       setIsGenerating(true);
+      // Report progress here too: a request that never starts would otherwise
+      // leave the gate stuck at 'idle' with no escape hatch.
+      setStorylineStatus('generating');
       console.log(`Invoking generate-storylines for project: ${currentProjectId}`);
       
       // Build structured concept payload, merging overrides so voice-bridge eager state is used
@@ -262,10 +274,12 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
               insufficient.available
             )}.`
           );
+          setStorylineStatus('failed');
           return false;
         }
         console.error('Error invoking generate-storylines function:', error);
         toast.error(`Storyline generation failed: ${error.message}`);
+        setStorylineStatus('failed');
         return false;
       }
       
@@ -277,6 +291,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
             responseInsufficient.available
           )}.`
         );
+        setStorylineStatus('failed');
         return false;
       }
 
@@ -292,6 +307,7 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
     } catch (error: any) {
       console.error('Error in generateStoryline:', error);
       toast.error(`Storyline generation failed: ${error.message}`);
+      setStorylineStatus('failed');
       return false;
     } finally {
       setIsGenerating(false); // Release immediately
@@ -336,13 +352,6 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // ── Wizard navigation state (single source of truth) ──────────────────
-  // Changing the status also revokes a granted escape hatch, so a retry
-  // re-establishes the strict gate.
-  const setStorylineStatus = useCallback((status: StorylineProgressStatus) => {
-    setStorylineStatusState(status);
-    if (status !== 'failed') setStorylineGateOverridden(false);
-  }, []);
-
   const canOverrideStorylineGate = storylineStatus === 'failed' && !storylineGateOverridden;
 
   const overrideStorylineGate = useCallback(() => {
@@ -352,7 +361,11 @@ export const ProjectProvider = ({ children }: { children: ReactNode }) => {
   const getTabLockReason = useCallback(
     (tab: ProjectSetupTab): string | null => {
       const tabs = getVisibleTabs();
-      if (!tabs.includes(tab)) return null;
+      // A tab outside the current flow has no step number, so activating it
+      // would desync the step indicator and footer navigation.
+      if (!tabs.includes(tab)) {
+        return `The ${tab} step is not part of this project's flow.`;
+      }
       if (tab === 'breakdown' && tabs.includes('storyline') && storylineStatus !== 'complete') {
         if (storylineStatus === 'failed') {
           // A failure must never trap the user: they can retry, or explicitly
