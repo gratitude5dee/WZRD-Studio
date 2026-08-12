@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { ShimmerText } from './ShimmerText';
 import './craft.css';
@@ -39,12 +39,12 @@ const PATTERNS: Record<
 };
 
 function useElapsed() {
-  const [ds, setDs] = useState(0);
+  const start = useRef(performance.now());
+  const [total, setTotal] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setDs((d) => d + 1), 100);
+    const t = setInterval(() => setTotal((performance.now() - start.current) / 1000), 100);
     return () => clearInterval(t);
   }, []);
-  const total = ds / 10;
   if (total < 60) return `${total.toFixed(1)}s`;
   return `${Math.floor(total / 60)}m ${(total % 60).toFixed(1)}s`;
 }
