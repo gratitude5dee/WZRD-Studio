@@ -64,7 +64,7 @@ export function finish(suiteName) {
 
 let rpcId = 0;
 
-export async function rpc(method, params, { token } = {}) {
+export async function rpc(method, params, { token, retryRateLimit = true } = {}) {
   const response = await fetch(MCP_URL, {
     method: 'POST',
     headers: {
@@ -80,6 +80,16 @@ export async function rpc(method, params, { token } = {}) {
   } catch {
     body = { raw: text };
   }
+
+  // The suites fire calls far faster than a real agent and can trip the
+  // per-token 60 req/min guard mid-run. That guard has its own dedicated
+  // tests; everywhere else, clear the request buckets and retry once so
+  // runner speed does not decide the outcome.
+  if (retryRateLimit && token && body?.error?.code === -32004) {
+    await resetRateLimitForToken(token);
+    return rpc(method, params, { token, retryRateLimit: false });
+  }
+
   return { status: response.status, body, raw: text };
 }
 
@@ -149,6 +159,21 @@ export async function resetRateLimit(userId) {
   const ids = (tokens ?? []).map((row) => row.id);
   if (!ids.length) return;
   await admin.from('wzrd_api_token_usage').delete().in('token_id', ids).in('bucket', ['minute', 'hour']);
+}
+
+/** Clear the request-rate buckets for one PAT (looked up by its hash). */
+export async function resetRateLimitForToken(token) {
+  const { data } = await admin
+    .from('wzrd_api_tokens')
+    .select('id')
+    .eq('token_hash', sha256(token))
+    .maybeSingle();
+  if (!data) return;
+  await admin
+    .from('wzrd_api_token_usage')
+    .delete()
+    .eq('token_id', data.id)
+    .in('bucket', ['minute', 'hour']);
 }
 
 /**
