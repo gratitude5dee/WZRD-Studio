@@ -52,7 +52,7 @@ function useElapsed() {
 function Elapsed() {
   const elapsed = useElapsed();
   return (
-    <span className="font-mono text-xs text-text-tertiary tabular-nums">{elapsed}</span>
+    <span className="font-mono text-xs text-muted-foreground tabular-nums">{elapsed}</span>
   );
 }
 
@@ -75,7 +75,7 @@ export function PixelLoader({
         {delays.map((d, i) => (
           <span
             key={i}
-            className={`craft-motion size-[4px] bg-text-primary ${round ? 'rounded-full' : 'rounded-[1px]'}`}
+            className={`craft-motion size-[4px] bg-foreground ${round ? 'rounded-full' : 'rounded-[1px]'}`}
             style={{
               opacity: d === null ? 0.07 : 0.15,
               animation:

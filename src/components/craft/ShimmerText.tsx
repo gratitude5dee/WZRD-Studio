@@ -16,7 +16,7 @@ export function ShimmerText({
       className={`craft-motion bg-clip-text font-medium text-transparent ${className}`}
       style={{
         backgroundImage:
-          'linear-gradient(90deg, hsl(var(--text-secondary)) 35%, hsl(var(--text-primary)) 50%, hsl(var(--text-secondary)) 65%)',
+          'linear-gradient(90deg, hsl(var(--muted-foreground)) 35%, hsl(var(--foreground)) 50%, hsl(var(--muted-foreground)) 65%)',
         backgroundSize: '200% 100%',
         animation: 'craft-shimmer-text 1.4s linear infinite',
       }}

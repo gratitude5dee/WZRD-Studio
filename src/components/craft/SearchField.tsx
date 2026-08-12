@@ -25,12 +25,12 @@ export function SearchField({
   return (
     <div
       className={cn(
-        'flex h-10 items-center gap-2 rounded-xl border border-line-subtle bg-surface-raised px-3',
-        'transition-colors duration-100 focus-within:border-accent-ember/40 hover:bg-surface-2/60',
+        'flex h-10 items-center gap-2 rounded-xl border border-border/40 bg-background/60 px-3',
+        'transition-colors duration-100 focus-within:border-primary/40',
         className,
       )}
     >
-      <Search className="h-4 w-4 shrink-0 text-text-tertiary" />
+      <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -38,7 +38,7 @@ export function SearchField({
         aria-label={placeholder}
         data-testid={dataTestId}
         className={cn(
-          'min-w-0 flex-1 bg-transparent text-[13px] text-text-primary outline-none placeholder:text-text-tertiary',
+          'min-w-0 flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground',
           inputClassName,
         )}
       />
@@ -47,8 +47,8 @@ export function SearchField({
           aria-label="Clear search"
           type="button"
           onClick={() => onChange('')}
-          className="craft-motion flex size-[22px] items-center justify-center rounded-full text-text-tertiary
-            transition-colors duration-100 hover:bg-line-subtle/70 hover:text-text-primary"
+          className="craft-motion flex size-[22px] items-center justify-center rounded-full text-muted-foreground
+            transition-colors duration-100 hover:bg-muted hover:text-foreground"
           style={{ animation: 'craft-fade-in 150ms ease-out both' }}
         >
           <X className="h-3 w-3" strokeWidth={2.2} />

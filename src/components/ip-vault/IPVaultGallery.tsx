@@ -8,6 +8,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { PixelLoader } from '@/components/craft/PixelLoader';
 import { SearchField } from '@/components/craft/SearchField';
+import { useStaggerDelay } from '@/components/craft/useStaggerDelay';
 import {
   Select,
   SelectContent,
@@ -42,6 +43,8 @@ export function IPVaultGallery({
   onStatusFilterChange,
   onSelectItem,
 }: IPVaultGalleryProps) {
+  const staggerDelay = useStaggerDelay();
+
   return (
     <section className="space-y-4">
       <div className="grid gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3 md:grid-cols-[minmax(0,1fr)_180px]">
@@ -81,7 +84,7 @@ export function IPVaultGallery({
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {filteredItems.map((item, index) => {
+          {filteredItems.map((item) => {
             const url = previewUrl(item);
             const isSelected = selectedId === item.id;
             return (
@@ -90,7 +93,7 @@ export function IPVaultGallery({
                 type="button"
                 onClick={() => onSelectItem(item.id)}
                 style={{
-                  animation: `craft-fade-up 400ms cubic-bezier(0.23,1,0.32,1) ${Math.min(index, 8) * 60}ms both`,
+                  animation: `craft-fade-up 400ms cubic-bezier(0.23,1,0.32,1) ${staggerDelay(item.id)}ms both`,
                 }}
                 className={cn(
                   'craft-motion overflow-hidden rounded-2xl border bg-[#101015] text-left transition-all',
