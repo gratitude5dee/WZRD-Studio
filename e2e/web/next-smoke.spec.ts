@@ -1,15 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const canonicalSectionIds = ["top", "studio", "zap", "earth", "air", "coming-soon", "enter"] as const;
-
-const bubbleMenuItems = [
-  ["air", "#air"],
-  ["studio", "#studio"],
-  ["earth", "#earth"],
-  ["zap", "https://zap.wzrd.tech"],
-  ["fire+water", "#coming-soon"],
-  ["enter studio", "https://studio.wzrd.tech/login"],
-] as const;
+const landingSectionIds = ["top", "product-tour", "music-worlds", "next", "system"] as const;
 
 function installConsoleGuards(page: Page) {
   const failures: string[] = [];
@@ -33,73 +24,61 @@ function installConsoleGuards(page: Page) {
   };
 }
 
-function canonicalFrame(page: Page) {
-  return page.frameLocator('iframe[title="WZRD Creator OS"]');
-}
-
-test.beforeEach(async ({ page }) => {
-  await page.addInitScript(() => {
-    window.sessionStorage.setItem("mog-intro-seen", "true");
-  });
-});
-
-test("renders the supplied canonical WZRD Creator OS bundle in its source order", async ({ page }) => {
+test("renders the native WZRD landing in its editorial source order", async ({ page }) => {
   const assertNoPlatformUnsupported = installConsoleGuards(page);
 
   const response = await page.goto("/", { waitUntil: "domcontentloaded" });
   expect(response?.status()).toBeLessThan(400);
 
-  const iframe = page.locator('iframe[title="WZRD Creator OS"]');
-  await expect(iframe).toBeVisible();
+  await expect(page.locator("iframe")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: "Build the world around the record." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "WZRD.tech home" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Enter Studio" }).first()).toHaveAttribute(
+    "href",
+    "/login?next=%2Fkanvas",
+  );
 
-  const frame = canonicalFrame(page);
-  await expect(frame.getByRole("heading", { level: 1, name: "WZRD.tech" })).toBeVisible();
-  await expect(frame.getByRole("link", { name: "WZRD.tech home" })).toBeVisible();
-  await expect(frame.getByRole("button", { name: "Toggle navigation" })).toBeVisible();
-
-  const sectionIds = await frame.locator("section[id]").evaluateAll((sections) =>
+  const sectionIds = await page.locator("section[id]").evaluateAll((sections) =>
     sections.map((section) => section.id),
   );
-  expect(sectionIds).toEqual(canonicalSectionIds);
+  expect(sectionIds).toEqual(landingSectionIds);
 
-  for (const id of canonicalSectionIds) {
-    await expect(frame.locator(`section#${id}`)).toHaveCount(1);
+  for (const id of landingSectionIds) {
+    await expect(page.locator(`section#${id}`)).toHaveCount(1);
   }
 
-  await expect(frame.getByRole("listbox", { name: "Creator role sphere — drag to rotate" })).toBeVisible();
-  await expect(frame.getByRole("heading", { name: "Zap is the recipe runtime behind every release." })).toBeVisible();
-  await expect(frame.getByRole("heading", { name: "Fire and Water." })).toBeVisible();
-  await expect(frame.getByRole("link", { name: "Make the next signal" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "From a reference to a world you can produce." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "One engine. Different visual grammar for every record." })).toBeVisible();
   expect(await page.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
 
   assertNoPlatformUnsupported();
 });
 
-test("keeps the supplied bubble navigation while routing Zap and Studio externally", async ({ page }) => {
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-
-  const frame = canonicalFrame(page);
-  const menuButton = frame.getByRole("button", { name: "Toggle navigation" });
-  await menuButton.click();
-
-  for (const [label, href] of bubbleMenuItems) {
-    const link = frame.getByRole("link", { name: label, exact: true });
-    await expect(link).toHaveAttribute("href", href);
-
-    if (href.startsWith("https://")) {
-      await expect(link).toHaveAttribute("target", "_top");
-    }
-  }
-});
-
-test("retains the canonical responsive runtime without root overflow", async ({ page }) => {
+test("keeps the native mobile drawer focus-managed and routes Studio safely", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  const frame = canonicalFrame(page);
-  await expect(frame.getByRole("heading", { level: 1, name: "WZRD.tech" })).toBeVisible();
-  await expect(frame.getByRole("listbox", { name: "Creator role sphere — drag to rotate" })).toHaveCount(1);
-  expect(await frame.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
+  const menuButton = page.getByRole("button", { name: "Open navigation" });
+  await menuButton.click();
+  const drawer = page.getByRole("dialog", { name: "WZRD Creator OS" });
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByRole("link", { name: "Enter Studio" })).toHaveAttribute(
+    "href",
+    "/login?next=%2Fkanvas",
+  );
+  await expect(drawer.getByRole("button", { name: /motion/i })).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeHidden();
+  await expect(menuButton).toBeFocused();
+});
+
+test("retains the native landing without root overflow", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+
+  await expect(page.getByRole("heading", { level: 1, name: "Build the world around the record." })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Enter Studio" }).first()).toBeVisible();
   expect(await page.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
 });
 

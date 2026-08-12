@@ -1,10 +1,23 @@
 import type { Metadata, Viewport } from "next";
+import { Azeret_Mono, Newsreader } from "next/font/google";
 import type { ReactNode } from "react";
 
 import PwaRegistration from "@/components/pwa/PwaRegistration";
 
 import "../index.css";
 import "../styles/themes/light-premium.css";
+
+const editorialFont = Newsreader({
+  display: "swap",
+  subsets: ["latin"],
+  variable: "--font-newsreader",
+});
+
+const systemFont = Azeret_Mono({
+  display: "swap",
+  subsets: ["latin"],
+  variable: "--font-azeret-mono",
+});
 
 export const metadata: Metadata = {
   applicationName: "WZRD",
@@ -38,7 +51,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className={`${editorialFont.variable} ${systemFont.variable}`}>
         {children}
         <PwaRegistration />
       </body>

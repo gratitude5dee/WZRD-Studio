@@ -44,12 +44,13 @@ test("publishes installable WZRD metadata from the production output", async ({ 
   );
 });
 
-test("reopens the public Creator OS shell offline after its first production load", async ({
+test("reopens the native public landing offline after its first production load", async ({
   context,
   page,
 }) => {
   await page.goto("/", { waitUntil: "networkidle" });
-  await expect(page.locator('iframe[title="WZRD Creator OS"]')).toBeVisible();
+  await expect(page.locator("iframe")).toHaveCount(0);
+  await expect(page.getByRole("heading", { level: 1, name: "Build the world around the record." })).toBeVisible();
 
   const scope = await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
@@ -64,8 +65,8 @@ test("reopens the public Creator OS shell offline after its first production loa
   await context.setOffline(true);
   await page.reload({ waitUntil: "domcontentloaded" });
 
-  const frame = page.frameLocator('iframe[title="WZRD Creator OS"]');
-  await expect(frame.getByRole("heading", { level: 1, name: "WZRD.tech" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Build the world around the record." })).toBeVisible();
+  await expect(page.locator("[data-static-atmosphere]")).toBeVisible();
 
   await context.setOffline(false);
 });

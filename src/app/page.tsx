@@ -1,17 +1,16 @@
 import type { Metadata } from "next";
 
-import CanonicalCreatorOSLanding from "@/components/creator-os/CanonicalCreatorOSLanding";
-import FirstVisitIntroGate from "@/components/landing/FirstVisitIntroGate";
+import NativeCreatorLanding from "@/components/landing/NativeCreatorLanding";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://wzrd.tech"),
   alternates: {
     canonical: "/",
   },
-  title: "WZRD.tech — Creator OS",
-  description: "A creator operating system for turning passing signals into culture.",
+  title: "WZRD.tech — Build the World Around the Record",
+  description: "Turn a reference, lyric, or treatment into artist visuals, camera-ready scenes, and release assets in one creative system.",
   openGraph: {
-    description: "A creator operating system for turning passing signals into culture.",
+    description: "Turn a reference, lyric, or treatment into artist visuals, camera-ready scenes, and release assets in one creative system.",
     images: [
       {
         alt: "WZRD.tech — Creator OS",
@@ -22,7 +21,7 @@ export const metadata: Metadata = {
       },
     ],
     siteName: "WZRD.tech",
-    title: "WZRD.tech — Creator OS",
+    title: "WZRD.tech — Build the World Around the Record",
     type: "website",
     url: "/",
   },
@@ -33,15 +32,10 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     images: ["/creator-os/og-creator-os.svg"],
-    title: "WZRD.tech — Creator OS",
+    title: "WZRD.tech — Build the World Around the Record",
   },
 };
 
 export default function Page() {
-  return (
-    <>
-      <FirstVisitIntroGate />
-      <CanonicalCreatorOSLanding />
-    </>
-  );
+  return <NativeCreatorLanding />;
 }
