@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
+import { EmptyState } from '@/components/craft/EmptyState';
 import { PixelLoader } from '@/components/craft/PixelLoader';
 import { SearchField } from '@/components/craft/SearchField';
 import { useStaggerDelay } from '@/components/craft/useStaggerDelay';
@@ -75,12 +76,13 @@ export function IPVaultGallery({
           <PixelLoader label="Loading vault" showElapsed />
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="flex min-h-[420px] flex-col items-center justify-center rounded-3xl border border-dashed border-white/[0.1] bg-white/[0.02] p-8 text-center">
-          <FileCheck2 className="mb-4 h-12 w-12 text-zinc-600" />
-          <h2 className="text-lg font-semibold text-white">No finalized IP yet</h2>
-          <p className="mt-2 max-w-md text-sm text-zinc-500">
-            Use Finalize asset from Asset Store, Character Creation, or Final Export surfaces to add rights-ready work here.
-          </p>
+        <div className="flex min-h-[420px] items-center justify-center rounded-3xl border border-dashed border-white/[0.1] bg-white/[0.02] p-8">
+          <EmptyState
+            className="dark"
+            icon={<FileCheck2 className="h-4 w-4" />}
+            title="No finalized IP yet"
+            description="Use Finalize asset from Asset Store, Character Creation, or Final Export surfaces to add rights-ready work here."
+          />
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
