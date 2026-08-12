@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { UserPlus, Plus, FolderKanban, Activity, Image, Sparkles, Settings, HelpCircle, ChevronDown, ChevronRight, User, LogOut, Palette, Coins, Star } from 'lucide-react';
+import { UserPlus, Plus, FolderKanban, Activity, Image, Sparkles, Settings, HelpCircle, ChevronDown, ChevronRight, User, LogOut, Palette, Coins, Star, Search } from 'lucide-react';
+import { EmptyState } from '@/components/craft/EmptyState';
 import { PixelLoader } from '@/components/craft/PixelLoader';
 import { SearchField } from '@/components/craft/SearchField';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -541,17 +542,12 @@ export default function Home() {
             ) : activeView === 'asset-store' ? (
               <AuraAssetStore projects={projects} />
             ) : activeView === 'favorites' ? (
-              <div className="flex flex-col items-center justify-center py-12 md:py-20">
-                <div className="text-center max-w-md px-4">
-                  <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/15 flex items-center justify-center">
-                    <Star className="w-8 h-8 md:w-10 md:h-10 text-primary" />
-                  </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-text-primary dark:text-foreground mb-2">No favorites yet</h3>
-                  <p className="text-xs md:text-sm text-text-tertiary dark:text-muted-foreground">
-                    Projects you favorite will show up here for quick access
-                  </p>
-                </div>
-              </div>
+              <EmptyState
+                className="py-12 md:py-20"
+                icon={<Star className="h-4 w-4" />}
+                title="No favorites yet"
+                description="Projects you favorite will show up here for quick access"
+              />
             ) : isLoading ? (
               <div className="flex flex-col items-center justify-center py-12 md:py-20">
                 <PixelLoader label="Loading projects" showElapsed />
@@ -570,24 +566,19 @@ export default function Home() {
                 </div>
               </div>
             ) : filteredProjects.length === 0 && searchQuery ? (
-              <div className="flex flex-col items-center justify-center py-12 md:py-20">
-                <div className="text-center max-w-md px-4">
-                  <h3 className="text-base md:text-lg font-semibold text-text-primary dark:text-foreground mb-2">No results found</h3>
-                  <p className="text-xs md:text-sm text-text-tertiary dark:text-muted-foreground">
-                    Try adjusting your search or filters
-                  </p>
-                </div>
-              </div>
+              <EmptyState
+                className="py-12 md:py-20"
+                icon={<Search className="h-4 w-4" />}
+                title="No results found"
+                description="Try adjusting your search or filters"
+              />
             ) : filteredProjects.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 md:py-20">
-                <div className="text-center max-w-md px-4">
-                  <div className="w-16 h-16 md:w-20 md:h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/15 flex items-center justify-center">
-                    <Plus className="w-8 h-8 md:w-10 md:h-10 text-primary" />
-                  </div>
-                  <h3 className="text-lg md:text-xl font-semibold text-text-primary dark:text-foreground mb-2">Create your first project</h3>
-                  <p className="text-xs md:text-sm text-text-tertiary dark:text-muted-foreground mb-6">
-                    Start bringing your ideas to life with AI-powered video creation
-                  </p>
+              <EmptyState
+                className="py-12 md:py-20"
+                icon={<Plus className="h-4 w-4" />}
+                title="Create your first project"
+                description="Start bringing your ideas to life with AI-powered video creation"
+                action={
                   <button
                     onClick={handleCreateProject}
                     className={cn(
@@ -598,8 +589,8 @@ export default function Home() {
                   >
                     Create Project
                   </button>
-                </div>
-              </div>
+                }
+              />
             ) : viewMode === 'list' ? (
               <ProjectListView
                 projects={filteredProjects}
