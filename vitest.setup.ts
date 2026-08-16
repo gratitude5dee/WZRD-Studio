@@ -39,3 +39,17 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
     disconnect() {}
   } as any;
 }
+
+if (typeof globalThis.IntersectionObserver === 'undefined') {
+  globalThis.IntersectionObserver = class {
+    readonly root = null;
+    readonly rootMargin = '';
+    readonly thresholds: readonly number[] = [];
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() {
+      return [];
+    }
+  } as any;
+}

@@ -2,6 +2,15 @@ import { expect, test, type Page } from "@playwright/test";
 
 const landingSectionIds = ["top", "studio", "zap", "earth", "air", "coming-soon", "enter"] as const;
 
+const bubbleMenuItems = [
+  ["air", "#air"],
+  ["studio", "#studio"],
+  ["earth", "#earth"],
+  ["zap", "https://zap.wzrd.tech"],
+  ["fire+water", "#coming-soon"],
+  ["enter studio", "/login?next=%2Fkanvas"],
+] as const;
+
 function installConsoleGuards(page: Page) {
   const failures: string[] = [];
 
@@ -24,15 +33,22 @@ function installConsoleGuards(page: Page) {
   };
 }
 
-test("renders the native WZRD landing in its editorial source order", async ({ page }) => {
+// The landing renders on the server, so its controls only respond once the
+// client effects have run and injected the atmosphere engine.
+async function waitForLandingHydration(page: Page) {
+  await expect(page.locator("script[data-creator-os-fx]")).toHaveCount(2);
+}
+
+test("renders the canonical WZRD Creator OS design natively in its source order", async ({ page }) => {
   const assertNoPlatformUnsupported = installConsoleGuards(page);
 
   const response = await page.goto("/", { waitUntil: "domcontentloaded" });
   expect(response?.status()).toBeLessThan(400);
 
   await expect(page.locator("iframe")).toHaveCount(0);
-  await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech Creator OS" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech" })).toBeAttached();
   await expect(page.getByRole("link", { name: "WZRD.tech home" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Toggle navigation" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Make the next signal/i })).toHaveAttribute(
     "href",
     "/login?next=%2Fkanvas",
@@ -49,33 +65,34 @@ test("renders the native WZRD landing in its editorial source order", async ({ p
 
   await expect(page.getByRole("heading", { name: "Make the cut without leaving the conversation." })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Enter the Creative Universe." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Zap is the recipe runtime behind every release." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fire and Water." })).toBeVisible();
   expect(await page.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
 
   assertNoPlatformUnsupported();
 });
 
-test("keeps the native mobile menu focus-managed and routes Studio safely", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test("keeps the supplied bubble navigation while routing Zap externally", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
+  await waitForLandingHydration(page);
 
-  const menuButton = page.getByRole("button", { name: "Open navigation" });
-  await menuButton.click();
-  const drawer = page.getByRole("navigation", { name: "Creator OS chapters" });
-  await expect(drawer).toBeVisible();
-  await expect(drawer.getByRole("link", { name: "enter studio" })).toHaveAttribute(
-    "href",
-    "/login?next=%2Fkanvas",
-  );
-  await page.keyboard.press("Escape");
-  await expect(drawer).toBeHidden();
-  await expect(menuButton).toBeFocused();
+  await page.getByRole("button", { name: "Toggle navigation" }).click();
+
+  for (const [label, href] of bubbleMenuItems) {
+    const link = page.getByRole("link", { exact: true, name: label });
+    await expect(link).toHaveAttribute("href", href);
+
+    if (href.startsWith("https://")) {
+      await expect(link).toHaveAttribute("target", "_top");
+    }
+  }
 });
 
-test("retains the native landing without root overflow", async ({ page }) => {
+test("retains the canonical responsive runtime without root overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/", { waitUntil: "domcontentloaded" });
 
-  await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech Creator OS" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech" })).toBeAttached();
   await expect(page.getByRole("link", { name: /Make the next signal/i })).toBeVisible();
   expect(await page.locator("html").evaluate((element) => element.scrollWidth <= window.innerWidth)).toBe(true);
 });

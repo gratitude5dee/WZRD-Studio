@@ -50,7 +50,7 @@ test("reopens the native public landing offline after its first production load"
 }) => {
   await page.goto("/", { waitUntil: "networkidle" });
   await expect(page.locator("iframe")).toHaveCount(0);
-  await expect(page.getByRole("heading", { level: 1, name: "Build the world around the record." })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech" })).toBeAttached();
 
   const scope = await page.evaluate(async () => {
     const registration = await navigator.serviceWorker.ready;
@@ -65,8 +65,8 @@ test("reopens the native public landing offline after its first production load"
   await context.setOffline(true);
   await page.reload({ waitUntil: "domcontentloaded" });
 
-  await expect(page.getByRole("heading", { level: 1, name: "Build the world around the record." })).toBeVisible();
-  await expect(page.locator("[data-static-atmosphere]")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "WZRD.tech" })).toBeAttached();
+  await expect(page.locator("section#studio")).toBeAttached();
 
   await context.setOffline(false);
 });
