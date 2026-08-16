@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import CreatorOSLanding from '@/components/creator-os/CreatorOSLanding';
@@ -44,6 +44,32 @@ describe('CreatorOSLanding', () => {
 
     expect(toggle).toHaveTextContent('off');
     expect(root.dataset.fxMode).toBe('off');
+  });
+
+  it('keeps a still hero screenshot once motion is off', () => {
+    const { container } = render(<CreatorOSLanding />);
+
+    expect(container.querySelector('img[src="/creator-os/devices-trimmed.png"]')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Toggle motion' }));
+
+    expect(container.querySelector('img[src="/creator-os/devices-trimmed.png"]')).toBeInTheDocument();
+  });
+
+  it('closes the navigation overlay on Escape and returns focus to the hamburger', async () => {
+    render(<CreatorOSLanding />);
+
+    const hamburger = screen.getByRole('button', { name: 'Toggle navigation' });
+    fireEvent.click(hamburger);
+
+    const dialog = screen.getByRole('dialog', { name: 'Creator OS chapters' });
+    expect(dialog).toHaveAttribute('aria-modal', 'true');
+    await waitFor(() => expect(screen.getByRole('link', { name: 'air' })).toHaveFocus());
+
+    fireEvent.keyDown(document, { key: 'Escape' });
+
+    expect(dialog).not.toHaveAttribute('aria-modal');
+    expect(hamburger).toHaveFocus();
   });
 
   it('expands the Fire and Water disclosure cards on click and keyboard', () => {

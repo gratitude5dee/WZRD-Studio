@@ -198,7 +198,16 @@ function loadScriptOnce(src: string): Promise<void> {
       },
       { once: true },
     );
-    script.addEventListener("error", () => reject(new Error(`failed to load ${src}`)), { once: true });
+    script.addEventListener(
+      "error",
+      () => {
+        // Drop the dead tag so a later mount re-attempts the fetch instead of
+        // waiting forever on events that can no longer fire.
+        script.remove();
+        reject(new Error(`failed to load ${src}`));
+      },
+      { once: true },
+    );
     document.head.appendChild(script);
   });
 }
@@ -381,6 +390,8 @@ export default function CreatorOSLanding() {
   const [fxEngineDown, setFxEngineDown] = useState(false);
   const [motionOn, setMotionOn] = useState(true);
   const [bubbleOpen, setBubbleOpen] = useState(false);
+  const bubbleMenuRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [navHover, setNavHover] = useState(false);
   const [logoHover, setLogoHover] = useState(false);
 
@@ -396,6 +407,61 @@ export default function CreatorOSLanding() {
   const motionLabel = reduced ? "reduced" : motionOn ? "on" : "off";
 
   const closeBubbleMenu = useCallback(() => setBubbleOpen(false), []);
+
+  // The open menu is a modal surface: focus enters it, Tab cycles inside it,
+  // and Escape returns focus to the hamburger.
+  useEffect(() => {
+    if (!bubbleOpen) return;
+
+    const overlay = bubbleMenuRef.current;
+    // The overlay transitions out of `visibility: hidden`, and a hidden element
+    // refuses focus — so keep asking until the fade actually makes it focusable.
+    let focusFrame = 0;
+    let attempts = 0;
+    const claimFocus = () => {
+      const first = overlay?.querySelector<HTMLAnchorElement>("a[href]");
+      if (!first) return;
+      first.focus();
+      attempts += 1;
+      if (document.activeElement !== first && attempts < 40)
+        focusFrame = requestAnimationFrame(claimFocus);
+    };
+    focusFrame = requestAnimationFrame(claimFocus);
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setBubbleOpen(false);
+        menuButtonRef.current?.focus();
+
+        return;
+      }
+
+      if (event.key !== "Tab" || !overlay) return;
+      const links = Array.from(overlay.querySelectorAll<HTMLAnchorElement>("a[href]"));
+      if (links.length === 0) return;
+
+      const first = links[0];
+      const last = links[links.length - 1];
+      const active = document.activeElement;
+      const outside = !active || !overlay.contains(active);
+
+      if (event.shiftKey && (outside || active === first)) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && (outside || active === last)) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [bubbleOpen]);
 
   // gl-matrix must be evaluated before fx.js — the Earth wheel reads it as a global.
   useEffect(() => {
@@ -787,10 +853,11 @@ export default function CreatorOSLanding() {
     };
   }, [fxReady]);
 
-  // Fire + Water loop: hydrate the source only as its section approaches.
+  // Fire + Water loop: hydrate the source only as its section approaches, and
+  // only while motion is allowed — otherwise the poster carries the panel.
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || video.getAttribute("src")) return;
+    if (!video || !motionAllowed || video.getAttribute("src")) return;
 
     const load = () => {
       if (video.getAttribute("src")) return;
@@ -816,7 +883,15 @@ export default function CreatorOSLanding() {
     observer.observe(video);
 
     return () => observer.disconnect();
-  }, []);
+  }, [motionAllowed]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !video.getAttribute("src")) return;
+
+    if (motionAllowed) void video.play().catch(() => undefined);
+    else video.pause();
+  }, [motionAllowed]);
 
   const bubbleScale = bubbleOpen ? 1 : 0;
   const motionShown = navHover || hoverless;
@@ -898,10 +973,12 @@ export default function CreatorOSLanding() {
             {motionLabel}
           </button>
           <button
+            aria-expanded={bubbleOpen}
             aria-label="Toggle navigation"
             aria-pressed={bubbleOpen}
             className={styles.menuButton}
             onClick={() => setBubbleOpen((value) => !value)}
+            ref={menuButtonRef}
             style={css(
               "position:absolute;top:0;right:0;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;width:clamp(2.8rem,9vw,3.15rem);height:clamp(2.8rem,9vw,3.15rem);border-radius:50%;border:1px solid rgba(255,255,255,0.14);background:rgba(12,11,16,0.62);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);box-shadow:0 0.5rem 1.3rem rgba(2,5,10,0.4),inset 0 1px 0 rgba(255,255,255,0.08);cursor:pointer;z-index:2;transition:transform 260ms cubic-bezier(0.34,1.56,0.64,1),box-shadow 200ms ease",
             )}
@@ -935,6 +1012,10 @@ export default function CreatorOSLanding() {
       {/* ============ BUBBLE MENU OVERLAY ============ */}
       <div
         aria-hidden={!bubbleOpen}
+        aria-label="Creator OS chapters"
+        aria-modal={bubbleOpen || undefined}
+        ref={bubbleMenuRef}
+        role="dialog"
         style={{
           ...css(
             "position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;overflow-y:auto;overscroll-behavior:contain;padding:clamp(5.5rem,17vw,6rem) clamp(1.15rem,4.5vw,1.7rem) 2rem;background:rgba(5,7,10,0.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:opacity 320ms ease,visibility 320ms ease",
@@ -1133,6 +1214,15 @@ export default function CreatorOSLanding() {
                   "position:relative;width:100%;max-width:52rem;margin:0 auto;aspect-ratio:575/322;isolation:isolate",
                 )}
               >
+                {fxModeAttr === "off" || fxEngineDown ? (
+                  // wz-griddistort hides its canvas in `off` mode and never boots
+                  // without WebGL2, so keep a still of the same art in the slot.
+                  <img
+                    alt="WZRD Creator OS running across desktop, tablet, and phone"
+                    src="/creator-os/devices-trimmed.png"
+                    style={css("position:absolute;inset:0;width:100%;height:100%;object-fit:contain")}
+                  />
+                ) : null}
                 <wz-griddistort
                   mode={fxModeAttr}
                   radius="0.22"
