@@ -8,8 +8,8 @@ import styles from "./CreatorOSLanding.module.css";
 
 /**
  * Native React port of the canonical "WZRD CREATOR OS — STANDALONE SOURCE"
- * landing page. Section order is fixed: top → studio → zap → earth → air →
- * coming-soon → enter. The WebGL atmosphere is the bundle's own `fx.js`
+ * landing page. Section order is fixed: top → creator OS → air → studio → zap →
+ * earth → coming-soon → enter. The WebGL atmosphere is the bundle's own `fx.js`
  * custom-element engine, served from `/creator-os/`.
  */
 const STUDIO_URL = "https://studio.wzrd.tech";
@@ -403,6 +403,7 @@ export default function CreatorOSLanding() {
   const baseMode = calmViewport ? "calm" : "full";
   const fxModeAttr = motionAllowed ? baseMode : "off";
   const motionLabel = reduced ? "reduced" : motionOn ? "on" : "off";
+  const creatorCinematic = motionAllowed && !calmViewport;
 
   const closeBubbleMenu = useCallback(() => setBubbleOpen(false), []);
 
@@ -530,6 +531,107 @@ export default function CreatorOSLanding() {
 
     return () => observer.disconnect();
   }, [motionAllowed]);
+
+  // The cloud chapter is a four-beat scroll composition on desktop. It uses
+  // transforms and opacity only, while smaller screens retain a natural,
+  // non-pinned reading path.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+
+    const sequence = root.querySelector<HTMLElement>("[data-creator-sequence]");
+    const stages = Array.from(root.querySelectorAll<HTMLElement>("[data-creator-stage]"));
+    const cue = root.querySelector<HTMLElement>("[data-creator-progress-cue]");
+    if (!sequence || stages.length === 0) return;
+
+    const reset = () => {
+      stages.forEach((stage) => {
+        stage.style.transition = "";
+        stage.style.opacity = "";
+        stage.style.transform = "";
+      });
+      if (cue) cue.style.opacity = "";
+    };
+
+    if (!motionAllowed) {
+      reset();
+      return;
+    }
+
+    if (calmViewport) {
+      stages.forEach((stage) => {
+        stage.style.opacity = "0";
+        stage.style.transform = "translateY(1.5rem)";
+      });
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            const stage = entry.target as HTMLElement;
+            observer.unobserve(stage);
+            requestAnimationFrame(() => {
+              stage.style.transition = "opacity 700ms cubic-bezier(0.22, 1, 0.36, 1), transform 700ms cubic-bezier(0.22, 1, 0.36, 1)";
+              stage.style.opacity = "1";
+              stage.style.transform = "translateY(0)";
+            });
+          });
+        },
+        { rootMargin: "0px 0px -12%", threshold: 0.1 },
+      );
+      stages.forEach((stage) => observer.observe(stage));
+
+      return () => {
+        observer.disconnect();
+        reset();
+      };
+    }
+
+    const clamp = (value: number) => Math.max(0, Math.min(1, value));
+    const ramp = (value: number, start: number, end: number) => clamp((value - start) / (end - start));
+    const visibility = (value: number, inStart: number, inEnd: number, outStart: number, outEnd: number) =>
+      ramp(value, inStart, inEnd) * (outStart === outEnd ? 1 : 1 - ramp(value, outStart, outEnd));
+    const beats: Record<string, [number, number, number, number]> = {
+      wordmark: [0, 0.1, 0.25, 0.37],
+      title: [0.2, 0.32, 0.48, 0.6],
+      statement: [0.44, 0.56, 0.7, 0.82],
+      final: [0.68, 0.82, 1, 1],
+    };
+
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const rect = sequence.getBoundingClientRect();
+      const distance = Math.max(1, sequence.offsetHeight - window.innerHeight);
+      const progress = clamp(-rect.top / distance);
+
+      stages.forEach((stage) => {
+        const beat = beats[stage.dataset.creatorStage || ""];
+        if (!beat) return;
+        const opacity = visibility(progress, ...beat);
+        const direction = stage.dataset.creatorStage === "final" ? 2.25 : 1.5;
+        stage.style.transition = "none";
+        stage.style.opacity = opacity.toFixed(3);
+        stage.style.transform = `translate3d(0, ${(1 - opacity) * direction}rem, 0) scale(${(0.975 + opacity * 0.025).toFixed(3)})`;
+      });
+
+      if (cue) cue.style.opacity = (1 - ramp(progress, 0.02, 0.18)).toFixed(3);
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      cancelAnimationFrame(frame);
+      reset();
+    };
+  }, [calmViewport, motionAllowed]);
 
   // Studio mock: scroll-scrubs the illustrative timeline.
   useEffect(() => {
@@ -898,15 +1000,13 @@ export default function CreatorOSLanding() {
         {/* ============ CREATOR OS / CLOUD + DEVICES ============ */}
         <section
           aria-labelledby="creator-os-title"
+          className={styles.creatorSequence}
+          data-cinematic={creatorCinematic ? "true" : "false"}
+          data-creator-sequence=""
           data-screen-label="Creator OS"
           id="creator-os"
-          style={css("position:relative;background:#071124")}
         >
-          <div
-            style={css(
-              "position:relative;min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;isolation:isolate;padding:5.5rem clamp(1.15rem,4.5vw,1.7rem) 2.25rem",
-            )}
-          >
+          <div className={styles.creatorSticky}>
             <div
               aria-hidden="true"
               style={css(
@@ -952,105 +1052,261 @@ export default function CreatorOSLanding() {
               >
                 LAT 34.0224° N
               </span>
-              <span
-                style={css(
-                  `position:absolute;left:0.75rem;bottom:0.75rem;color:rgba(220,230,242,0.72);font-family:${MONO};font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase`,
-                )}
-              >
-                ALT +∞
-              </span>
             </div>
 
-            <div style={css("position:relative;z-index:3;margin:0 auto;max-width:75rem;width:100%;text-align:center")}>
-              <p
-                style={css(
-                  `font-family:${MONO};font-size:clamp(0.75rem,0.76vw,0.95rem);letter-spacing:0.12em;text-transform:uppercase;color:rgba(220,230,242,0.86);margin:0 0 1.35rem`,
-                )}
-              >
-                A creator operating system
-              </p>
-              <div style={css("position:relative;margin:0 auto;width:min(88vw,50rem);max-width:min(88vw,50rem)")}>
+            <div className={`${styles.creatorStage} ${styles.creatorWordmark}`} data-creator-stage="wordmark">
+              <div className={styles.creatorWordmarkInner}>
                 <img
                   alt="WZRD.tech"
                   height={396}
                   src={WORDMARK}
-                  style={css("display:block;width:100%;height:auto;filter:drop-shadow(0 1.7rem 1.8rem rgba(2,10,25,0.28))")}
                   width={1600}
                 />
               </div>
+            </div>
+
+            <div className={styles.creatorStage} data-creator-stage="title">
               <h2
                 id="creator-os-title"
-                style={css(
-                  "position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#f1ebdd;font-size:clamp(2.2rem,7.4vw,7.2rem);font-weight:400;letter-spacing:-0.03em;line-height:0.98;margin:clamp(1.5rem,4vw,3.25rem) auto 0;max-width:44rem",
-                )}
+                className={styles.creatorTitle}
               >
                 <span>Creative</span>
                 <span>Infrastructure</span>
               </h2>
-              <p
-                style={css(
-                  "color:#f8f5ec;text-shadow:0 1px 2px rgba(2,8,20,0.85),0 0.5rem 1.6rem rgba(2,8,20,0.6);font-size:clamp(1.05rem,1.5vw,1.3rem);line-height:1.5;margin:1.8rem auto 1.7rem;max-width:34rem",
-                )}
-              >
-                Building digital and physical generative media studio to create, distribute, and monetize across all
-                channels on one platform.
+            </div>
+
+            <div className={styles.creatorStage} data-creator-stage="statement">
+              <p className={styles.creatorStatement}>
+                A single operating system for the artists, studios, and intelligent tools shaping what comes next.
               </p>
             </div>
 
-            <div style={css("position:relative;z-index:5;margin:3rem auto 0;text-align:center")}>
-              <p
-                style={css(
-                  `color:#8cc8ff;font-family:${MONO};font-size:clamp(0.75rem,0.76vw,0.95rem);letter-spacing:0.12em;text-transform:uppercase;margin:0 0 1.1rem`,
-                )}
-              >
-                An Attention Engine
-              </p>
-              <p
-                style={css(
-                  "font-size:clamp(1.75rem,3.6vw,3.4rem);font-weight:400;letter-spacing:-0.055em;line-height:0.98;margin:0 auto 2rem;max-width:38rem;color:#f1ebdd",
-                )}
-              >
-                Your unified creative infrastructure to take action across models, applications, and integrations.
-              </p>
-              <div
-                style={css(
-                  "position:relative;width:100%;max-width:52rem;margin:0 auto;aspect-ratio:575/322;isolation:isolate",
-                )}
-              >
-                {fxModeAttr === "off" || fxEngineDown ? (
-                  <img
-                    alt="WZRD Creator OS running across desktop, tablet, and phone"
+            <div className={`${styles.creatorStage} ${styles.creatorFinal}`} data-creator-stage="final">
+              <div className={styles.creatorFinalInner}>
+                <p className={styles.creatorAttention}>An Attention Engine</p>
+                <p className={styles.creatorUnified}>
+                  Your unified creative infrastructure to take action across models, applications, and integrations.
+                </p>
+                <div className={styles.creatorDevices}>
+                  {fxModeAttr === "off" || fxEngineDown ? (
+                    <img
+                      alt="WZRD Creator OS running across desktop, tablet, and phone"
+                      src="/creator-os/devices-trimmed.png"
+                    />
+                  ) : null}
+                  <wz-griddistort
+                    mode={fxModeAttr}
+                    radius="0.22"
+                    relax="0.9"
                     src="/creator-os/devices-trimmed.png"
-                    style={css("position:absolute;inset:0;width:100%;height:100%;object-fit:contain")}
+                    strength="0.6"
                   />
-                ) : null}
-                <wz-griddistort
-                  mode={fxModeAttr}
-                  radius="0.22"
-                  relax="0.9"
-                  src="/creator-os/devices-trimmed.png"
-                  strength="0.6"
-                  style={css("position:absolute;inset:0;display:block")}
-                />
+                </div>
               </div>
             </div>
 
             <div
               aria-hidden="true"
-              style={css(
-                `position:absolute;bottom:3.4rem;left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:0.75rem;white-space:nowrap;color:rgba(220,230,242,0.7);font-family:${MONO};font-size:0.54rem;letter-spacing:0.08em;text-transform:uppercase`,
-              )}
+              className={styles.creatorProgressCue}
+              data-creator-progress-cue=""
             >
               <span>Explore the creator OS</span>
-              <span style={css("width:3.25rem;height:1px;background:currentColor;opacity:0.58")} />
             </div>
           </div>
         </section>
 
-        {/* ============ 01 / STUDIO ============ */}
+        {/* ============ 01 / AIR ============ */}
+        <section
+          aria-labelledby="air-title"
+          className={styles.air}
+          data-screen-label="01 Air"
+          id="air"
+          style={css(`${SECTION_SHELL};background:linear-gradient(135deg, #071a39 0%, #0b356f 45%, #07172e 100%)`)}
+        >
+          <wz-dither
+            amp="0.32"
+            color="#7db8ff"
+            freq="2.6"
+            levels="4"
+            mode={fxModeAttr}
+            pixel="2.5"
+            speed="0.055"
+            style={css(
+              "position:absolute;inset:0;z-index:0;opacity:0.42;mix-blend-mode:screen;pointer-events:none;display:block",
+            )}
+          />
+          <div data-reveal="" style={css(SECTION_META)}>
+            <span>01 / Air</span>
+            <span>Intent, received</span>
+          </div>
+          <div
+            style={css(
+              "position:relative;z-index:1;display:grid;align-items:center;gap:clamp(3rem,9vw,10rem);grid-template-columns:repeat(auto-fit,minmax(min(100%,21rem),1fr));margin:0 auto;max-width:71rem",
+            )}
+          >
+            <header data-reveal="" style={css("max-width:36rem")}>
+              <p style={css(`color:#8cc8ff;${SECTION_KICKER}`)}>Air powered by Zaps, your creative assistant</p>
+              <h2 id="air-title" style={css(SECTION_TITLE)}>
+                Air by WZRD Tech is your creative assistant that lives in your iMessages.
+              </h2>
+              <p style={css(`color:rgba(241,235,221,0.74);${SECTION_LEDE}`)}>
+                A messages-native creative agent that hears the cue, asks the one question that matters, and turns the
+                answer into momentum.
+              </p>
+              <a
+                className={styles.airLink}
+                href={AIR_URL}
+                style={css(
+                  `display:inline-flex;align-items:center;gap:0.6rem;border-bottom:1px solid rgba(241,235,221,0.55);color:#f1ebdd;font-family:${MONO};font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:2.1rem;min-height:44px;padding-bottom:0.55rem;transition:color 160ms ease`,
+                )}
+              >
+                Access Air via iMessage <span aria-hidden="true">↓</span>
+              </a>
+            </header>
+            <article
+              aria-label="A sample Air conversation"
+              data-reveal=""
+              style={css(
+                "background:rgba(4,16,35,0.62);border:1px solid rgba(219,237,255,0.35);box-shadow:1.2rem 1.2rem 0 rgba(3,11,26,0.22);padding:1rem;transform:rotate(1.2deg)",
+              )}
+            >
+              <div
+                style={css(
+                  `display:flex;align-items:center;gap:0.65rem;border-bottom:1px solid rgba(219,237,255,0.16);padding:0.1rem 0.1rem 0.85rem;font-family:${MONO}`,
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  style={css(
+                    "display:inline-flex;align-items:center;justify-content:center;width:1.85rem;height:1.85rem;border-radius:50%;background:#0a84ff;color:#fff;font-size:0.73rem;font-weight:800",
+                  )}
+                >
+                  W
+                </span>
+                <div>
+                  <strong style={css("display:block;font-size:0.82rem;letter-spacing:0.03em")}>Air</strong>
+                  <small style={css("display:block;color:rgba(220,230,242,0.62);font-size:0.75rem;margin-top:0.16rem")}>
+                    creative agent
+                  </small>
+                </div>
+                <span
+                  className={styles.pulse}
+                  style={css("margin-left:auto;padding-right:0.1rem;color:#0a84ff;font-size:0.75rem")}
+                >
+                  available
+                </span>
+              </div>
+              <p
+                style={css(
+                  `color:rgba(220,230,242,0.58);font-family:${MONO};font-size:0.68rem;letter-spacing:0.08em;line-height:1.35;text-transform:uppercase;margin:0.95rem 0.1rem -0.25rem`,
+                )}
+              >
+                Prototype transcript · fictional, consent-safe
+              </p>
+              <div role="list" style={css("display:flex;flex-direction:column;gap:0.5rem;padding:1rem 0.1rem")}>
+                <div data-reveal="" data-reveal-dir="right" data-stagger="0" role="listitem" style={css(MESSAGE_OUT)}>
+                  <b style={css("color:#cfe6ff;font-weight:700")}>/imagine</b> Four shots. Night city. No rush.
+                  <span aria-hidden="true" style={css(MESSAGE_META)}>
+                    Sent
+                  </span>
+                </div>
+                <div
+                  aria-label="Air is imagining"
+                  data-reveal=""
+                  data-reveal-dir="left"
+                  data-stagger="1"
+                  role="listitem"
+                  style={css(MESSAGE_TYPING)}
+                >
+                  <span aria-hidden="true" style={css("display:inline-flex;gap:0.22rem")}>
+                    <i className={styles.typingDot} />
+                    <i className={styles.typingDot} />
+                    <i className={styles.typingDot} />
+                  </span>
+                  Imagining…
+                </div>
+                <div data-reveal="" data-reveal-dir="left" data-stagger="2" role="listitem" style={css(MESSAGE_IN)}>
+                  I hear a quiet opener, a bright interruption, then room for the last beat.
+                  <span
+                    aria-hidden="true"
+                    style={css(
+                      "display:block;color:rgba(220,230,242,0.7);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.4rem",
+                    )}
+                  >
+                    Working
+                  </span>
+                </div>
+                <div data-reveal="" data-reveal-dir="right" data-stagger="3" role="listitem" style={css(MESSAGE_OUT)}>
+                  <b style={css("color:#cfe6ff;font-weight:700")}>/director</b> Keep the last beat quiet.
+                  <span aria-hidden="true" style={css(MESSAGE_META)}>
+                    Approved
+                  </span>
+                </div>
+                <div
+                  aria-label="Air is directing"
+                  data-reveal=""
+                  data-reveal-dir="left"
+                  data-stagger="4"
+                  role="listitem"
+                  style={css(MESSAGE_TYPING)}
+                >
+                  <span aria-hidden="true" style={css("display:inline-flex;gap:0.22rem")}>
+                    <i className={styles.typingDot} />
+                    <i className={styles.typingDot} />
+                    <i className={styles.typingDot} />
+                  </span>
+                  Directing…
+                </div>
+                <div data-reveal="" data-reveal-dir="right" data-stagger="5" role="listitem" style={css(MESSAGE_OUT)}>
+                  <b style={css("color:#cfe6ff;font-weight:700")}>/create</b> release packet.
+                  <span aria-hidden="true" style={css(MESSAGE_META)}>
+                    Sent
+                  </span>
+                </div>
+                <div
+                  data-reveal=""
+                  data-reveal-dir="left"
+                  data-stagger="6"
+                  role="listitem"
+                  style={css(
+                    `align-self:flex-start;width:min(88%,29rem);background:rgba(9,27,57,0.65);border-left:2px solid #0a84ff;color:rgba(220,230,242,0.88);border-radius:0 1.15rem 1.15rem 1.15rem;${MESSAGE_BASE}`,
+                  )}
+                >
+                  Locked. I’ll carry the silence into the cut sheet.
+                  <span
+                    aria-hidden="true"
+                    style={css(
+                      "display:block;color:rgba(220,230,242,0.7);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.4rem",
+                    )}
+                  >
+                    Delivered
+                  </span>
+                </div>
+              </div>
+              <div
+                style={css(
+                  `display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(219,237,255,0.16);color:rgba(220,230,242,0.52);font-family:${MONO};font-size:0.66rem;text-transform:uppercase;letter-spacing:0.08em;padding:0.85rem 0.1rem 0.08rem`,
+                )}
+              >
+                <span>Send a thought</span>
+                <b
+                  aria-hidden="true"
+                  style={css(
+                    "display:inline-flex;align-items:center;justify-content:center;width:1.5rem;height:1.5rem;border:1px solid rgba(219,237,255,0.36);color:#f1ebdd;font-size:0.8rem;font-weight:400",
+                  )}
+                >
+                  ↑
+                </b>
+              </div>
+            </article>
+          </div>
+        </section>
+
+
+        {/* ============ 02 / STUDIO ============ */}
         <section
           aria-labelledby="studio-title"
-          data-screen-label="01 Studio"
+          data-screen-label="02 Studio"
           id="studio"
           style={css(`${SECTION_SHELL};background:#171311;color:#f1ebdd;display:flex;flex-direction:column`)}
         >
@@ -1070,7 +1326,7 @@ export default function CreatorOSLanding() {
             wash="rgba(224,155,93,0.14)"
           />
           <div data-reveal="" style={css(SECTION_META)}>
-            <span>01 / Studio</span>
+            <span>02 / Studio</span>
             <span>A Generative Media Studio, in your pocket</span>
           </div>
           <div
@@ -1321,10 +1577,10 @@ export default function CreatorOSLanding() {
           </ol>
         </section>
 
-        {/* ============ 02 / ZAP ============ */}
+        {/* ============ 03 / ZAP ============ */}
         <section
           aria-labelledby="zap-title"
-          data-screen-label="02 Zap"
+          data-screen-label="03 Zap"
           id="zap"
           style={css(`${SECTION_SHELL};background:#070809`)}
         >
@@ -1350,7 +1606,7 @@ export default function CreatorOSLanding() {
             )}
           />
           <div data-reveal="" style={css(SECTION_META)}>
-            <span>02 / Zap</span>
+            <span>03 / Zap</span>
             <span>Agent Media Runtime</span>
           </div>
           <div
@@ -1439,10 +1695,10 @@ export default function CreatorOSLanding() {
           </div>
         </section>
 
-        {/* ============ 03 / EARTH ============ */}
+        {/* ============ 04 / EARTH ============ */}
         <section
           aria-labelledby="earth-title"
-          data-screen-label="03 Earth"
+          data-screen-label="04 Earth"
           id="earth"
           style={css(
             "position:relative;min-height:100svh;height:100svh;overflow:hidden;background:linear-gradient(112deg, #152e25 0%, #0c201b 48%, #111d17 100%);scroll-margin-top:4rem",
@@ -1481,7 +1737,7 @@ export default function CreatorOSLanding() {
               `position:absolute;top:0;left:0;right:0;z-index:2;display:flex;justify-content:space-between;gap:1rem;color:rgba(241,235,221,0.55);font-family:${MONO};font-size:clamp(0.75rem,0.76vw,0.95rem);letter-spacing:0.12em;text-transform:uppercase;padding:clamp(2rem,4vw,3.25rem) max(1.7rem,calc((100vw - 75rem) / 2)) 0;pointer-events:none`,
             )}
           >
-            <span>03 / Earth</span>
+            <span>04 / Earth</span>
             <span>Artist discovery</span>
           </div>
           <div
@@ -1532,193 +1788,6 @@ export default function CreatorOSLanding() {
                 Access Earth Tones <span aria-hidden="true">↓</span>
               </a>
             </aside>
-          </div>
-        </section>
-
-        {/* ============ 04 / AIR ============ */}
-        <section
-          aria-labelledby="air-title"
-          className={styles.air}
-          data-screen-label="04 Air"
-          id="air"
-          style={css(`${SECTION_SHELL};background:linear-gradient(135deg, #071a39 0%, #0b356f 45%, #07172e 100%)`)}
-        >
-          <wz-dither
-            amp="0.32"
-            color="#7db8ff"
-            freq="2.6"
-            levels="4"
-            mode={fxModeAttr}
-            pixel="2.5"
-            speed="0.055"
-            style={css(
-              "position:absolute;inset:0;z-index:0;opacity:0.42;mix-blend-mode:screen;pointer-events:none;display:block",
-            )}
-          />
-          <div data-reveal="" style={css(SECTION_META)}>
-            <span>04 / Air</span>
-            <span>Intent, received</span>
-          </div>
-          <div
-            style={css(
-              "position:relative;z-index:1;display:grid;align-items:center;gap:clamp(3rem,9vw,10rem);grid-template-columns:repeat(auto-fit,minmax(min(100%,21rem),1fr));margin:0 auto;max-width:71rem",
-            )}
-          >
-            <header data-reveal="" style={css("max-width:36rem")}>
-              <p style={css(`color:#8cc8ff;${SECTION_KICKER}`)}>Air powered by Zaps, your creative assistant</p>
-              <h2 id="air-title" style={css(SECTION_TITLE)}>
-                Air by WZRD Tech is your creative assistant that lives in your iMessages.
-              </h2>
-              <p style={css(`color:rgba(241,235,221,0.74);${SECTION_LEDE}`)}>
-                A messages-native creative agent that hears the cue, asks the one question that matters, and turns the
-                answer into momentum.
-              </p>
-              <a
-                className={styles.airLink}
-                href="#coming-soon"
-                style={css(
-                  `display:inline-flex;align-items:center;gap:0.6rem;border-bottom:1px solid rgba(241,235,221,0.55);color:#f1ebdd;font-family:${MONO};font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:2.1rem;min-height:44px;padding-bottom:0.55rem;transition:color 160ms ease`,
-                )}
-              >
-                Access Air via iMessage <span aria-hidden="true">↓</span>
-              </a>
-            </header>
-            <article
-              aria-label="A sample Air conversation"
-              data-reveal=""
-              style={css(
-                "background:rgba(4,16,35,0.62);border:1px solid rgba(219,237,255,0.35);box-shadow:1.2rem 1.2rem 0 rgba(3,11,26,0.22);padding:1rem;transform:rotate(1.2deg)",
-              )}
-            >
-              <div
-                style={css(
-                  `display:flex;align-items:center;gap:0.65rem;border-bottom:1px solid rgba(219,237,255,0.16);padding:0.1rem 0.1rem 0.85rem;font-family:${MONO}`,
-                )}
-              >
-                <span
-                  aria-hidden="true"
-                  style={css(
-                    "display:inline-flex;align-items:center;justify-content:center;width:1.85rem;height:1.85rem;border-radius:50%;background:#0a84ff;color:#fff;font-size:0.73rem;font-weight:800",
-                  )}
-                >
-                  W
-                </span>
-                <div>
-                  <strong style={css("display:block;font-size:0.82rem;letter-spacing:0.03em")}>Air</strong>
-                  <small style={css("display:block;color:rgba(220,230,242,0.62);font-size:0.75rem;margin-top:0.16rem")}>
-                    creative agent
-                  </small>
-                </div>
-                <span
-                  className={styles.pulse}
-                  style={css("margin-left:auto;padding-right:0.1rem;color:#0a84ff;font-size:0.75rem")}
-                >
-                  available
-                </span>
-              </div>
-              <p
-                style={css(
-                  `color:rgba(220,230,242,0.58);font-family:${MONO};font-size:0.68rem;letter-spacing:0.08em;line-height:1.35;text-transform:uppercase;margin:0.95rem 0.1rem -0.25rem`,
-                )}
-              >
-                Prototype transcript · fictional, consent-safe
-              </p>
-              <div role="list" style={css("display:flex;flex-direction:column;gap:0.5rem;padding:1rem 0.1rem")}>
-                <div data-reveal="" data-reveal-dir="right" data-stagger="0" role="listitem" style={css(MESSAGE_OUT)}>
-                  <b style={css("color:#cfe6ff;font-weight:700")}>/imagine</b> Four shots. Night city. No rush.
-                  <span aria-hidden="true" style={css(MESSAGE_META)}>
-                    Sent
-                  </span>
-                </div>
-                <div
-                  aria-label="Air is imagining"
-                  data-reveal=""
-                  data-reveal-dir="left"
-                  data-stagger="1"
-                  role="listitem"
-                  style={css(MESSAGE_TYPING)}
-                >
-                  <span aria-hidden="true" style={css("display:inline-flex;gap:0.22rem")}>
-                    <i className={styles.typingDot} />
-                    <i className={styles.typingDot} />
-                    <i className={styles.typingDot} />
-                  </span>
-                  Imagining…
-                </div>
-                <div data-reveal="" data-reveal-dir="left" data-stagger="2" role="listitem" style={css(MESSAGE_IN)}>
-                  I hear a quiet opener, a bright interruption, then room for the last beat.
-                  <span
-                    aria-hidden="true"
-                    style={css(
-                      "display:block;color:rgba(220,230,242,0.7);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.4rem",
-                    )}
-                  >
-                    Working
-                  </span>
-                </div>
-                <div data-reveal="" data-reveal-dir="right" data-stagger="3" role="listitem" style={css(MESSAGE_OUT)}>
-                  <b style={css("color:#cfe6ff;font-weight:700")}>/director</b> Keep the last beat quiet.
-                  <span aria-hidden="true" style={css(MESSAGE_META)}>
-                    Approved
-                  </span>
-                </div>
-                <div
-                  aria-label="Air is directing"
-                  data-reveal=""
-                  data-reveal-dir="left"
-                  data-stagger="4"
-                  role="listitem"
-                  style={css(MESSAGE_TYPING)}
-                >
-                  <span aria-hidden="true" style={css("display:inline-flex;gap:0.22rem")}>
-                    <i className={styles.typingDot} />
-                    <i className={styles.typingDot} />
-                    <i className={styles.typingDot} />
-                  </span>
-                  Directing…
-                </div>
-                <div data-reveal="" data-reveal-dir="right" data-stagger="5" role="listitem" style={css(MESSAGE_OUT)}>
-                  <b style={css("color:#cfe6ff;font-weight:700")}>/create</b> release packet.
-                  <span aria-hidden="true" style={css(MESSAGE_META)}>
-                    Sent
-                  </span>
-                </div>
-                <div
-                  data-reveal=""
-                  data-reveal-dir="left"
-                  data-stagger="6"
-                  role="listitem"
-                  style={css(
-                    `align-self:flex-start;width:min(88%,29rem);background:rgba(9,27,57,0.65);border-left:2px solid #0a84ff;color:rgba(220,230,242,0.88);border-radius:0 1.15rem 1.15rem 1.15rem;${MESSAGE_BASE}`,
-                  )}
-                >
-                  Locked. I’ll carry the silence into the cut sheet.
-                  <span
-                    aria-hidden="true"
-                    style={css(
-                      "display:block;color:rgba(220,230,242,0.7);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.4rem",
-                    )}
-                  >
-                    Delivered
-                  </span>
-                </div>
-              </div>
-              <div
-                style={css(
-                  `display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(219,237,255,0.16);color:rgba(220,230,242,0.52);font-family:${MONO};font-size:0.66rem;text-transform:uppercase;letter-spacing:0.08em;padding:0.85rem 0.1rem 0.08rem`,
-                )}
-              >
-                <span>Send a thought</span>
-                <b
-                  aria-hidden="true"
-                  style={css(
-                    "display:inline-flex;align-items:center;justify-content:center;width:1.5rem;height:1.5rem;border:1px solid rgba(219,237,255,0.36);color:#f1ebdd;font-size:0.8rem;font-weight:400",
-                  )}
-                >
-                  ↑
-                </b>
-              </div>
-            </article>
           </div>
         </section>
 

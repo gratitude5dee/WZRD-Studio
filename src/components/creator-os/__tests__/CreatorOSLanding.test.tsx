@@ -3,16 +3,19 @@ import { describe, expect, it } from 'vitest';
 
 import CreatorOSLanding from '@/components/creator-os/CreatorOSLanding';
 
-const canonicalSectionIds = ['top', 'studio', 'zap', 'earth', 'air', 'coming-soon', 'enter'];
+const canonicalSectionIds = ['creator-os', 'air', 'studio', 'zap', 'earth', 'coming-soon', 'enter'];
 
 describe('CreatorOSLanding', () => {
-  it('renders the canonical hero natively, without the legacy iframe', () => {
+  it('renders the cloud narrative natively, without the legacy iframe', () => {
     const { container } = render(<CreatorOSLanding />);
 
-    expect(screen.getByRole('heading', { level: 1, name: 'WZRD.tech' })).toBeInTheDocument();
     expect(container.querySelector('iframe')).not.toBeInTheDocument();
-    expect(screen.getByText('A creator operating system')).toBeInTheDocument();
     expect(screen.getByText('Creative', { exact: true })).toBeInTheDocument();
+    expect(
+      screen.getByText('A single operating system for the artists, studios, and intelligent tools shaping what comes next.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Your unified creative infrastructure to take action across models, applications, and integrations.')).toBeInTheDocument();
+    expect(screen.queryByText('ALT +∞')).not.toBeInTheDocument();
   });
 
   it('keeps the canonical section order', () => {
@@ -22,14 +25,20 @@ describe('CreatorOSLanding', () => {
     expect(ids).toEqual(canonicalSectionIds);
   });
 
-  it('routes studio entry in-app and zap to its own subdomain', () => {
+  it('keeps the specified destination map and opens the Air CTA in this tab', () => {
     render(<CreatorOSLanding />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Toggle navigation' }));
 
-    expect(screen.getByRole('link', { name: 'enter studio' })).toHaveAttribute('href', '/login?next=%2Fkanvas');
+    expect(screen.getByRole('link', { name: 'air' })).toHaveAttribute('href', 'https://air.wzrd.tech');
+    expect(screen.getByRole('link', { name: 'studio' })).toHaveAttribute('href', '/about');
+    expect(screen.getByRole('link', { name: 'enter studio' })).toHaveAttribute('href', 'https://studio.wzrd.tech');
     expect(screen.getByRole('link', { name: 'zap' })).toHaveAttribute('href', 'https://zap.wzrd.tech');
-    expect(screen.getByRole('link', { name: /Make the next signal/ })).toHaveAttribute('href', '/login?next=%2Fkanvas');
+    expect(screen.getByRole('link', { name: /Make the next signal/ })).toHaveAttribute('href', 'https://studio.wzrd.tech');
+
+    const airCta = screen.getByRole('link', { name: /Access Air via iMessage/ });
+    expect(airCta).toHaveAttribute('href', 'https://air.wzrd.tech');
+    expect(airCta).not.toHaveAttribute('target');
   });
 
   it('switches the atmosphere between full motion and off', () => {

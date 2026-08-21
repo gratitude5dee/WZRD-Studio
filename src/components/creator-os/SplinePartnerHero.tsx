@@ -30,19 +30,12 @@ function PartnerSet({ hidden = false }: { hidden?: boolean }) {
 export default function SplinePartnerHero() {
   return (
     <section aria-label="WZRD.tech" className={styles.splineHero} id="top">
+      <h1 className={styles.visuallyHidden}>WZRD.tech</h1>
       <div aria-hidden="true" className={styles.splineLayer}>
         <Spline renderOnDemand={false} scene={SPLINE_SCENE} />
       </div>
 
       <div className={styles.splineWash} />
-
-      <div className={styles.splineHeroCopy}>
-        <p className={styles.splineEyebrow}>WZRD.tech / creator OS</p>
-        <h1>Creative infrastructure for the next signal.</h1>
-        <p>
-          A single operating system for the artists, studios, and intelligent tools shaping what comes next.
-        </p>
-      </div>
 
       <div aria-label="Technology ecosystem" className={styles.partnerRail}>
         <p>Built across the AI ecosystem</p>
