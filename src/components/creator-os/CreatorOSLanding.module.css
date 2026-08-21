@@ -422,7 +422,7 @@
   contain: layout paint style;
   pointer-events: none;
   touch-action: pan-y;
-  transform: translate(-40px, -50px) scale(1.035);
+  transform: translate(-40px, -60px) scale(1.035);
   transform-origin: center;
   will-change: transform;
   z-index: 0;

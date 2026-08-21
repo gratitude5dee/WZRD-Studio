@@ -8,12 +8,13 @@ import styles from "./CreatorOSLanding.module.css";
 
 /**
  * Native React port of the canonical "WZRD CREATOR OS — STANDALONE SOURCE"
- * landing page. Section order is fixed: top → creator OS → air → studio → zap →
+ * landing page. Section order is fixed: top → creator OS → air → zap → studio →
  * earth → coming-soon → enter. The WebGL atmosphere is the bundle's own `fx.js`
  * custom-element engine, served from `/creator-os/`.
  */
 const STUDIO_URL = "https://studio.wzrd.tech";
 const ZAP_URL = "https://zap.wzrd.tech";
+const ZAP_NPM_URL = "https://www.npmjs.com/package/@wzrdtech/zap";
 const AIR_URL = "https://air.wzrd.tech";
 const FIRE_WATER_URL = "https://wtr.wzrd.tech";
 const WHITEPAPER_URL = "https://joinopenstandard.com/";
@@ -93,6 +94,12 @@ const zapStages = [
     tags: ["--live", "GMI Cloud · fal"],
     title: "Mock, then live",
   },
+] as const;
+
+const zapNpmWins = [
+  { label: "Public release", value: "v0.3.1" },
+  { label: "Supply chain", value: "SLSA attested" },
+  { label: "Open source", value: "MIT" },
 ] as const;
 
 const dataCards = [
@@ -996,7 +1003,7 @@ export default function CreatorOSLanding() {
         </ul>
       </div>
 
-      <main>
+      <main style={css("display:flex;flex-direction:column")}>
         {/* ============ CREATOR OS / CLOUD + DEVICES ============ */}
         <section
           aria-labelledby="creator-os-title"
@@ -1005,6 +1012,7 @@ export default function CreatorOSLanding() {
           data-creator-sequence=""
           data-screen-label="Creator OS"
           id="creator-os"
+          style={css("order:0")}
         >
           <div className={styles.creatorSticky}>
             <div
@@ -1121,7 +1129,7 @@ export default function CreatorOSLanding() {
           className={styles.air}
           data-screen-label="01 Air"
           id="air"
-          style={css(`${SECTION_SHELL};background:linear-gradient(135deg, #071a39 0%, #0b356f 45%, #07172e 100%)`)}
+          style={css(`${SECTION_SHELL};background:linear-gradient(135deg, #071a39 0%, #0b356f 45%, #07172e 100%);order:1`)}
         >
           <wz-dither
             amp="0.32"
@@ -1303,12 +1311,12 @@ export default function CreatorOSLanding() {
         </section>
 
 
-        {/* ============ 02 / STUDIO ============ */}
+        {/* ============ 03 / STUDIO ============ */}
         <section
           aria-labelledby="studio-title"
-          data-screen-label="02 Studio"
+          data-screen-label="03 Studio"
           id="studio"
-          style={css(`${SECTION_SHELL};background:#171311;color:#f1ebdd;display:flex;flex-direction:column`)}
+          style={css(`${SECTION_SHELL};background:#171311;color:#f1ebdd;display:flex;flex-direction:column;order:3`)}
         >
           <div
             aria-hidden="true"
@@ -1326,7 +1334,7 @@ export default function CreatorOSLanding() {
             wash="rgba(224,155,93,0.14)"
           />
           <div data-reveal="" style={css(SECTION_META)}>
-            <span>02 / Studio</span>
+            <span>03 / Studio</span>
             <span>A Generative Media Studio, in your pocket</span>
           </div>
           <div
@@ -1577,12 +1585,12 @@ export default function CreatorOSLanding() {
           </ol>
         </section>
 
-        {/* ============ 03 / ZAP ============ */}
+        {/* ============ 02 / ZAP ============ */}
         <section
           aria-labelledby="zap-title"
-          data-screen-label="03 Zap"
+          data-screen-label="02 Zap"
           id="zap"
-          style={css(`${SECTION_SHELL};background:#070809`)}
+          style={css(`${SECTION_SHELL};background:#070809;order:2`)}
         >
           <div
             aria-hidden="true"
@@ -1606,8 +1614,8 @@ export default function CreatorOSLanding() {
             )}
           />
           <div data-reveal="" style={css(SECTION_META)}>
-            <span>03 / Zap</span>
-            <span>Agent Media Runtime</span>
+            <span>02 / Zap</span>
+            <span>Agent-first CLI / npm</span>
           </div>
           <div
             style={css(
@@ -1615,31 +1623,55 @@ export default function CreatorOSLanding() {
             )}
           >
             <header data-reveal="" style={css("max-width:36rem")}>
-              <p style={css(`color:#f06a47;${SECTION_KICKER}`)}>Agent media runtime · v0.3.0</p>
+              <p style={css(`color:#f06a47;${SECTION_KICKER}`)}>Now on npm · @wzrdtech/zap</p>
               <h2 id="zap-title" style={css(SECTION_TITLE)}>
-                Zap is the recipe runtime behind every release.
+                Zap makes every release a portable recipe.
               </h2>
               <p style={css(`color:rgba(241,235,221,0.74);${SECTION_LEDE}`)}>
-                File-first media recipes for agents, creators, and operators. Prompts, provider routes, budget caps, and
-                output shape stay inspectable — mock by default, live only when you say so.
+                An agent-first CLI for creating, validating, and running Zap recipes. Prompts, provider routes, budget
+                caps, and output shape stay inspectable — mock by default, live only when you say so.
               </p>
+              <ul
+                aria-label="@wzrdtech/zap npm package highlights"
+                style={css(
+                  `display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.65rem;list-style:none;margin:1.6rem 0 0;padding:0;max-width:31rem`,
+                )}
+              >
+                {zapNpmWins.map((win) => (
+                  <li
+                    key={win.label}
+                    style={css(
+                      `border-left:1px solid rgba(240,106,71,0.55);padding:0.1rem 0 0.1rem 0.65rem;font-family:${MONO}`,
+                    )}
+                  >
+                    <b style={css("display:block;color:#f1ebdd;font-size:0.82rem;font-weight:500;letter-spacing:0.025em")}>{win.value}</b>
+                    <span
+                      style={css(
+                        "display:block;color:rgba(241,235,221,0.48);font-size:0.58rem;letter-spacing:0.08em;line-height:1.3;margin-top:0.27rem;text-transform:uppercase",
+                      )}
+                    >
+                      {win.label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
               <p
                 style={css(
                   `color:rgba(241,235,221,0.58);font-family:${MONO};font-size:0.68rem;letter-spacing:0.08em;line-height:1.35;text-transform:uppercase;margin:1rem 0 0`,
                 )}
               >
-                Runtime spec · docs.zap.wzrd.tech
+                Public package · Node 24 · Agent media runtime
               </p>
               <a
                 className={styles.airLink}
-                href={ZAP_URL}
+                href={ZAP_NPM_URL}
                 rel="noopener"
                 style={css(
                   `display:inline-flex;align-items:center;gap:0.6rem;border-bottom:1px solid rgba(240,106,71,0.55);color:#f1ebdd;font-family:${MONO};font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:2.1rem;min-height:44px;padding-bottom:0.55rem;transition:color 160ms ease`,
                 )}
                 target="_top"
               >
-                Open Zap <span aria-hidden="true">↗</span>
+                View package on npm <span aria-hidden="true">↗</span>
               </a>
             </header>
             <ol
@@ -1701,7 +1733,7 @@ export default function CreatorOSLanding() {
           data-screen-label="04 Earth"
           id="earth"
           style={css(
-            "position:relative;min-height:100svh;height:100svh;overflow:hidden;background:linear-gradient(112deg, #152e25 0%, #0c201b 48%, #111d17 100%);scroll-margin-top:4rem",
+            "position:relative;min-height:100svh;height:100svh;overflow:hidden;background:linear-gradient(112deg, #152e25 0%, #0c201b 48%, #111d17 100%);scroll-margin-top:4rem;order:4",
           )}
         >
           <wz-prism
@@ -1798,7 +1830,7 @@ export default function CreatorOSLanding() {
           data-screen-label="05 Fire+Water"
           id="coming-soon"
           style={css(
-            "position:relative;min-height:32rem;overflow:hidden;padding:clamp(4.5rem,8vw,7rem) max(1.7rem,calc((100vw - 75rem) / 2)) clamp(4rem,7vw,6rem);background:#0e1114;scroll-margin-top:4rem",
+            "position:relative;min-height:32rem;overflow:hidden;padding:clamp(4.5rem,8vw,7rem) max(1.7rem,calc((100vw - 75rem) / 2)) clamp(4rem,7vw,6rem);background:#0e1114;scroll-margin-top:4rem;order:5",
           )}
         >
           <div data-reveal="" style={css(`${SECTION_META};margin-bottom:clamp(2.5rem,5vw,4.5rem)`)}>
@@ -1959,7 +1991,7 @@ export default function CreatorOSLanding() {
           data-screen-label="Closing"
           id="enter"
           style={css(
-            "position:relative;isolation:isolate;display:flex;align-items:center;min-height:clamp(14rem,22vw,20rem);overflow:hidden;background:radial-gradient(ellipse at 50% 42%, #0d1830 0%, #05070a 68%);padding:clamp(2rem,4vw,3.5rem) max(1.7rem,calc((100vw - 75rem) / 2))",
+            "position:relative;isolation:isolate;display:flex;align-items:center;min-height:clamp(14rem,22vw,20rem);overflow:hidden;background:radial-gradient(ellipse at 50% 42%, #0d1830 0%, #05070a 68%);padding:clamp(2rem,4vw,3.5rem) max(1.7rem,calc((100vw - 75rem) / 2));order:6",
           )}
         >
           <div

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import CreatorOSLanding from '@/components/creator-os/CreatorOSLanding';
 
-const canonicalSectionIds = ['creator-os', 'air', 'studio', 'zap', 'earth', 'coming-soon', 'enter'];
+const canonicalSectionIds = ['creator-os', 'air', 'zap', 'studio', 'earth', 'coming-soon', 'enter'];
 
 describe('CreatorOSLanding', () => {
   it('renders the cloud narrative natively, without the legacy iframe', () => {
@@ -21,8 +21,22 @@ describe('CreatorOSLanding', () => {
   it('keeps the canonical section order', () => {
     const { container } = render(<CreatorOSLanding />);
 
-    const ids = Array.from(container.querySelectorAll('section[id]')).map((section) => section.id);
+    const ids = Array.from(container.querySelectorAll<HTMLElement>('section[id]'))
+      .sort((left, right) => Number(left.style.order) - Number(right.style.order))
+      .map((section) => section.id);
     expect(ids).toEqual(canonicalSectionIds);
+  });
+
+  it('surfaces the published npm package wins in the Zap chapter', () => {
+    render(<CreatorOSLanding />);
+
+    expect(screen.getByText('02 / Zap')).toBeInTheDocument();
+    expect(screen.getByText('03 / Studio')).toBeInTheDocument();
+    expect(screen.getByText('SLSA attested')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /View package on npm/ })).toHaveAttribute(
+      'href',
+      'https://www.npmjs.com/package/@wzrdtech/zap',
+    );
   });
 
   it('keeps the specified destination map and opens the Air CTA in this tab', () => {
