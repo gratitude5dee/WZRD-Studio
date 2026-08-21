@@ -136,6 +136,39 @@
   text-decoration: none;
 }
 
+/* Each chapter keeps its own atmosphere, while the shared edge treatment lets
+   that atmosphere dissolve into the next one instead of ending at a hard cut. */
+.root main {
+  isolation: isolate;
+}
+
+.root main > section {
+  box-shadow: inset 0 8rem 7rem -7rem rgba(5, 7, 10, 0.7);
+  isolation: isolate;
+}
+
+.root main > section:not(#enter)::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(5, 7, 10, 0.78) 100%);
+  bottom: 0;
+  content: "";
+  height: clamp(4rem, 10vw, 10rem);
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  z-index: 3;
+}
+
+@media (max-width: 680px) {
+  .root main > section {
+    box-shadow: inset 0 5rem 4rem -4rem rgba(5, 7, 10, 0.65);
+  }
+
+  .root main > section:not(#enter)::after {
+    height: 5rem;
+  }
+}
+
 /* Chapters are flex/grid containers, so their children keep min-width: auto and
    would otherwise grow to the intrinsic min-content width of the device mock
    (which clips its own contents) and overflow narrow phones. */
