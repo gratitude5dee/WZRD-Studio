@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import IntroVideo from '@/components/creator-os/IntroVideo';
@@ -18,21 +18,23 @@ describe('IntroVideo', () => {
     pause.mockClear();
   });
 
-  it('plays with sound on an explicit enter action and provides mute and skip controls', async () => {
+  it('attempts sound-on autoplay and provides shiny mute and skip controls', async () => {
     render(<IntroVideo />);
 
     const video = screen.getByRole('dialog', { name: 'WZRD.tech introduction' }).querySelector('video');
     expect(video).toHaveAttribute('src', '/creator-os/assets/universe-teeming-intro.mp4');
+    expect(video).toHaveAttribute('autoplay');
+    expect(screen.queryByRole('button', { name: 'Enter with sound' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Mute' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Enter with sound' }));
-    expect(play).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(play).toHaveBeenCalled());
 
     fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
+    expect(play).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: 'Unmute' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Skip intro' }));
-    expect(screen.queryByRole('dialog', { name: 'WZRD.tech introduction' })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'WZRD.tech introduction' })).not.toBeInTheDocument());
     expect(window.sessionStorage.getItem('wzrd:intro-dismissed')).toBe('true');
   });
 });
