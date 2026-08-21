@@ -455,7 +455,7 @@
   contain: layout paint style;
   pointer-events: none;
   touch-action: pan-y;
-  transform: translate(-40px, -110px) scale(1.035);
+  transform: translate(-40px, -155px) scale(1.035);
   transform-origin: center;
   will-change: transform;
   z-index: 0;
@@ -472,7 +472,7 @@
 
 .splineWash {
   background:
-    radial-gradient(ellipse at 50% 42%, rgba(5, 5, 6, 0.03) 0%, rgba(5, 5, 6, 0.47) 76%),
+    radial-gradient(ellipse at 50% 42%, rgba(5, 5, 6, 0.03) 0%, rgba(5, 5, 6, 0.24) 76%),
     linear-gradient(0deg, transparent 0%, transparent 43%, rgba(5, 5, 6, 0.34) 100%);
   inset: 0;
   pointer-events: none;
