@@ -38,40 +38,35 @@
 
 .brand {
   align-self: start;
-  font-family: var(--font-inter), Inter, Arial, sans-serif;
-  font-size: clamp(1rem, 2.4vw, 1.45rem);
-  font-weight: 700;
   justify-self: start;
-  letter-spacing: -0.045em;
   padding: clamp(1.15rem, 3.5vw, 2rem);
+}
+
+.brand img {
+  display: block;
+  filter: drop-shadow(0 0.25rem 0.8rem rgba(3, 3, 3, 0.65));
+  height: auto;
+  width: clamp(6.3rem, 11vw, 10rem);
 }
 
 .controls {
   align-self: end;
-  justify-self: center;
-  max-width: min(38rem, calc(100% - 2.3rem));
-  padding-bottom: clamp(2rem, 6vw, 4.5rem);
-  text-align: center;
+  justify-self: end;
+  max-width: min(18rem, calc(100% - 2.3rem));
+  padding: 0 clamp(1.15rem, 3.5vw, 2rem) clamp(2rem, 6vw, 4.5rem);
+  text-align: right;
 }
 
-.eyebrow,
 .error {
   font-family: var(--font-inter), Inter, Arial, sans-serif;
   margin: 0;
-}
-
-.eyebrow {
-  font-size: clamp(1rem, 1.7vw, 1.25rem);
-  font-weight: 600;
-  letter-spacing: -0.035em;
-  margin-bottom: 1.2rem;
 }
 
 .utilityControls {
   display: flex;
   flex-wrap: wrap;
   gap: 0.7rem;
-  justify-content: center;
+  justify-content: flex-end;
   margin-top: 0.75rem;
 }
 
@@ -120,7 +115,7 @@
 
   .controls {
     max-width: calc(100% - 2rem);
-    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+    padding: 0 1rem max(2rem, env(safe-area-inset-bottom));
   }
 }
 

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import ShinyText from "./ShinyText";
 import styles from "./IntroVideo.module.css";
 
 const INTRO_DISMISSED_KEY = "wzrd:intro-dismissed";
@@ -65,11 +64,10 @@ export default function IntroVideo() {
       <div aria-hidden="true" className={styles.vignette} />
 
       <div className={styles.brand}>
-        <ShinyText duration={5.6}>WZRD.tech</ShinyText>
+        <img alt="WZRD.tech" src="/wzrdtechlogo.png" />
       </div>
 
       <div className={styles.controls}>
-        <p className={styles.eyebrow}>A universe teeming with intelligence</p>
         {!playing ? (
           <button className={`${styles.button} ${styles.primaryButton}`} onClick={start} type="button">
             Enter with sound

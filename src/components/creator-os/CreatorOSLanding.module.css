@@ -549,7 +549,13 @@
   }
 
   .splineLayer {
-    transform: translate(-15px, -40px) scale(1.025);
+    aspect-ratio: 16 / 9;
+    height: auto;
+    inset: auto;
+    left: 50%;
+    top: 50%;
+    transform: translate(calc(-50% - 15px), calc(-50% - 40px)) scale(1.025);
+    width: max(100vw, 177.778svh);
   }
 
   .partnerSet {
@@ -567,7 +573,7 @@
   }
 
   .splineLayer {
-    transform: translate(-12px, -35px) scale(1.01);
+    transform: translate(calc(-50% - 12px), calc(-50% - 35px)) scale(1.01);
   }
 }
 
