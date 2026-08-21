@@ -558,6 +558,15 @@
     width: max(100vw, min(700px, 120svh));
   }
 
+  /* The Spline runtime writes its original 1920 × 1080 dimensions inline.
+     Keep that artwork inside the responsive stage instead of letting it
+     overflow a narrow phone viewport. */
+  .splineLayer > div,
+  .splineLayer canvas {
+    height: 100% !important;
+    width: 100% !important;
+  }
+
   .partnerSet {
     gap: 2.1rem;
   }
