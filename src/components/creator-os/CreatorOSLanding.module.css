@@ -503,7 +503,8 @@
 }
 
 .partnerRail {
-  bottom: 0.25rem;
+  /* Keep the partner rail inside the first viewport after the hero gained 40px. */
+  bottom: 2.75rem;
   left: 0;
   position: absolute;
   width: 100%;
@@ -617,7 +618,7 @@
   }
 
   .partnerRail {
-    bottom: clamp(3rem, 8vw, 4.25rem);
+    bottom: calc(clamp(3rem, 8vw, 4.25rem) + 2.5rem);
     left: 0;
     width: 100%;
   }
