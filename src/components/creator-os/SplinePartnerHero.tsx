@@ -1,7 +1,6 @@
 import Spline from "@splinetool/react-spline/next";
 
 import styles from "./CreatorOSLanding.module.css";
-import ShinyText from "./ShinyText";
 
 const SPLINE_SCENE = "https://prod.spline.design/7n8f5YWSgL4MSvLr/scene.splinecode";
 
@@ -21,7 +20,7 @@ function PartnerSet({ hidden = false }: { hidden?: boolean }) {
       {partners.map((partner) => (
         <span className={styles.partnerLogo} key={partner.name}>
           <img alt="" aria-hidden="true" className={styles.partnerLogoMark} src={partner.logo} />
-          <ShinyText className={styles.partnerLogoText}>{partner.name}</ShinyText>
+          <span className={styles.partnerLogoText}>{partner.name}</span>
         </span>
       ))}
     </div>

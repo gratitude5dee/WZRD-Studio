@@ -591,11 +591,6 @@
     animation: none;
     transform: translateX(0);
   }
-
-  .logo::after {
-    animation: none;
-    background-position: 50% 50%;
-  }
 }
 
 .root a:focus-visible,
@@ -608,41 +603,6 @@
 /* ---------- header ---------- */
 .logo:hover {
   box-shadow: 0 0.5rem 1.3rem rgba(2, 5, 10, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-.logo::after {
-  animation: wordmarkGlint 5.6s linear infinite;
-  background: linear-gradient(105deg, transparent 35%, rgba(222, 238, 255, 0.94) 50%, transparent 65%);
-  background-position: 150% 50%;
-  background-repeat: no-repeat;
-  background-size: 250% 100%;
-  content: "";
-  height: clamp(1.45rem, 5vw, 1.9rem);
-  left: 50%;
-  mask: url("/creator-os/wzrd-wordmark-1600.png") center / contain no-repeat;
-  opacity: 0.62;
-  pointer-events: none;
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: min(9.1rem, calc(100% - 1.9rem));
-  -webkit-mask: url("/creator-os/wzrd-wordmark-1600.png") center / contain no-repeat;
-  z-index: 1;
-}
-
-.logo img {
-  position: relative;
-  z-index: 0;
-}
-
-@keyframes wordmarkGlint {
-  from {
-    background-position: 150% 50%;
-  }
-
-  to {
-    background-position: -150% 50%;
-  }
 }
 
 .motionButton:hover:not(:disabled) {
@@ -679,17 +639,8 @@
     background 200ms ease;
 }
 
-.bubbleShinyText {
-  background:
-    linear-gradient(
-      110deg,
-      #111217 0%,
-      #111217 40%,
-      #5a6069 48%,
-      #17191e 57%,
-      #111217 64%,
-      #111217 100%
-    );
+.bubbleLabel {
+  color: #111217;
   display: inline-block;
   font-family: var(--font-inter), Inter, Arial, sans-serif;
   font-weight: 700;

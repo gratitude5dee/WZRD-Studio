@@ -5,7 +5,6 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { css } from "./canonicalStyle";
 import styles from "./CreatorOSLanding.module.css";
-import ShinyText from "./ShinyText";
 
 /**
  * Native React port of the canonical "WZRD CREATOR OS — STANDALONE SOURCE"
@@ -990,7 +989,7 @@ export default function CreatorOSLanding() {
                 }
                 {...(item.href.startsWith("https://") ? { rel: "noopener", target: "_top" } : {})}
               >
-                <ShinyText className={styles.bubbleShinyText}>{item.label}</ShinyText>
+                <span className={styles.bubbleLabel}>{item.label}</span>
               </a>
             </li>
           ))}
