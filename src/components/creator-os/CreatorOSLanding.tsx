@@ -88,16 +88,16 @@ const zapStages = [
     title: "Guard the spend",
   },
   {
-    copy: "Every run defaults to a zero-cost mock. Add --live and the budget cap is enforced before a provider job submits.",
+    copy: "More than 1,000 package downloads in the last 12 months — momentum for an agent-first CLI built for real creative workflows.",
     index: "04",
-    stage: "run",
-    tags: ["--live", "GMI Cloud · fal"],
-    title: "Mock, then live",
+    stage: "npm momentum",
+    tags: ["1,000+ downloads", "@wzrdtech/zap"],
+    title: "1,000+ downloads",
   },
 ] as const;
 
 const zapNpmWins = [
-  { label: "Public release", value: "v0.3.1" },
+  { label: "Last 12 months", value: "1,000+ downloads" },
   { label: "Supply chain", value: "SLSA attested" },
   { label: "Open source", value: "MIT" },
 ] as const;
@@ -159,8 +159,8 @@ const SECTION_SHELL =
 const ZAP_TAG = `background:rgba(240,106,71,0.09);border:1px solid rgba(240,106,71,0.32);color:rgba(241,235,221,0.86);font-family:${MONO};font-size:0.68rem;letter-spacing:0.025em;padding:0.38rem 0.48rem`;
 const MESSAGE_BASE = `font-family:${MONO};font-size:clamp(0.68rem,1vw,0.78rem);line-height:1.48;padding:0.6rem 0.85rem`;
 const MESSAGE_OUT = `align-self:flex-end;width:min(88%,29rem);background:#0a84ff;color:#fff;border-radius:1.15rem 1.15rem 0.25rem 1.15rem;${MESSAGE_BASE}`;
-const MESSAGE_IN = `align-self:flex-start;width:min(88%,29rem);background:rgba(223,240,255,0.16);color:#f7fbff;border-radius:1.15rem 1.15rem 1.15rem 0.25rem;${MESSAGE_BASE}`;
-const MESSAGE_TYPING = `align-self:flex-start;display:flex;align-items:center;gap:0.4rem;width:fit-content;background:rgba(223,240,255,0.14);color:rgba(220,230,242,0.75);font-family:${MONO};font-size:0.68rem;letter-spacing:0.05em;padding:0.6rem 0.85rem;border-radius:1.15rem 1.15rem 1.15rem 0.25rem`;
+const MESSAGE_IN = `align-self:flex-start;width:min(88%,29rem);background:#e9edf3;color:#1c2940;border-radius:1.15rem 1.15rem 1.15rem 0.25rem;${MESSAGE_BASE}`;
+const MESSAGE_TYPING = `align-self:flex-start;display:flex;align-items:center;gap:0.4rem;width:fit-content;background:#e9edf3;color:#546176;font-family:${MONO};font-size:0.68rem;letter-spacing:0.05em;padding:0.6rem 0.85rem;border-radius:1.15rem 1.15rem 1.15rem 0.25rem`;
 const MESSAGE_META = "display:block;color:rgba(255,255,255,0.7);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.4rem";
 
 function useMediaQuery(query: string): boolean {
@@ -1175,12 +1175,21 @@ export default function CreatorOSLanding() {
               aria-label="A sample Air conversation"
               data-reveal=""
               style={css(
-                "background:rgba(4,16,35,0.62);border:1px solid rgba(219,237,255,0.35);box-shadow:1.2rem 1.2rem 0 rgba(3,11,26,0.22);padding:1rem;transform:rotate(1.2deg)",
+                "background:#f7f9fd;border:1px solid rgba(219,237,255,0.76);border-radius:1.6rem;box-shadow:1.2rem 1.2rem 0 rgba(3,11,26,0.22);color:#1c2940;overflow:hidden;padding:0.8rem 1rem 1rem;transform:rotate(1.2deg)",
               )}
             >
               <div
+                aria-hidden="true"
                 style={css(
-                  `display:flex;align-items:center;gap:0.65rem;border-bottom:1px solid rgba(219,237,255,0.16);padding:0.1rem 0.1rem 0.85rem;font-family:${MONO}`,
+                  `display:flex;align-items:center;justify-content:space-between;color:#1c2940;font-family:${MONO};font-size:0.61rem;font-weight:700;letter-spacing:0.03em;padding:0.05rem 0.25rem 0.65rem`,
+                )}
+              >
+                <span>9:41</span>
+                <span>● ●● ᯤ ▰</span>
+              </div>
+              <div
+                style={css(
+                  `display:flex;align-items:center;gap:0.65rem;border-bottom:1px solid rgba(28,41,64,0.12);padding:0.1rem 0.1rem 0.85rem;font-family:${MONO}`,
                 )}
               >
                 <span
@@ -1189,12 +1198,12 @@ export default function CreatorOSLanding() {
                     "display:inline-flex;align-items:center;justify-content:center;width:1.85rem;height:1.85rem;border-radius:50%;background:#0a84ff;color:#fff;font-size:0.73rem;font-weight:800",
                   )}
                 >
-                  W
+                  A
                 </span>
                 <div>
-                  <strong style={css("display:block;font-size:0.82rem;letter-spacing:0.03em")}>Air</strong>
-                  <small style={css("display:block;color:rgba(220,230,242,0.62);font-size:0.75rem;margin-top:0.16rem")}>
-                    creative agent
+                  <strong style={css("display:block;font-size:0.82rem;letter-spacing:0.03em")}>air by WZRD.tech</strong>
+                  <small style={css("display:block;color:#687589;font-size:0.75rem;margin-top:0.16rem")}>
+                    iMessage · private beta
                   </small>
                 </div>
                 <span
@@ -1206,7 +1215,7 @@ export default function CreatorOSLanding() {
               </div>
               <p
                 style={css(
-                  `color:rgba(220,230,242,0.58);font-family:${MONO};font-size:0.68rem;letter-spacing:0.08em;line-height:1.35;text-transform:uppercase;margin:0.95rem 0.1rem -0.25rem`,
+                  `color:#687589;font-family:${MONO};font-size:0.68rem;letter-spacing:0.08em;line-height:1.35;text-transform:uppercase;margin:0.95rem 0.1rem -0.25rem`,
                 )}
               >
                 Prototype transcript · fictional, consent-safe
@@ -1238,7 +1247,7 @@ export default function CreatorOSLanding() {
                   <span
                     aria-hidden="true"
                     style={css(
-                      "display:block;color:rgba(220,230,242,0.7);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.4rem",
+                      "display:block;color:#687589;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.4rem",
                     )}
                   >
                     Working
@@ -1277,14 +1286,14 @@ export default function CreatorOSLanding() {
                   data-stagger="6"
                   role="listitem"
                   style={css(
-                    `align-self:flex-start;width:min(88%,29rem);background:rgba(9,27,57,0.65);border-left:2px solid #0a84ff;color:rgba(220,230,242,0.88);border-radius:0 1.15rem 1.15rem 1.15rem;${MESSAGE_BASE}`,
+                    `align-self:flex-start;width:min(88%,29rem);background:#e9edf3;border-left:2px solid #0a84ff;color:#1c2940;border-radius:0 1.15rem 1.15rem 1.15rem;${MESSAGE_BASE}`,
                   )}
                 >
                   Locked. I’ll carry the silence into the cut sheet.
                   <span
                     aria-hidden="true"
                     style={css(
-                      "display:block;color:rgba(220,230,242,0.7);font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.4rem",
+                      "display:block;color:#687589;font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase;margin-top:0.4rem",
                     )}
                   >
                     Delivered
@@ -1293,14 +1302,15 @@ export default function CreatorOSLanding() {
               </div>
               <div
                 style={css(
-                  `display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(219,237,255,0.16);color:rgba(220,230,242,0.52);font-family:${MONO};font-size:0.66rem;text-transform:uppercase;letter-spacing:0.08em;padding:0.85rem 0.1rem 0.08rem`,
+                  `display:flex;align-items:center;gap:0.55rem;border-top:1px solid rgba(28,41,64,0.12);color:#687589;font-family:${MONO};font-size:0.66rem;letter-spacing:0.04em;padding:0.85rem 0.1rem 0.08rem`,
                 )}
               >
-                <span>Send a thought</span>
+                <span aria-hidden="true" style={css("color:#546176;font-size:1.35rem;line-height:1")}>＋</span>
+                <span style={css("flex:1")}>iMessage</span>
                 <b
                   aria-hidden="true"
                   style={css(
-                    "display:inline-flex;align-items:center;justify-content:center;width:1.5rem;height:1.5rem;border:1px solid rgba(219,237,255,0.36);color:#f1ebdd;font-size:0.8rem;font-weight:400",
+                    "display:inline-flex;align-items:center;justify-content:center;width:1.5rem;height:1.5rem;border-radius:50%;background:#1c2940;color:#fff;font-size:0.65rem;font-weight:400",
                   )}
                 >
                   ↑

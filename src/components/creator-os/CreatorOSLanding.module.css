@@ -422,7 +422,7 @@
   contain: layout paint style;
   pointer-events: none;
   touch-action: pan-y;
-  transform: translate(-40px, -60px) scale(1.035);
+  transform: translate(-40px, -70px) scale(1.035);
   transform-origin: center;
   will-change: transform;
   z-index: 0;
@@ -447,6 +447,18 @@
   z-index: 1;
 }
 
+.splineHero::after {
+  background: linear-gradient(180deg, transparent 0%, rgba(5, 5, 6, 0.12) 28%, #06162d 100%);
+  bottom: 0;
+  content: "";
+  height: min(30vh, 15rem);
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  z-index: 2;
+}
+
 .partnerRail > p,
 .splineScrollCue {
   color: rgba(241, 235, 221, 0.76);
@@ -458,15 +470,15 @@
 }
 
 .partnerRail {
-  bottom: clamp(1.85rem, 4vw, 3.5rem);
-  left: 0;
+  bottom: 1.15rem;
+  left: clamp(18rem, 23.5vw, 28rem);
   position: absolute;
-  width: 100%;
+  width: min(34rem, 42vw);
   z-index: 3;
 }
 
 .partnerRail > p {
-  margin: 0 clamp(1.15rem, 4.5vw, 4.5rem) 0.8rem;
+  display: none;
 }
 
 .partnerViewport {
@@ -522,7 +534,7 @@
 }
 
 .splineScrollCue {
-  bottom: 1.45rem;
+  bottom: 0.25rem;
   left: 50%;
   position: absolute;
   transform: translateX(-50%);
@@ -569,6 +581,17 @@
 
   .partnerSet {
     gap: 2.1rem;
+  }
+
+  .partnerRail {
+    bottom: clamp(3rem, 8vw, 4.25rem);
+    left: 0;
+    width: 100%;
+  }
+
+  .partnerRail > p {
+    display: block;
+    margin: 0 clamp(1.15rem, 4.5vw, 4.5rem) 0.8rem;
   }
 
   .splineScrollCue {
