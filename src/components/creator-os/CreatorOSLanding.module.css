@@ -448,10 +448,10 @@
 }
 
 .splineHero::after {
-  background: linear-gradient(180deg, transparent 0%, rgba(5, 5, 6, 0.12) 28%, #06162d 100%);
+  background: linear-gradient(180deg, transparent 0%, rgba(5, 5, 6, 0.08) 30%, rgba(6, 22, 45, 0.76) 100%);
   bottom: 0;
   content: "";
-  height: min(30vh, 15rem);
+  height: min(22vh, 11rem);
   left: 0;
   pointer-events: none;
   position: absolute;
@@ -470,7 +470,7 @@
 }
 
 .partnerRail {
-  bottom: 1.15rem;
+  bottom: 0.25rem;
   left: clamp(18rem, 23.5vw, 28rem);
   position: absolute;
   width: min(34rem, 42vw);
@@ -534,7 +534,7 @@
 }
 
 .splineScrollCue {
-  bottom: 0.25rem;
+  display: none;
   left: 50%;
   position: absolute;
   transform: translateX(-50%);
