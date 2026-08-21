@@ -492,6 +492,18 @@
   z-index: 2;
 }
 
+.splineBrandLockup {
+  bottom: clamp(4.8rem, 6vw, 5.5rem);
+  display: block;
+  height: auto;
+  left: clamp(12rem, 23.5vw, 28rem);
+  object-fit: contain;
+  pointer-events: none;
+  position: absolute;
+  width: clamp(12rem, 14vw, 18rem);
+  z-index: 3;
+}
+
 .partnerRail > p,
 .splineScrollCue {
   color: rgba(241, 235, 221, 0.76);
@@ -620,6 +632,12 @@
     bottom: clamp(3rem, 8vw, 4.25rem);
     left: 0;
     width: 100%;
+  }
+
+  .splineBrandLockup {
+    bottom: clamp(6.6rem, 17vw, 8.2rem);
+    left: 1.15rem;
+    width: clamp(10.5rem, 54vw, 15rem);
   }
 
   .partnerRail > p {

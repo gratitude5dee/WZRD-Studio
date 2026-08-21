@@ -37,6 +37,13 @@ export default function SplinePartnerHero() {
 
       <div className={styles.splineWash} />
 
+      <img
+        alt=""
+        aria-hidden="true"
+        className={styles.splineBrandLockup}
+        src="/creator-os/wzrd-wordmark-1600.png"
+      />
+
       <div aria-label="Technology ecosystem" className={styles.partnerRail}>
         <p>Built across the AI ecosystem</p>
         <div className={styles.partnerViewport}>
