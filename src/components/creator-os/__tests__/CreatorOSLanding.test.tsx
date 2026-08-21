@@ -35,6 +35,7 @@ describe('CreatorOSLanding', () => {
     expect(screen.getAllByText('1,000+ downloads').length).toBeGreaterThan(0);
     expect(screen.getByText('SLSA attested')).toBeInTheDocument();
     expect(screen.queryByText('Mock, then live')).not.toBeInTheDocument();
+    expect(screen.queryByText(/mock by default/i)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /View package on npm/ })).toHaveAttribute(
       'href',
       'https://www.npmjs.com/package/@wzrdtech/zap',

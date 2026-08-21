@@ -1639,7 +1639,7 @@ export default function CreatorOSLanding() {
               </h2>
               <p style={css(`color:rgba(241,235,221,0.74);${SECTION_LEDE}`)}>
                 An agent-first CLI for creating, validating, and running Zap recipes. Prompts, provider routes, budget
-                caps, and output shape stay inspectable — mock by default, live only when you say so.
+                caps, and output shape stay inspectable across every workflow.
               </p>
               <ul
                 aria-label="@wzrdtech/zap npm package highlights"
