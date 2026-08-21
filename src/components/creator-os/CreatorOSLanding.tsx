@@ -7,7 +7,6 @@ import { appRoutes, buildLoginPath } from "@/lib/routes";
 
 import { css } from "./canonicalStyle";
 import styles from "./CreatorOSLanding.module.css";
-import SplinePartnerHero from "./SplinePartnerHero";
 
 /**
  * Native React port of the canonical "WZRD CREATOR OS — STANDALONE SOURCE"
@@ -894,9 +893,6 @@ export default function CreatorOSLanding() {
       </div>
 
       <main>
-        {/* ============ HERO ============ */}
-        <SplinePartnerHero />
-
         {/* ============ 01 / STUDIO ============ */}
         <section
           aria-labelledby="studio-title"

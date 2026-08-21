@@ -57,7 +57,8 @@
         "@remotion/player": "4.0.424",
         "@remotion/transitions": "4.0.424",
         "@sparkjsdev/spark": "^0.1.10",
-        "@splinetool/react-spline": "^4.1.0",
+        "@splinetool/react-spline": "3.1.1",
+        "@splinetool/runtime": "1.12.98",
         "@story-protocol/core-sdk": "^1.4.4",
         "@supabase/supabase-js": "^2.104.1",
         "@tanstack/react-query": "^5.56.2",
@@ -1096,9 +1097,9 @@
 
     "@sparkjsdev/spark": ["@sparkjsdev/spark@0.1.10", "", { "dependencies": { "fflate": "^0.8.2" } }, "sha512-CiijdZQuj7KPDUqIZPiEqyUkJCYo1JqR05vq/V+ElxMwqR7L70ZuZDyIKcasjZHSiPB8pGRMH8HZGqUKO9aRPQ=="],
 
-    "@splinetool/react-spline": ["@splinetool/react-spline@4.1.0", "", { "dependencies": { "blurhash": "2.0.5", "lodash.debounce": "4.0.8", "react-merge-refs": "2.1.1", "thumbhash": "0.1.1" }, "peerDependencies": { "@splinetool/runtime": "*", "next": ">=14.2.0", "react": "*", "react-dom": "*" }, "optionalPeers": ["next"] }, "sha512-Y379gm17gw+1nxT/YXTCJnVIWuu7tsUH1tp/YxsYb0pZnc9Gljk7Om4Kpq7WPq0bZ4zidVCxf6xn6jgDcbHifQ=="],
+    "@splinetool/react-spline": ["@splinetool/react-spline@3.1.1", "", { "dependencies": { "blurhash": "2.0.5", "lodash.debounce": "4.0.8", "react-merge-refs": "2.1.1", "thumbhash": "0.1.1" }, "peerDependencies": { "@splinetool/runtime": "*", "next": ">=14.2.0", "react": "*", "react-dom": "*" }, "optionalPeers": ["next"] }, "sha512-mB9A2yZgrPWkKHgBLvcbwsyoiBgKWy6/PkeksRH8soOEZmJiEz9PT0+h3vsui52nZ+CnLqj/yjowfyZvd1FmKQ=="],
 
-    "@splinetool/runtime": ["@splinetool/runtime@2.0.2", "", { "dependencies": { "on-change": "4.0.0", "semver-compare": "1.0.0" } }, "sha512-Y2xsFO9gcAl7srBPHHPPJwd1FuQIV7CCchZ2Dh6tCyTTesV6GB4IuZQ82dqjVttX+4nTzZUTYQFbo/TRIJTHgA=="],
+    "@splinetool/runtime": ["@splinetool/runtime@1.12.98", "", { "dependencies": { "on-change": "4.0.0", "semver-compare": "1.0.0" } }, "sha512-UWZH/+4XtNgMMgmDiWhZS55WOwUDGuTj4uH6fiZV6Jol3d3v3z1RRBObspx8GMio0HajOYGg7FJ8TZdyBdpW4A=="],
 
     "@story-protocol/core-sdk": ["@story-protocol/core-sdk@1.4.4", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/@story-protocol/core-sdk/-/core-sdk-1.4.4.tgz", { "dependencies": { "@scure/bip32": "^1.6.2", "abitype": "^0.10.2", "bs58": "^6.0.0", "dotenv": "^16.3.1", "multiformats": "9.9.0", "viem": "^2.8.12" } }, "sha512-YZlNcbVydVnESuAseaBV74/vi8S9/DiYjo18XBQGLoOsrV2tSoaWL1f/zQBscwnK8PFyi5bmS29kTysKwjVfJA=="],
 

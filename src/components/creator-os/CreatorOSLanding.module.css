@@ -159,12 +159,21 @@
 .splineHero {
   align-items: flex-end;
   background: #050506;
+  box-sizing: border-box;
+  color: #f1ebdd;
   display: flex;
+  font-family: Inter, Arial, sans-serif;
   isolation: isolate;
   min-height: max(44rem, 100svh);
   overflow: hidden;
   padding: clamp(7rem, 13vw, 10rem) clamp(1.15rem, 4.5vw, 4.5rem) clamp(7.5rem, 15vw, 10rem);
   position: relative;
+}
+
+.splineHero *,
+.splineHero *::before,
+.splineHero *::after {
+  box-sizing: inherit;
 }
 
 .splineLayer,
