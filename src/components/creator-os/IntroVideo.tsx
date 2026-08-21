@@ -11,7 +11,7 @@ const INTRO_POSTER = "/creator-os/assets/universe-teeming-poster.jpg";
 
 export default function IntroVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const exitTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const exitTimerRef = useRef<number | null>(null);
   const [visible, setVisible] = useState(true);
   const [muted, setMuted] = useState(false);
   const [exiting, setExiting] = useState(false);
