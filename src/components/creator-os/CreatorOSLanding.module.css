@@ -396,7 +396,7 @@
   font-family: Inter, Arial, sans-serif;
   isolation: isolate;
   justify-content: center;
-  min-height: max(44rem, 100svh);
+  min-height: max(40rem, 100svh);
   overflow: hidden;
   padding: clamp(7rem, 13vw, 10rem) clamp(1.15rem, 4.5vw, 4.5rem) clamp(7.5rem, 15vw, 10rem);
   position: relative;
@@ -419,8 +419,12 @@
 }
 
 .splineLayer {
-  transform: translate(-40px, -25px) scale(1.035);
+  contain: layout paint style;
+  pointer-events: none;
+  touch-action: pan-y;
+  transform: translate(-40px, -50px) scale(1.035);
   transform-origin: center;
+  will-change: transform;
   z-index: 0;
 }
 
@@ -493,12 +497,16 @@
   align-items: center;
   color: rgba(248, 245, 236, 0.9);
   display: inline-flex;
-  font-family: "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
   font-size: clamp(0.82rem, 1.3vw, 1.15rem);
-  font-weight: 600;
+  font-weight: 700;
   gap: 0.58rem;
-  letter-spacing: -0.055em;
+  letter-spacing: -0.04em;
   white-space: nowrap;
+}
+
+.partnerLogoText {
+  display: inline-block;
 }
 
 .partnerLogoMark {
@@ -530,7 +538,7 @@
 @media (max-width: 680px) {
   .splineHero {
     align-items: center;
-    min-height: 43rem;
+    min-height: max(34rem, 100svh);
     padding-bottom: 9rem;
   }
 
@@ -541,7 +549,7 @@
   }
 
   .splineLayer {
-    transform: translate(-20px, -16px) scale(1.06);
+    transform: translate(-15px, -40px) scale(1.025);
   }
 
   .partnerSet {
@@ -553,10 +561,25 @@
   }
 }
 
+@media (max-width: 390px) {
+  .splineHero {
+    min-height: max(32rem, 100svh);
+  }
+
+  .splineLayer {
+    transform: translate(-12px, -35px) scale(1.01);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .partnerTrack {
     animation: none;
     transform: translateX(0);
+  }
+
+  .logo::after {
+    animation: none;
+    background-position: 50% 50%;
   }
 }
 
@@ -570,6 +593,41 @@
 /* ---------- header ---------- */
 .logo:hover {
   box-shadow: 0 0.5rem 1.3rem rgba(2, 5, 10, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.logo::after {
+  animation: wordmarkGlint 5.6s linear infinite;
+  background: linear-gradient(105deg, transparent 35%, rgba(222, 238, 255, 0.94) 50%, transparent 65%);
+  background-position: 150% 50%;
+  background-repeat: no-repeat;
+  background-size: 250% 100%;
+  content: "";
+  height: clamp(1.45rem, 5vw, 1.9rem);
+  left: 50%;
+  mask: url("/creator-os/wzrd-wordmark-1600.png") center / contain no-repeat;
+  opacity: 0.62;
+  pointer-events: none;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(9.1rem, calc(100% - 1.9rem));
+  -webkit-mask: url("/creator-os/wzrd-wordmark-1600.png") center / contain no-repeat;
+  z-index: 1;
+}
+
+.logo img {
+  position: relative;
+  z-index: 0;
+}
+
+@keyframes wordmarkGlint {
+  from {
+    background-position: 150% 50%;
+  }
+
+  to {
+    background-position: -150% 50%;
+  }
 }
 
 .motionButton:hover:not(:disabled) {
@@ -604,6 +662,23 @@
     transform 480ms cubic-bezier(0.34, 1.56, 0.64, 1) var(--bubble-delay),
     opacity 320ms ease var(--bubble-delay),
     background 200ms ease;
+}
+
+.bubbleShinyText {
+  background:
+    linear-gradient(
+      110deg,
+      #111217 0%,
+      #111217 40%,
+      #5a6069 48%,
+      #17191e 57%,
+      #111217 64%,
+      #111217 100%
+    );
+  display: inline-block;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.045em;
 }
 
 .root .bubbleLink:hover {

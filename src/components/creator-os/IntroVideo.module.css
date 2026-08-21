@@ -1,0 +1,131 @@
+.intro {
+  align-items: stretch;
+  background: #030303;
+  color: #f4f3ef;
+  display: grid;
+  inset: 0;
+  isolation: isolate;
+  overflow: hidden;
+  position: fixed;
+  z-index: 100;
+}
+
+.video,
+.vignette {
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.video {
+  object-fit: cover;
+}
+
+.vignette {
+  background:
+    linear-gradient(180deg, rgba(3, 3, 3, 0.52) 0%, transparent 35%, rgba(3, 3, 3, 0.76) 100%),
+    radial-gradient(circle at 50% 48%, transparent 22%, rgba(3, 3, 3, 0.42) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.brand,
+.controls {
+  position: relative;
+  z-index: 2;
+}
+
+.brand {
+  align-self: start;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-size: clamp(1rem, 2.4vw, 1.45rem);
+  font-weight: 700;
+  justify-self: start;
+  letter-spacing: -0.045em;
+  padding: clamp(1.15rem, 3.5vw, 2rem);
+}
+
+.controls {
+  align-self: end;
+  justify-self: center;
+  max-width: min(38rem, calc(100% - 2.3rem));
+  padding-bottom: clamp(2rem, 6vw, 4.5rem);
+  text-align: center;
+}
+
+.eyebrow,
+.error {
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  margin: 0;
+}
+
+.eyebrow {
+  font-size: clamp(1rem, 1.7vw, 1.25rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  margin-bottom: 1.2rem;
+}
+
+.utilityControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+.button {
+  background: rgba(7, 7, 8, 0.52);
+  border: 1px solid rgba(244, 243, 239, 0.48);
+  border-radius: 999px;
+  color: #f4f3ef;
+  cursor: pointer;
+  font-family: var(--font-inter), Inter, Arial, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  min-height: 2.85rem;
+  padding: 0.75rem 1.1rem;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.button:hover,
+.button:focus-visible {
+  background: #f4f3ef;
+  color: #111113;
+}
+
+.button:active {
+  transform: scale(0.97);
+}
+
+.primaryButton {
+  background: #f4f3ef;
+  color: #111113;
+  min-width: min(100%, 13rem);
+}
+
+.error {
+  color: rgba(244, 243, 239, 0.78);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  margin-top: 0.8rem;
+}
+
+@media (max-width: 560px) {
+  .video {
+    object-position: 54% center;
+  }
+
+  .controls {
+    max-width: calc(100% - 2rem);
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}

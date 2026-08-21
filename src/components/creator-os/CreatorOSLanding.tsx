@@ -5,6 +5,7 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { css } from "./canonicalStyle";
 import styles from "./CreatorOSLanding.module.css";
+import ShinyText from "./ShinyText";
 
 /**
  * Native React port of the canonical "WZRD CREATOR OS — STANDALONE SOURCE"
@@ -37,8 +38,8 @@ const FX_RESOURCES: Record<string, string> = {
 const MONO = "'Azeret Mono',ui-monospace,Consolas,monospace";
 
 const bubbleItems = [
-  { bg: "#8cc8ff", delay: "0ms", href: AIR_URL, hoverBg: "#aedaff", label: "air", rot: "-8deg" },
-  { bg: "#f0a145", delay: "70ms", href: "/about", hoverBg: "#f5c184", label: "studio", rot: "6deg" },
+  { bg: "#f0a145", delay: "0ms", href: "/about", hoverBg: "#f5c184", label: "about", rot: "6deg" },
+  { bg: "#8cc8ff", delay: "70ms", href: AIR_URL, hoverBg: "#aedaff", label: "air", rot: "-8deg" },
   { bg: "#c5ba9e", delay: "140ms", href: "#earth", hoverBg: "#d8cfb4", label: "earth", rot: "-6deg" },
   { bg: "#f06a47", delay: "210ms", href: ZAP_URL, hoverBg: "#f89d80", label: "zap", rot: "8deg" },
   { bg: "#6dc8d7", delay: "280ms", href: FIRE_WATER_URL, hoverBg: "#9adde8", label: "fire+water", rot: "-4deg" },
@@ -989,7 +990,7 @@ export default function CreatorOSLanding() {
                 }
                 {...(item.href.startsWith("https://") ? { rel: "noopener", target: "_top" } : {})}
               >
-                {item.label}
+                <ShinyText className={styles.bubbleShinyText}>{item.label}</ShinyText>
               </a>
             </li>
           ))}

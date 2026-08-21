@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Azeret_Mono, Newsreader } from "next/font/google";
+import { Azeret_Mono, Inter, Newsreader } from "next/font/google";
 import type { ReactNode } from "react";
 
 import PwaRegistration from "@/components/pwa/PwaRegistration";
@@ -17,6 +17,12 @@ const systemFont = Azeret_Mono({
   display: "swap",
   subsets: ["latin"],
   variable: "--font-azeret-mono",
+});
+
+const shinyFont = Inter({
+  display: "swap",
+  subsets: ["latin"],
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -55,7 +61,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${editorialFont.variable} ${systemFont.variable}`}>
+      <body className={`${editorialFont.variable} ${systemFont.variable} ${shinyFont.variable}`}>
         {children}
         <PwaRegistration />
       </body>

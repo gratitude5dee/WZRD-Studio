@@ -30,8 +30,20 @@ describe('CreatorOSLanding', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Toggle navigation' }));
 
+    const menuLinks = screen.getAllByRole('link').filter((link) =>
+      ['about', 'air', 'earth', 'zap', 'fire+water', 'enter studio'].includes(link.getAttribute('aria-label') ?? ''),
+    );
+
+    expect(menuLinks.map((link) => link.getAttribute('aria-label'))).toEqual([
+      'about',
+      'air',
+      'earth',
+      'zap',
+      'fire+water',
+      'enter studio',
+    ]);
+    expect(screen.getByRole('link', { name: 'about' })).toHaveAttribute('href', '/about');
     expect(screen.getByRole('link', { name: 'air' })).toHaveAttribute('href', 'https://air.wzrd.tech');
-    expect(screen.getByRole('link', { name: 'studio' })).toHaveAttribute('href', '/about');
     expect(screen.getByRole('link', { name: 'enter studio' })).toHaveAttribute('href', 'https://studio.wzrd.tech');
     expect(screen.getByRole('link', { name: 'zap' })).toHaveAttribute('href', 'https://zap.wzrd.tech');
     expect(screen.getByRole('link', { name: /Make the next signal/ })).toHaveAttribute('href', 'https://studio.wzrd.tech');
