@@ -5,23 +5,21 @@ import styles from "./CreatorOSLanding.module.css";
 const SPLINE_SCENE = "https://prod.spline.design/7n8f5YWSgL4MSvLr/scene.splinecode";
 
 const partners = [
-  { mark: "A", name: "Anthropic", tone: "anthropic" },
-  { mark: "◎", name: "OpenAI", tone: "openai" },
-  { mark: "▲", name: "Vercel", tone: "vercel" },
-  { mark: "M", name: "MongoDB", tone: "mongodb" },
-  { mark: "G", name: "GMI Cloud", tone: "gmi" },
-  { mark: "C", name: "Cognition", tone: "cognition" },
-  { mark: "O", name: "Onairos", tone: "onairos" },
+  { logo: "https://cdn.simpleicons.org/anthropic/E6DFD2", name: "Anthropic" },
+  { logo: "/creator-os/openai-white-monoblossom.svg", name: "OpenAI" },
+  { logo: "https://cdn.simpleicons.org/vercel/FFFFFF", name: "Vercel" },
+  { logo: "https://cdn.simpleicons.org/mongodb/77C68A", name: "MongoDB" },
+  { logo: "https://www.gmicloud.ai/favicon.ico", name: "GMI Cloud" },
+  { logo: "https://cognition.com/icon.svg", name: "Cognition" },
+  { logo: "https://onairos.io/favicon.png", name: "Onairos" },
 ] as const;
 
 function PartnerSet({ hidden = false }: { hidden?: boolean }) {
   return (
     <div aria-hidden={hidden} className={styles.partnerSet}>
       {partners.map((partner) => (
-        <span className={`${styles.partnerLogo} ${styles[partner.tone]}`} key={partner.name}>
-          <span aria-hidden="true" className={styles.partnerMark}>
-            {partner.mark}
-          </span>
+        <span className={styles.partnerLogo} key={partner.name}>
+          <img alt="" aria-hidden="true" className={styles.partnerLogoMark} src={partner.logo} />
           {partner.name}
         </span>
       ))}

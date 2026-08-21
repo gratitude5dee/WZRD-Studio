@@ -3,8 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
 
-import { appRoutes, buildLoginPath } from "@/lib/routes";
-
 import { css } from "./canonicalStyle";
 import styles from "./CreatorOSLanding.module.css";
 
@@ -14,9 +12,10 @@ import styles from "./CreatorOSLanding.module.css";
  * coming-soon → enter. The WebGL atmosphere is the bundle's own `fx.js`
  * custom-element engine, served from `/creator-os/`.
  */
-// This deployment also serves studio.wzrd.tech, so studio entry stays in-app.
-const STUDIO_URL = buildLoginPath(appRoutes.kanvas);
+const STUDIO_URL = "https://studio.wzrd.tech";
 const ZAP_URL = "https://zap.wzrd.tech";
+const AIR_URL = "https://air.wzrd.tech";
+const FIRE_WATER_URL = "https://wtr.wzrd.tech";
 const WHITEPAPER_URL = "https://joinopenstandard.com/";
 
 const GL_MATRIX_SRC = "/creator-os/gl-matrix-min.js";
@@ -38,11 +37,11 @@ const FX_RESOURCES: Record<string, string> = {
 const MONO = "'Azeret Mono',ui-monospace,Consolas,monospace";
 
 const bubbleItems = [
-  { bg: "#8cc8ff", delay: "0ms", href: "#air", hoverBg: "#aedaff", label: "air", rot: "-8deg" },
-  { bg: "#f0a145", delay: "70ms", href: "#studio", hoverBg: "#f5c184", label: "studio", rot: "6deg" },
+  { bg: "#8cc8ff", delay: "0ms", href: AIR_URL, hoverBg: "#aedaff", label: "air", rot: "-8deg" },
+  { bg: "#f0a145", delay: "70ms", href: "/about", hoverBg: "#f5c184", label: "studio", rot: "6deg" },
   { bg: "#c5ba9e", delay: "140ms", href: "#earth", hoverBg: "#d8cfb4", label: "earth", rot: "-6deg" },
   { bg: "#f06a47", delay: "210ms", href: ZAP_URL, hoverBg: "#f89d80", label: "zap", rot: "8deg" },
-  { bg: "#6dc8d7", delay: "280ms", href: "#coming-soon", hoverBg: "#9adde8", label: "fire+water", rot: "-4deg" },
+  { bg: "#6dc8d7", delay: "280ms", href: FIRE_WATER_URL, hoverBg: "#9adde8", label: "fire+water", rot: "-4deg" },
   { bg: "#f1ebdd", delay: "350ms", href: STUDIO_URL, hoverBg: "#ffffff", label: "enter studio", rot: "4deg" },
 ] as const;
 
@@ -140,6 +139,9 @@ const GRID_MOTION_ITEMS = [
   "foley-kit",
   "",
 ].join("|");
+
+const GRAIN_BACKGROUND =
+  "url(data:image/svg+xml,%3Csvg%20viewBox%3D%270%200%20160%20160%27%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%3E%3Cfilter%20id%3D%27n%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%27.93%27%20numOctaves%3D%274%27%20stitchTiles%3D%27stitch%27%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%27100%25%27%20height%3D%27100%25%27%20filter%3D%27url%28%23n%29%27%20opacity%3D%27.5%27%2F%3E%3C%2Fsvg%3E)";
 
 const SECTION_META = `position:relative;z-index:1;display:flex;justify-content:space-between;gap:1rem;color:rgba(241,235,221,0.55);font-family:${MONO};font-size:clamp(0.75rem,0.76vw,0.95rem);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:clamp(3.5rem,8vw,7.5rem)`;
 const SECTION_KICKER = `font-family:${MONO};font-size:clamp(0.75rem,0.76vw,0.95rem);letter-spacing:0.12em;text-transform:uppercase;margin:0 0 1.1rem`;
@@ -893,6 +895,158 @@ export default function CreatorOSLanding() {
       </div>
 
       <main>
+        {/* ============ CREATOR OS / CLOUD + DEVICES ============ */}
+        <section
+          aria-labelledby="creator-os-title"
+          data-screen-label="Creator OS"
+          id="creator-os"
+          style={css("position:relative;background:#071124")}
+        >
+          <div
+            style={css(
+              "position:relative;min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;isolation:isolate;padding:5.5rem clamp(1.15rem,4.5vw,1.7rem) 2.25rem",
+            )}
+          >
+            <div
+              aria-hidden="true"
+              style={css(
+                "position:absolute;inset:0;z-index:0;pointer-events:none;transform:scale(1.08);background:radial-gradient(circle at 73% 63%, rgba(182,219,255,0.5), transparent 11%),radial-gradient(ellipse at 50% 78%, rgba(224,239,255,0.5) 0 11%, transparent 42%),radial-gradient(ellipse at 17% 43%, rgba(136,188,241,0.42) 0 12%, transparent 39%),radial-gradient(ellipse at 66% 13%, rgba(83,146,225,0.58) 0 20%, transparent 45%),linear-gradient(180deg, #154b95 0%, #0a2b65 47%, #06162d 100%)",
+              )}
+            />
+            <wz-sky
+              mode={fxModeAttr}
+              rays="0.9"
+              style={css("position:absolute;inset:0;z-index:1;pointer-events:none;display:block")}
+            />
+            <wz-dither
+              amp="0.26"
+              color="#bcdcff"
+              freq="2.3"
+              levels="5"
+              mode={fxModeAttr}
+              pixel="2.2"
+              speed="0.035"
+              style={css(
+                "position:absolute;inset:0;z-index:2;opacity:0.16;mix-blend-mode:overlay;pointer-events:none;display:block",
+              )}
+            />
+            <wz-trail
+              className={styles.trail}
+              mode={fxModeAttr}
+              tags="Air|Studio|Earth|Zap|Fire+Water"
+              threshold="85"
+              style={css("position:absolute;inset:0;z-index:6;pointer-events:none")}
+            />
+            <div
+              aria-hidden="true"
+              style={{
+                ...css("position:absolute;inset:0;z-index:2;pointer-events:none;mix-blend-mode:soft-light;opacity:0.15"),
+                backgroundImage: GRAIN_BACKGROUND,
+              }}
+            />
+            <div aria-hidden="true" style={css("position:absolute;inset:1.25rem;z-index:4;pointer-events:none")}>
+              <span
+                style={css(
+                  `position:absolute;left:0.75rem;top:0.75rem;color:rgba(220,230,242,0.72);font-family:${MONO};font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase`,
+                )}
+              >
+                LAT 34.0224° N
+              </span>
+              <span
+                style={css(
+                  `position:absolute;left:0.75rem;bottom:0.75rem;color:rgba(220,230,242,0.72);font-family:${MONO};font-size:0.62rem;letter-spacing:0.08em;text-transform:uppercase`,
+                )}
+              >
+                ALT +∞
+              </span>
+            </div>
+
+            <div style={css("position:relative;z-index:3;margin:0 auto;max-width:75rem;width:100%;text-align:center")}>
+              <p
+                style={css(
+                  `font-family:${MONO};font-size:clamp(0.75rem,0.76vw,0.95rem);letter-spacing:0.12em;text-transform:uppercase;color:rgba(220,230,242,0.86);margin:0 0 1.35rem`,
+                )}
+              >
+                A creator operating system
+              </p>
+              <div style={css("position:relative;margin:0 auto;width:min(88vw,50rem);max-width:min(88vw,50rem)")}>
+                <img
+                  alt="WZRD.tech"
+                  height={396}
+                  src={WORDMARK}
+                  style={css("display:block;width:100%;height:auto;filter:drop-shadow(0 1.7rem 1.8rem rgba(2,10,25,0.28))")}
+                  width={1600}
+                />
+              </div>
+              <h2
+                id="creator-os-title"
+                style={css(
+                  "position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#f1ebdd;font-size:clamp(2.2rem,7.4vw,7.2rem);font-weight:400;letter-spacing:-0.03em;line-height:0.98;margin:clamp(1.5rem,4vw,3.25rem) auto 0;max-width:44rem",
+                )}
+              >
+                <span>Creative</span>
+                <span>Infrastructure</span>
+              </h2>
+              <p
+                style={css(
+                  "color:#f8f5ec;text-shadow:0 1px 2px rgba(2,8,20,0.85),0 0.5rem 1.6rem rgba(2,8,20,0.6);font-size:clamp(1.05rem,1.5vw,1.3rem);line-height:1.5;margin:1.8rem auto 1.7rem;max-width:34rem",
+                )}
+              >
+                Building digital and physical generative media studio to create, distribute, and monetize across all
+                channels on one platform.
+              </p>
+            </div>
+
+            <div style={css("position:relative;z-index:5;margin:3rem auto 0;text-align:center")}>
+              <p
+                style={css(
+                  `color:#8cc8ff;font-family:${MONO};font-size:clamp(0.75rem,0.76vw,0.95rem);letter-spacing:0.12em;text-transform:uppercase;margin:0 0 1.1rem`,
+                )}
+              >
+                An Attention Engine
+              </p>
+              <p
+                style={css(
+                  "font-size:clamp(1.75rem,3.6vw,3.4rem);font-weight:400;letter-spacing:-0.055em;line-height:0.98;margin:0 auto 2rem;max-width:38rem;color:#f1ebdd",
+                )}
+              >
+                Your unified creative infrastructure to take action across models, applications, and integrations.
+              </p>
+              <div
+                style={css(
+                  "position:relative;width:100%;max-width:52rem;margin:0 auto;aspect-ratio:575/322;isolation:isolate",
+                )}
+              >
+                {fxModeAttr === "off" || fxEngineDown ? (
+                  <img
+                    alt="WZRD Creator OS running across desktop, tablet, and phone"
+                    src="/creator-os/devices-trimmed.png"
+                    style={css("position:absolute;inset:0;width:100%;height:100%;object-fit:contain")}
+                  />
+                ) : null}
+                <wz-griddistort
+                  mode={fxModeAttr}
+                  radius="0.22"
+                  relax="0.9"
+                  src="/creator-os/devices-trimmed.png"
+                  strength="0.6"
+                  style={css("position:absolute;inset:0;display:block")}
+                />
+              </div>
+            </div>
+
+            <div
+              aria-hidden="true"
+              style={css(
+                `position:absolute;bottom:3.4rem;left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:0.75rem;white-space:nowrap;color:rgba(220,230,242,0.7);font-family:${MONO};font-size:0.54rem;letter-spacing:0.08em;text-transform:uppercase`,
+              )}
+            >
+              <span>Explore the creator OS</span>
+              <span style={css("width:3.25rem;height:1px;background:currentColor;opacity:0.58")} />
+            </div>
+          </div>
+        </section>
+
         {/* ============ 01 / STUDIO ============ */}
         <section
           aria-labelledby="studio-title"
