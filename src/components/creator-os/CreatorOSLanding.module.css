@@ -429,7 +429,7 @@
   font-family: Inter, Arial, sans-serif;
   isolation: isolate;
   justify-content: center;
-  min-height: max(40rem, 100svh);
+  min-height: max(42.5rem, calc(100svh + 2.5rem));
   overflow: hidden;
   padding: clamp(7rem, 13vw, 10rem) clamp(1.15rem, 4.5vw, 4.5rem) clamp(7.5rem, 15vw, 10rem);
   position: relative;
@@ -455,7 +455,7 @@
   contain: layout paint style;
   pointer-events: none;
   touch-action: pan-y;
-  transform: translate(-40px, -155px) scale(1.035);
+  transform: translate(-40px, -70px) scale(1.035);
   transform-origin: center;
   will-change: transform;
   z-index: 0;
@@ -490,18 +490,6 @@
   position: absolute;
   right: 0;
   z-index: 2;
-}
-
-.splineBrandLockup {
-  bottom: clamp(4.8rem, 6vw, 5.5rem);
-  display: block;
-  height: auto;
-  left: clamp(12rem, 23.5vw, 28rem);
-  object-fit: contain;
-  pointer-events: none;
-  position: absolute;
-  width: clamp(12rem, 14vw, 18rem);
-  z-index: 3;
 }
 
 .partnerRail > p,
@@ -595,7 +583,7 @@
 @media (max-width: 680px) {
   .splineHero {
     align-items: center;
-    min-height: max(34rem, 100svh);
+    min-height: max(34rem, calc(100svh + 2.5rem));
     padding-bottom: 9rem;
   }
 
@@ -634,12 +622,6 @@
     width: 100%;
   }
 
-  .splineBrandLockup {
-    bottom: clamp(6.6rem, 17vw, 8.2rem);
-    left: 1.15rem;
-    width: clamp(10.5rem, 54vw, 15rem);
-  }
-
   .partnerRail > p {
     display: block;
     margin: 0 clamp(1.15rem, 4.5vw, 4.5rem) 0.8rem;
@@ -652,7 +634,7 @@
 
 @media (max-width: 390px) {
   .splineHero {
-    min-height: max(32rem, 100svh);
+    min-height: max(32rem, calc(100svh + 2.5rem));
   }
 
   .splineLayer {
