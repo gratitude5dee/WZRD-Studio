@@ -155,6 +155,217 @@
   font-family: Newsreader, Georgia, serif;
 }
 
+/* ---------- spline partner hero ---------- */
+.splineHero {
+  align-items: flex-end;
+  background: #050506;
+  box-sizing: border-box;
+  color: #f1ebdd;
+  display: flex;
+  font-family: Inter, Arial, sans-serif;
+  isolation: isolate;
+  min-height: max(44rem, 100svh);
+  overflow: hidden;
+  padding: clamp(7rem, 13vw, 10rem) clamp(1.15rem, 4.5vw, 4.5rem) clamp(7.5rem, 15vw, 10rem);
+  position: relative;
+}
+
+.splineHero *,
+.splineHero *::before,
+.splineHero *::after {
+  box-sizing: inherit;
+}
+
+.splineLayer,
+.splineLayer > div,
+.splineLayer canvas {
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.splineLayer {
+  z-index: 0;
+}
+
+.splineLayer > div,
+.splineLayer canvas {
+  min-height: 100%;
+}
+
+.splineLayer canvas {
+  object-fit: cover;
+}
+
+.splineWash {
+  background:
+    linear-gradient(90deg, rgba(5, 5, 6, 0.88) 0%, rgba(5, 5, 6, 0.35) 46%, rgba(5, 5, 6, 0.14) 100%),
+    linear-gradient(0deg, rgba(5, 5, 6, 0.9) 0%, transparent 43%, rgba(5, 5, 6, 0.34) 100%);
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.splineHeroCopy {
+  max-width: min(39rem, 100%);
+  position: relative;
+  z-index: 2;
+}
+
+.splineEyebrow,
+.partnerRail > p,
+.splineScrollCue {
+  color: rgba(241, 235, 221, 0.76);
+  font-family: "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.13em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.splineEyebrow {
+  margin-bottom: 1.35rem;
+}
+
+.splineHeroCopy h1 {
+  color: #f7f3ea;
+  font-size: clamp(3.3rem, 8.5vw, 7.4rem);
+  font-weight: 400;
+  letter-spacing: -0.075em;
+  line-height: 0.85;
+  margin: 0;
+  text-wrap: balance;
+}
+
+.splineHeroCopy > p:last-child {
+  color: rgba(241, 235, 221, 0.87);
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+  line-height: 1.45;
+  margin: 1.7rem 0 0;
+  max-width: 31rem;
+}
+
+.partnerRail {
+  bottom: clamp(1.85rem, 4vw, 3.5rem);
+  left: 0;
+  position: absolute;
+  width: 100%;
+  z-index: 3;
+}
+
+.partnerRail > p {
+  margin: 0 clamp(1.15rem, 4.5vw, 4.5rem) 0.8rem;
+}
+
+.partnerViewport {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  overflow: hidden;
+  width: 100%;
+}
+
+.partnerTrack,
+.partnerSet {
+  align-items: center;
+  display: flex;
+}
+
+.partnerTrack {
+  animation: partnerMarquee 32s linear infinite;
+  width: max-content;
+}
+
+.partnerSet {
+  flex: none;
+  gap: clamp(1.65rem, 4vw, 4.25rem);
+  padding: 0 clamp(0.85rem, 2vw, 2.15rem);
+}
+
+.partnerLogo {
+  align-items: center;
+  color: rgba(248, 245, 236, 0.9);
+  display: inline-flex;
+  font-family: "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-size: clamp(0.82rem, 1.3vw, 1.15rem);
+  font-weight: 600;
+  gap: 0.45rem;
+  letter-spacing: -0.055em;
+  white-space: nowrap;
+}
+
+.partnerMark {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  display: inline-flex;
+  font-family: Newsreader, Georgia, serif;
+  font-size: 0.8em;
+  font-weight: 600;
+  height: 1.4em;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  width: 1.4em;
+}
+
+.anthropic { color: #e6dfd2; }
+.openai { color: #f4f7ee; }
+.vercel { color: #fff; }
+.mongodb { color: #77c68a; }
+.gmi { color: #a9caee; }
+.cognition { color: #e4a8ff; }
+.onairos { color: #f2b879; }
+
+.splineScrollCue {
+  bottom: 1.45rem;
+  left: 50%;
+  position: absolute;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+@keyframes partnerMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (max-width: 680px) {
+  .splineHero {
+    align-items: center;
+    min-height: 43rem;
+    padding-bottom: 9rem;
+  }
+
+  .splineWash {
+    background:
+      linear-gradient(180deg, rgba(5, 5, 6, 0.72) 0%, rgba(5, 5, 6, 0.2) 40%, rgba(5, 5, 6, 0.92) 100%),
+      linear-gradient(90deg, rgba(5, 5, 6, 0.64), transparent 72%);
+  }
+
+  .splineHeroCopy h1 {
+    font-size: clamp(3.15rem, 14vw, 4.55rem);
+    line-height: 0.88;
+  }
+
+  .partnerSet {
+    gap: 2.1rem;
+  }
+
+  .splineScrollCue {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .partnerTrack {
+    animation: none;
+    transform: translateX(0);
+  }
+}
+
 .root a:focus-visible,
 .root button:focus-visible,
 .root [tabindex]:focus-visible {
@@ -204,17 +415,6 @@
 .root .bubbleLink:hover {
   background: var(--bubble-hover-bg);
   transform: rotate(0deg) scale(1.07);
-}
-
-/* ---------- hero ---------- */
-.trail {
-  display: block;
-}
-
-@media (max-width: 859px) {
-  .trail {
-    display: none;
-  }
 }
 
 /* ---------- earth wheel ---------- */

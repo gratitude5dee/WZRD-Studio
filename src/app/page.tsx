@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import CreatorOSLanding from "@/components/creator-os/CreatorOSLanding";
+import SplinePartnerHero from "@/components/creator-os/SplinePartnerHero";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://wzrd.tech"),
@@ -37,5 +38,10 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return <CreatorOSLanding />;
+  return (
+    <>
+      <SplinePartnerHero />
+      <CreatorOSLanding />
+    </>
+  );
 }
