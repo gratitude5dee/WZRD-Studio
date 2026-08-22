@@ -429,7 +429,7 @@
   font-family: Inter, Arial, sans-serif;
   isolation: isolate;
   justify-content: center;
-  min-height: max(42.5rem, calc(100svh + 2.5rem));
+  min-height: max(42.5rem, 100svh);
   overflow: hidden;
   padding: clamp(7rem, 13vw, 10rem) clamp(1.15rem, 4.5vw, 4.5rem) clamp(7.5rem, 15vw, 10rem);
   position: relative;
@@ -503,8 +503,7 @@
 }
 
 .partnerRail {
-  /* Keep the partner rail inside the first viewport after the hero gained 40px. */
-  bottom: 2.75rem;
+  bottom: 1.15rem;
   left: 0;
   position: absolute;
   width: 100%;
@@ -544,7 +543,7 @@
   color: rgba(248, 245, 236, 0.9);
   display: inline-flex;
   font-family: var(--font-inter), Inter, Arial, sans-serif;
-  font-size: clamp(0.82rem, 1.3vw, 1.15rem);
+  font-size: clamp(0.95rem, 1.55vw, 1.45rem);
   font-weight: 700;
   gap: 0.58rem;
   letter-spacing: -0.04em;
@@ -558,9 +557,9 @@
 .partnerLogoMark {
   display: block;
   flex: none;
-  height: 1.3em;
+  height: 1.2em;
   object-fit: contain;
-  width: 1.3em;
+  width: 1.2em;
 }
 
 .partnerLogoMark[src*="onairos"] {
@@ -584,7 +583,7 @@
 @media (max-width: 680px) {
   .splineHero {
     align-items: center;
-    min-height: max(34rem, calc(100svh + 2.5rem));
+    min-height: max(34rem, 100svh);
     padding-bottom: 9rem;
   }
 
@@ -618,7 +617,7 @@
   }
 
   .partnerRail {
-    bottom: calc(clamp(3rem, 8vw, 4.25rem) + 2.5rem);
+    bottom: clamp(3rem, 8vw, 4.25rem);
     left: 0;
     width: 100%;
   }
@@ -635,7 +634,7 @@
 
 @media (max-width: 390px) {
   .splineHero {
-    min-height: max(32rem, calc(100svh + 2.5rem));
+    min-height: max(32rem, 100svh);
   }
 
   .splineLayer {
