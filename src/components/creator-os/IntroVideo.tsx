@@ -9,33 +9,30 @@ const FADE_OUT_MS = 700;
 
 type PlaybackState = "loading" | "paused" | "playing";
 
-function useReducedMotion() {
-  const [reduced, setReduced] = useState(false);
+type IntroVideoProps = {
+  motionAllowed?: boolean;
+  onPrefetchSpline?: () => void;
+  onReveal?: () => void;
+  prefetchLeadSeconds?: number;
+  reducedMotion?: boolean;
+};
 
-  useEffect(() => {
-    if (!window.matchMedia) return;
-
-    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setReduced(media.matches);
-    update();
-    media.addEventListener("change", update);
-
-    return () => media.removeEventListener("change", update);
-  }, []);
-
-  return reduced;
-}
-
-export default function IntroVideo() {
+export default function IntroVideo({
+  motionAllowed = true,
+  onPrefetchSpline,
+  onReveal,
+  prefetchLeadSeconds = 8,
+  reducedMotion = false,
+}: IntroVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fallbackTimerRef = useRef<number | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const playbackTokenRef = useRef(0);
+  const hasPrefetchedRef = useRef(false);
   const hasExitedRef = useRef(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [playback, setPlayback] = useState<PlaybackState>("loading");
-  const reducedMotion = useReducedMotion();
 
   const clearFallbackTimer = useCallback(() => {
     if (fallbackTimerRef.current === null) return;
@@ -59,6 +56,8 @@ export default function IntroVideo() {
     if (hasExitedRef.current) return;
 
     hasExitedRef.current = true;
+    onPrefetchSpline?.();
+    onReveal?.();
     setIsExiting(true);
 
     if (immediate) {
@@ -67,35 +66,34 @@ export default function IntroVideo() {
     }
 
     exitTimerRef.current = window.setTimeout(() => setIsVisible(false), FADE_OUT_MS);
-  }, [clearFallbackTimer]);
+  }, [clearFallbackTimer, onPrefetchSpline, onReveal]);
 
   const startPlayback = useCallback(async (token: number) => {
     const video = videoRef.current;
-    if (!video || reducedMotion || hasExitedRef.current) return;
+    if (!video || reducedMotion || !motionAllowed || hasExitedRef.current) return;
 
     clearFallbackTimer();
     setPlayback("loading");
     video.muted = true;
     fallbackTimerRef.current = window.setTimeout(() => {
-      if (token === playbackTokenRef.current) transitionToSpline();
+      if (token === playbackTokenRef.current) transitionToSpline(true);
     }, 3000);
 
     try {
       await video.play();
       if (token !== playbackTokenRef.current || hasExitedRef.current) return;
 
-      clearFallbackTimer();
       setPlayback("playing");
     } catch {
-      transitionToSpline();
+      if (token === playbackTokenRef.current) transitionToSpline(true);
     }
-  }, [clearFallbackTimer, reducedMotion, transitionToSpline]);
+  }, [clearFallbackTimer, motionAllowed, reducedMotion, transitionToSpline]);
 
   useEffect(() => {
     playbackTokenRef.current += 1;
     const token = playbackTokenRef.current;
 
-    if (reducedMotion) {
+    if (reducedMotion || !motionAllowed) {
       transitionToSpline(true);
       return;
     }
@@ -106,7 +104,7 @@ export default function IntroVideo() {
       clearFallbackTimer();
       clearExitTimer();
     };
-  }, [clearExitTimer, clearFallbackTimer, reducedMotion, startPlayback, transitionToSpline]);
+  }, [clearExitTimer, clearFallbackTimer, motionAllowed, reducedMotion, startPlayback, transitionToSpline]);
 
   const pause = useCallback(() => {
     clearFallbackTimer();
@@ -122,13 +120,21 @@ export default function IntroVideo() {
       await video.play();
       if (!hasExitedRef.current) setPlayback("playing");
     } catch {
-      transitionToSpline();
+      transitionToSpline(true);
     }
   }, [transitionToSpline]);
 
-  const onCanPlay = useCallback(() => {
-    clearFallbackTimer();
-  }, [clearFallbackTimer]);
+  const onTimeUpdate = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || hasExitedRef.current) return;
+
+    if (video.currentTime > 0.1) clearFallbackTimer();
+
+    if (!hasPrefetchedRef.current && Number.isFinite(video.duration) && video.currentTime >= video.duration - prefetchLeadSeconds) {
+      hasPrefetchedRef.current = true;
+      onPrefetchSpline?.();
+    }
+  }, [clearFallbackTimer, onPrefetchSpline, prefetchLeadSeconds]);
 
   if (!isVisible) return null;
 
@@ -146,9 +152,9 @@ export default function IntroVideo() {
           autoPlay={!reducedMotion}
           className={styles.video}
           muted
-          onCanPlay={onCanPlay}
           onEnded={() => transitionToSpline()}
-          onError={() => transitionToSpline()}
+          onError={() => transitionToSpline(true)}
+          onTimeUpdate={onTimeUpdate}
           playsInline
           preload="metadata"
           ref={videoRef}
@@ -156,22 +162,27 @@ export default function IntroVideo() {
           tabIndex={-1}
         />
         <div aria-hidden="true" className={styles.frameOverlay} />
-        {playback !== "loading" && (
-          <button
-            aria-label={isPlaying ? "Pause introduction" : "Play introduction"}
-            className={styles.button}
-            onClick={isPlaying ? pause : resume}
-            type="button"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              {isPlaying ? (
-                <path d="M8 6v12M16 6v12" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
-              ) : (
-                <path d="m9 7 8 5-8 5Z" fill="currentColor" />
-              )}
-            </svg>
+        <div className={styles.controls}>
+          <button aria-label="Skip introduction" className={styles.skipButton} onClick={() => transitionToSpline()} type="button">
+            Skip intro
           </button>
-        )}
+          {playback !== "loading" && (
+            <button
+              aria-label={isPlaying ? "Pause introduction" : "Play introduction"}
+              className={styles.button}
+              onClick={isPlaying ? pause : resume}
+              type="button"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                {isPlaying ? (
+                  <path d="M8 6v12M16 6v12" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                ) : (
+                  <path d="m9 7 8 5-8 5Z" fill="currentColor" />
+                )}
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
     </section>
   );

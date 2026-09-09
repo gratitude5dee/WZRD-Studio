@@ -1,6 +1,6 @@
 .intro {
-  align-items: flex-start;
-  background: #020304;
+  align-items: stretch;
+  background: transparent;
   display: flex;
   inset: 0;
   justify-content: center;
@@ -18,10 +18,9 @@
 }
 
 .frame {
-  aspect-ratio: 16 / 9;
   background: #020304;
+  height: 100%;
   isolation: isolate;
-  max-width: 72rem;
   overflow: hidden;
   position: relative;
   width: 100%;
@@ -41,30 +40,47 @@
 }
 
 .frameOverlay {
-  background: linear-gradient(180deg, transparent 72%, #020304 100%);
+  background: linear-gradient(180deg, transparent 64%, rgba(2, 3, 4, 0.72) 100%);
   pointer-events: none;
   z-index: 2;
 }
 
-.button {
+.controls {
+  align-items: center;
+  bottom: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  position: absolute;
+  right: 0.75rem;
+  z-index: 4;
+}
+
+.button,
+.skipButton {
   align-items: center;
   background: rgba(5, 7, 10, 0.62);
   border: 1px solid rgba(241, 235, 221, 0.68);
-  border-radius: 999px;
-  bottom: 0.75rem;
   color: #f1ebdd;
   cursor: pointer;
   display: inline-flex;
-  font-family: Arial, sans-serif;
-  font-size: 0.88rem;
+  font-family: "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-size: 0.64rem;
   height: 44px;
   justify-content: center;
   padding: 0;
-  position: absolute;
-  right: 0.75rem;
   transition: background 180ms ease, color 180ms ease, transform 180ms ease;
   width: 44px;
-  z-index: 3;
+}
+
+.button {
+  border-radius: 999px;
+}
+
+.skipButton {
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  padding: 0 0.82rem;
+  width: auto;
 }
 
 .button svg {
@@ -74,30 +90,27 @@
 }
 
 .button:hover,
-.button:focus-visible {
+.button:focus-visible,
+.skipButton:hover,
+.skipButton:focus-visible {
   background: #f1ebdd;
   color: #05070a;
 }
 
-.button:focus-visible {
+.button:focus-visible,
+.skipButton:focus-visible {
   outline: 2px solid #f1ebdd;
   outline-offset: 4px;
 }
 
-.button:active {
+.button:active,
+.skipButton:active {
   transform: scale(0.97);
 }
 
 @media (prefers-reduced-motion: reduce) {
   .intro {
+    display: none;
     transition: none;
-  }
-}
-
-@media (min-width: 681px) {
-  .frame {
-    border: 1px solid rgba(241, 235, 221, 0.2);
-    border-radius: 0 0 clamp(1rem, 2vw, 1.75rem) clamp(1rem, 2vw, 1.75rem);
-    box-shadow: 0 2.5rem 6rem rgba(0, 0, 0, 0.46);
   }
 }

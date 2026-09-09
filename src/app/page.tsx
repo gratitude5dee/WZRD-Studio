@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import CreatorOSLanding from "@/components/creator-os/CreatorOSLanding";
+import { MotionPreferenceProvider } from "@/components/creator-os/MotionPreference";
 import SplinePartnerHero from "@/components/creator-os/SplinePartnerHero";
 
 export const metadata: Metadata = {
@@ -39,9 +40,9 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <>
+    <MotionPreferenceProvider>
       <SplinePartnerHero />
       <CreatorOSLanding />
-    </>
+    </MotionPreferenceProvider>
   );
 }

@@ -5,6 +5,7 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { css } from "./canonicalStyle";
 import styles from "./CreatorOSLanding.module.css";
+import { useMotionPreference } from "./MotionPreference";
 
 /**
  * Native React port of the canonical "WZRD CREATOR OS — STANDALONE SOURCE"
@@ -394,20 +395,16 @@ export default function CreatorOSLanding() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [fxReady, setFxReady] = useState(false);
   const [fxEngineDown, setFxEngineDown] = useState(false);
-  const [motionOn, setMotionOn] = useState(true);
   const [bubbleOpen, setBubbleOpen] = useState(false);
   const bubbleMenuRef = useRef<HTMLDivElement>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const [navHover, setNavHover] = useState(false);
   const [logoHover, setLogoHover] = useState(false);
 
-  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const calmViewport = useMediaQuery("(pointer: coarse), (max-width: 859px)");
-
-  const motionAllowed = motionOn && !reduced;
+  const { motionAllowed, motionLabel, reduced, toggleMotion } = useMotionPreference();
   const baseMode = calmViewport ? "calm" : "full";
   const fxModeAttr = motionAllowed ? baseMode : "off";
-  const motionLabel = reduced ? "reduced" : motionOn ? "on" : "off";
   const creatorCinematic = motionAllowed && !calmViewport;
 
   const closeBubbleMenu = useCallback(() => setBubbleOpen(false), []);
@@ -898,7 +895,7 @@ export default function CreatorOSLanding() {
             aria-pressed={motionAllowed}
             className={styles.motionButton}
             disabled={reduced}
-            onClick={() => setMotionOn((value) => !value)}
+            onClick={toggleMotion}
             style={{
               ...css(
                 "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;width:clamp(2.8rem,9vw,3.15rem);height:clamp(2.8rem,9vw,3.15rem);border-radius:50%;border:1.5px solid transparent;background:linear-gradient(rgba(12,11,16,0.62),rgba(12,11,16,0.62)) padding-box,radial-gradient(circle at 25% 20%, rgba(140,200,255,0.14), transparent 60%) padding-box,conic-gradient(from 90deg, rgba(140,200,255,0.6), rgba(109,200,215,0.6) 25%, rgba(240,161,69,0.5) 50%, rgba(240,106,71,0.5) 75%, rgba(140,200,255,0.6) 100%) border-box;backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);cursor:pointer;font-size:0.52rem;letter-spacing:0.03em;text-transform:uppercase;color:rgba(241,235,221,0.65);box-shadow:0 0.5rem 1.3rem rgba(2,5,10,0.4),inset 0 1px 0 rgba(255,255,255,0.08);z-index:1;transition:color 200ms ease,transform 260ms cubic-bezier(0.34,1.56,0.64,1),opacity 220ms ease,box-shadow 200ms ease",

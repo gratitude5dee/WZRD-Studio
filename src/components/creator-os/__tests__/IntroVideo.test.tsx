@@ -36,6 +36,7 @@ describe('IntroVideo', () => {
     expect(video).toHaveAttribute('muted');
     expect(screen.queryByRole('dialog', { name: /introduction/i })).not.toBeInTheDocument();
     expect(film).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Skip introduction' })).toBeInTheDocument();
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Pause introduction' })).toBeInTheDocument());
 
@@ -48,16 +49,41 @@ describe('IntroVideo', () => {
     await waitFor(() => expect(play).toHaveBeenCalledTimes(2));
   });
 
-  it('dissolves into the Spline hero when the film cannot load', async () => {
-    vi.useFakeTimers();
-    render(<IntroVideo />);
+  it('reveals the static hero immediately when the film cannot load', () => {
+    const onReveal = vi.fn();
+    render(<IntroVideo onReveal={onReveal} />);
 
     fireEvent.error(getVideo());
 
-    expect(screen.getByRole('region', { name: 'WZRD.tech introduction film' })).toHaveAttribute('data-exiting', 'true');
+    expect(onReveal).toHaveBeenCalledTimes(1);
     expect(pause).toHaveBeenCalled();
+    expect(screen.queryByRole('region', { name: 'WZRD.tech introduction film' })).not.toBeInTheDocument();
+  });
+
+  it('dissolves into the Spline hero when visitors skip the film', () => {
+    vi.useFakeTimers();
+    const onReveal = vi.fn();
+    render(<IntroVideo onReveal={onReveal} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip introduction' }));
+
+    expect(onReveal).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('region', { name: 'WZRD.tech introduction film' })).toHaveAttribute('data-exiting', 'true');
 
     act(() => vi.advanceTimersByTime(700));
+    expect(screen.queryByRole('region', { name: 'WZRD.tech introduction film' })).not.toBeInTheDocument();
+    vi.useRealTimers();
+  });
+
+  it('falls back when playback starts but does not progress', async () => {
+    vi.useFakeTimers();
+    const onReveal = vi.fn();
+    render(<IntroVideo onReveal={onReveal} />);
+
+    await act(async () => undefined);
+    act(() => vi.advanceTimersByTime(3000));
+
+    expect(onReveal).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('region', { name: 'WZRD.tech introduction film' })).not.toBeInTheDocument();
     vi.useRealTimers();
   });

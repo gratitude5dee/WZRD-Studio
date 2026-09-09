@@ -2,12 +2,15 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import CreatorOSLanding from '@/components/creator-os/CreatorOSLanding';
+import { MotionPreferenceProvider } from '@/components/creator-os/MotionPreference';
 
 const canonicalSectionIds = ['creator-os', 'air', 'zap', 'studio', 'earth', 'coming-soon', 'enter'];
 
 describe('CreatorOSLanding', () => {
+  const renderLanding = () => render(<MotionPreferenceProvider><CreatorOSLanding /></MotionPreferenceProvider>);
+
   it('renders the cloud narrative natively, without the legacy iframe', () => {
-    const { container } = render(<CreatorOSLanding />);
+    const { container } = renderLanding();
 
     expect(container.querySelector('iframe')).not.toBeInTheDocument();
     expect(screen.getByText('Creative', { exact: true })).toBeInTheDocument();
@@ -19,7 +22,7 @@ describe('CreatorOSLanding', () => {
   });
 
   it('keeps the canonical section order', () => {
-    const { container } = render(<CreatorOSLanding />);
+    const { container } = renderLanding();
 
     const ids = Array.from(container.querySelectorAll<HTMLElement>('section[id]'))
       .sort((left, right) => Number(left.style.order) - Number(right.style.order))
@@ -28,7 +31,7 @@ describe('CreatorOSLanding', () => {
   });
 
   it('surfaces the published npm package wins in the Zap chapter', () => {
-    render(<CreatorOSLanding />);
+    renderLanding();
 
     expect(screen.getByText('02 / Zap')).toBeInTheDocument();
     expect(screen.getByText('03 / Studio')).toBeInTheDocument();
@@ -43,7 +46,7 @@ describe('CreatorOSLanding', () => {
   });
 
   it('keeps the specified destination map and opens the Air CTA in this tab', () => {
-    render(<CreatorOSLanding />);
+    renderLanding();
 
     fireEvent.click(screen.getByRole('button', { name: 'Toggle navigation' }));
 
@@ -71,7 +74,7 @@ describe('CreatorOSLanding', () => {
   });
 
   it('switches the atmosphere between full motion and off', () => {
-    const { container } = render(<CreatorOSLanding />);
+    const { container } = renderLanding();
 
     const root = container.firstElementChild as HTMLElement;
     const toggle = screen.getByRole('button', { name: /motion on.*toggle motion/i });
@@ -85,7 +88,7 @@ describe('CreatorOSLanding', () => {
   });
 
   it('keeps a still hero screenshot once motion is off', () => {
-    const { container } = render(<CreatorOSLanding />);
+    const { container } = renderLanding();
 
     expect(container.querySelector('img[src="/creator-os/devices-trimmed.png"]')).not.toBeInTheDocument();
 
@@ -95,7 +98,7 @@ describe('CreatorOSLanding', () => {
   });
 
   it('closes the navigation overlay on Escape and returns focus to the hamburger', async () => {
-    render(<CreatorOSLanding />);
+    renderLanding();
 
     const hamburger = screen.getByRole('button', { name: 'Toggle navigation' });
     fireEvent.click(hamburger);
@@ -111,7 +114,7 @@ describe('CreatorOSLanding', () => {
   });
 
   it('expands the Fire and Water disclosure cards on click and keyboard', () => {
-    render(<CreatorOSLanding />);
+    renderLanding();
 
     const card = screen.getByRole('button', { name: 'The DATA Foundation' });
     expect(card).toHaveAttribute('aria-expanded', 'false');
