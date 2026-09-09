@@ -1,7 +1,7 @@
 "use client";
 
-import { cloneElement, useCallback, useEffect, useRef, useState } from "react";
-import type { ReactElement, RefObject } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode, RefObject } from "react";
 
 import styles from "./CreatorOSLanding.module.css";
 import IntroVideo from "./IntroVideo";
@@ -60,7 +60,7 @@ function useStageVisibility(stageRef: RefObject<HTMLElement | null>) {
 }
 
 type HeroExperienceProps = {
-  splineScene: ReactElement<{ onLoad?: () => void; renderOnDemand?: boolean }>;
+  splineScene: ReactNode;
 };
 
 export default function HeroExperience({ splineScene }: HeroExperienceProps) {
@@ -69,7 +69,6 @@ export default function HeroExperience({ splineScene }: HeroExperienceProps) {
   const stageVisible = useStageVisibility(stageRef);
   const [introKey, setIntroKey] = useState(0);
   const [sceneRequested, setSceneRequested] = useState(false);
-  const [sceneReady, setSceneReady] = useState(false);
   const [heroRevealed, setHeroRevealed] = useState(false);
 
   const requestScene = useCallback(() => setSceneRequested(true), []);
@@ -94,17 +93,12 @@ export default function HeroExperience({ splineScene }: HeroExperienceProps) {
       <h1 className={styles.visuallyHidden}>WZRD.tech Creator OS</h1>
 
       <section aria-label="WZRD.tech hero" className={styles.heroStage} ref={stageRef}>
-        <div aria-hidden="true" className={styles.splineFallback} data-hidden={sceneReady && mountSpline}>
+        <div aria-hidden="true" className={styles.splineFallback}>
           <img alt="" src="/creator-os/wzrd-wordmark-1600.png" />
         </div>
 
         {mountSpline && (
-          <div aria-hidden="true" className={styles.splineLayer} data-ready={sceneReady}>
-            {cloneElement(splineScene, {
-              onLoad: () => setSceneReady(true),
-              renderOnDemand: !motionAllowed || reduced,
-            })}
-          </div>
+          <div aria-hidden="true" className={styles.splineLayer} data-ready="true">{splineScene}</div>
         )}
 
         <div aria-hidden="true" className={styles.splineWash} />
