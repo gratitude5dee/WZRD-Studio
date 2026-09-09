@@ -163,7 +163,13 @@ export default function IntroVideo() {
             onClick={isPlaying ? pause : resume}
             type="button"
           >
-            <span aria-hidden="true">{isPlaying ? "Ⅱ" : "▶"}</span>
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              {isPlaying ? (
+                <path d="M8 6v12M16 6v12" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+              ) : (
+                <path d="m9 7 8 5-8 5Z" fill="currentColor" />
+              )}
+            </svg>
           </button>
         )}
       </div>
