@@ -74,7 +74,7 @@ describe('CreatorOSLanding', () => {
     const { container } = render(<CreatorOSLanding />);
 
     const root = container.firstElementChild as HTMLElement;
-    const toggle = screen.getByRole('button', { name: 'Toggle motion' });
+    const toggle = screen.getByRole('button', { name: /motion on.*toggle motion/i });
     expect(toggle).toHaveTextContent('on');
     expect(root.dataset.fxMode).toBe('full');
 
@@ -89,7 +89,7 @@ describe('CreatorOSLanding', () => {
 
     expect(container.querySelector('img[src="/creator-os/devices-trimmed.png"]')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Toggle motion' }));
+    fireEvent.click(screen.getByRole('button', { name: /motion on.*toggle motion/i }));
 
     expect(container.querySelector('img[src="/creator-os/devices-trimmed.png"]')).toBeInTheDocument();
   });

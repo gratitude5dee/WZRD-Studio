@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { css } from "./canonicalStyle";
@@ -403,8 +403,6 @@ export default function CreatorOSLanding() {
 
   const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
   const calmViewport = useMediaQuery("(pointer: coarse), (max-width: 859px)");
-  // Without hover there is nothing to reveal the motion control, so it stays out.
-  const hoverless = useMediaQuery("(hover: none)");
 
   const motionAllowed = motionOn && !reduced;
   const baseMode = calmViewport ? "calm" : "full";
@@ -840,15 +838,11 @@ export default function CreatorOSLanding() {
   }, [motionAllowed]);
 
   const bubbleScale = bubbleOpen ? 1 : 0;
-  const motionShown = navHover || hoverless;
-  const navPop = useMemo<CSSProperties>(
-    () => ({
-      opacity: motionShown ? 1 : 0,
-      pointerEvents: motionShown ? "auto" : "none",
-      transform: motionShown ? "translateX(-3.75rem) scale(1)" : "translateX(0rem) scale(0.78)",
-    }),
-    [motionShown],
-  );
+  const navPop: CSSProperties = {
+    opacity: 1,
+    pointerEvents: "auto",
+    transform: "translateX(-3.75rem) scale(1)",
+  };
 
   return (
     <div
@@ -860,7 +854,7 @@ export default function CreatorOSLanding() {
       {/* ============ HEADER ============ */}
       <header
         style={css(
-          `position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:clamp(0.9rem,3.2vw,1.35rem) clamp(1.15rem,4.5vw,1.7rem);pointer-events:none;font-family:${MONO}`,
+          `position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:max(0.9rem,env(safe-area-inset-top)) max(1.15rem,calc(env(safe-area-inset-right) + 1.15rem)) 0 max(1.15rem,calc(env(safe-area-inset-left) + 1.15rem));pointer-events:none;font-family:${MONO}`,
         )}
       >
         <a
@@ -889,22 +883,19 @@ export default function CreatorOSLanding() {
           />
         </a>
         <div
-          // Focus reveals the motion switch too, so keyboard users never land on
-          // a control that is faded out.
           onBlur={() => setNavHover(false)}
           onFocus={() => setNavHover(true)}
           onPointerEnter={() => setNavHover(true)}
           onPointerLeave={() => setNavHover(false)}
           style={css(
-            // The hover region reaches left far enough to cover the revealed
-            // motion switch, which is pushed outside the hamburger's own box —
-            // otherwise the cursor leaves the wrapper on its way there and the
-            // switch hides again before it can be clicked.
+            // The motion preference stays visible on every input type. The
+            // container reserves room for its 44px target beside navigation.
             "position:relative;box-sizing:content-box;pointer-events:auto;width:clamp(2.8rem,9vw,3.15rem);height:clamp(2.8rem,9vw,3.15rem);padding-left:4.6rem;margin-left:-4.6rem",
           )}
         >
           <button
-            aria-label="Toggle motion"
+            aria-label={reduced ? "Motion reduced" : `Motion ${motionLabel}. Toggle motion`}
+            aria-pressed={motionAllowed}
             className={styles.motionButton}
             disabled={reduced}
             onClick={() => setMotionOn((value) => !value)}

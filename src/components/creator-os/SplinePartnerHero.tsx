@@ -1,8 +1,10 @@
 import Spline from "@splinetool/react-spline/next";
 
 import styles from "./CreatorOSLanding.module.css";
+import IntroVideo from "./IntroVideo";
 
 const SPLINE_SCENE = "https://prod.spline.design/7n8f5YWSgL4MSvLr/scene.splinecode";
+const STUDIO_URL = "https://studio.wzrd.tech";
 
 const partners = [
   { logo: "https://cdn.simpleicons.org/anthropic/E6DFD2", name: "Anthropic" },
@@ -30,12 +32,30 @@ function PartnerSet({ hidden = false }: { hidden?: boolean }) {
 export default function SplinePartnerHero() {
   return (
     <section aria-label="WZRD.tech" className={styles.splineHero} id="top">
-      <h1 className={styles.visuallyHidden}>WZRD.tech</h1>
       <div aria-hidden="true" className={styles.splineLayer}>
         <Spline renderOnDemand={false} scene={SPLINE_SCENE} />
       </div>
 
       <div className={styles.splineWash} />
+
+      <div className={styles.splineContent}>
+        <div className={styles.splineCopy}>
+          <p className={styles.splineKicker}>WZRD.tech / Creator OS</p>
+          <h1>Creative infrastructure for what comes next.</h1>
+          <p>
+            Bring your artists, studios, and intelligent tools into one place for turning a signal into culture.
+          </p>
+          <div className={styles.splineActions}>
+            <a className={styles.splinePrimaryAction} href="#creator-os">
+              Explore Creator OS <span aria-hidden="true">↓</span>
+            </a>
+            <a className={styles.splineSecondaryAction} href={STUDIO_URL} rel="noopener" target="_top">
+              Enter Studio <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </div>
+        <IntroVideo />
+      </div>
 
       <div aria-label="Technology ecosystem" className={styles.partnerRail}>
         <p>Built across the AI ecosystem</p>

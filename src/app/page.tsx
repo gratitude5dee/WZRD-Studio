@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 
 import CreatorOSLanding from "@/components/creator-os/CreatorOSLanding";
-import IntroVideo from "@/components/creator-os/IntroVideo";
 import SplinePartnerHero from "@/components/creator-os/SplinePartnerHero";
 
 export const metadata: Metadata = {
@@ -41,7 +40,6 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <>
-      <IntroVideo />
       <SplinePartnerHero />
       <CreatorOSLanding />
     </>

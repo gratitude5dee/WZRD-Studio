@@ -2,127 +2,147 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import ShinyText from "./ShinyText";
 import styles from "./IntroVideo.module.css";
 
-const INTRO_DISMISSED_KEY = "wzrd:intro-dismissed";
 const INTRO_VIDEO = "/creator-os/assets/universe-teeming-intro.mp4";
-const INTRO_POSTER = "/creator-os/assets/universe-teeming-poster.jpg";
+
+type PlaybackState = "fallback" | "loading" | "paused" | "playing" | "replay";
+
+function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(media.matches);
+    update();
+    media.addEventListener("change", update);
+
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  return reduced;
+}
 
 export default function IntroVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const exitTimerRef = useRef<number | null>(null);
-  const [visible, setVisible] = useState(true);
-  const [muted, setMuted] = useState(false);
-  const [exiting, setExiting] = useState(false);
+  const fallbackTimerRef = useRef<number | null>(null);
+  const playbackTokenRef = useRef(0);
+  const [attempt, setAttempt] = useState(0);
+  const [playback, setPlayback] = useState<PlaybackState>("loading");
+  const reducedMotion = useReducedMotion();
 
-  useEffect(() => {
-    if (window.sessionStorage.getItem(INTRO_DISMISSED_KEY) === "true") setVisible(false);
+  const clearFallbackTimer = useCallback(() => {
+    if (fallbackTimerRef.current === null) return;
+    window.clearTimeout(fallbackTimerRef.current);
+    fallbackTimerRef.current = null;
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (exitTimerRef.current) window.clearTimeout(exitTimerRef.current);
-    };
-  }, []);
-
-  // Autoplay with sound is attempted first. Browsers that enforce an audio
-  // gesture requirement continue the film muted, then let the shiny Unmute
-  // control restore sound with the visitor's next gesture.
-  useEffect(() => {
-    if (!visible) return;
-    const video = videoRef.current;
-    if (!video) return;
-    let cancelled = false;
-
-    const begin = async () => {
-      try {
-        video.muted = false;
-        await video.play();
-        if (!cancelled) setMuted(false);
-      } catch {
-        if (cancelled) return;
-        video.muted = true;
-        setMuted(true);
-        try {
-          await video.play();
-        } catch {
-          // The native controls remain available if playback itself fails.
-        }
-      }
-    };
-
-    void begin();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [visible]);
-
-  const dismiss = useCallback(() => {
-    if (exiting) return;
+  const showFallback = useCallback(() => {
+    clearFallbackTimer();
     videoRef.current?.pause();
-    window.sessionStorage.setItem(INTRO_DISMISSED_KEY, "true");
-    setExiting(true);
-    exitTimerRef.current = window.setTimeout(() => setVisible(false), 620);
-  }, [exiting]);
+    setPlayback("fallback");
+  }, [clearFallbackTimer]);
 
-  const toggleMute = useCallback(async () => {
-    const nextMuted = !muted;
+  const startPlayback = useCallback(async (token: number) => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || reducedMotion) return;
 
-    video.muted = nextMuted;
-    if (nextMuted) {
-      setMuted(true);
-      return;
-    }
+    clearFallbackTimer();
+    setPlayback("loading");
+    video.muted = true;
+    let timedOut = false;
+    fallbackTimerRef.current = window.setTimeout(() => {
+      if (token !== playbackTokenRef.current) return;
+      timedOut = true;
+      showFallback();
+    }, 3000);
 
     try {
       await video.play();
-      setMuted(false);
+      if (timedOut || token !== playbackTokenRef.current) return;
+      clearFallbackTimer();
+      setPlayback("playing");
     } catch {
-      video.muted = true;
-      setMuted(true);
+      showFallback();
     }
-  }, [muted]);
+  }, [clearFallbackTimer, reducedMotion, showFallback]);
 
-  if (!visible) return null;
+  useEffect(() => {
+    playbackTokenRef.current += 1;
+    const token = playbackTokenRef.current;
+
+    if (reducedMotion) {
+      showFallback();
+      return;
+    }
+
+    void startPlayback(token);
+
+    return clearFallbackTimer;
+  }, [attempt, clearFallbackTimer, reducedMotion, showFallback, startPlayback]);
+
+  const pause = useCallback(() => {
+    clearFallbackTimer();
+    videoRef.current?.pause();
+    setPlayback("paused");
+  }, [clearFallbackTimer]);
+
+  const replay = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = 0;
+    setAttempt((value) => value + 1);
+  }, []);
+
+  const onCanPlay = useCallback(() => {
+    clearFallbackTimer();
+  }, [clearFallbackTimer]);
+
+  const onEnded = useCallback(() => {
+    clearFallbackTimer();
+    setPlayback("replay");
+  }, [clearFallbackTimer]);
+
+  const videoVisible = playback === "loading" || playback === "playing" || playback === "paused";
+  const primaryAction = playback === "playing" ? "Pause introduction" : playback === "replay" ? "Replay introduction" : "Play introduction";
 
   return (
-    <section
-      aria-label="WZRD.tech introduction"
-      aria-modal="true"
-      className={styles.intro}
-      data-exiting={exiting ? "true" : undefined}
-      role="dialog"
-    >
-      <video
-        autoPlay
-        className={styles.video}
-        muted={muted}
-        onEnded={dismiss}
-        playsInline
-        poster={INTRO_POSTER}
-        preload="auto"
-        ref={videoRef}
-        src={INTRO_VIDEO}
-      />
-      <div aria-hidden="true" className={styles.vignette} />
-
-      <div className={styles.brand}>
-        <img alt="WZRD.tech" src="/wzrdtechlogo.png" />
+    <section aria-label="WZRD.tech introduction film" className={styles.intro} data-playback={playback}>
+      <div className={styles.frame}>
+        <video
+          aria-label="WZRD.tech introduction film"
+          autoPlay={!reducedMotion}
+          className={styles.video}
+          muted
+          onCanPlay={onCanPlay}
+          onEnded={onEnded}
+          onError={showFallback}
+          playsInline
+          preload="metadata"
+          ref={videoRef}
+          src={INTRO_VIDEO}
+          tabIndex={-1}
+        />
+        <div aria-hidden="true" className={styles.frameOverlay} />
+        {!videoVisible && <span aria-hidden="true" className={styles.staticLabel}>The WZRD universe, at rest</span>}
       </div>
 
       <div className={styles.controls}>
-        <div className={styles.utilityControls}>
-          <button className={styles.button} onClick={() => void toggleMute()} type="button">
-            <ShinyText className={styles.buttonText}>{muted ? "Unmute" : "Mute"}</ShinyText>
-          </button>
-          <button className={styles.button} onClick={dismiss} type="button">
-            <ShinyText className={styles.buttonText}>Skip intro</ShinyText>
-          </button>
-        </div>
+        <p aria-live="polite" className={styles.status}>
+          {reducedMotion
+            ? "Motion is reduced. The hero is ready to explore."
+            : playback === "fallback"
+              ? "The hero is ready to explore."
+              : playback === "replay"
+                ? "Introduction complete."
+                : playback === "paused"
+                  ? "Introduction paused."
+                  : "Introduction playing."}
+        </p>
+        <button className={styles.button} onClick={playback === "playing" ? pause : replay} type="button">
+          {primaryAction}
+        </button>
       </div>
     </section>
   );
