@@ -5,14 +5,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import styles from "./IntroVideo.module.css";
 
 const INTRO_VIDEO = "/creator-os/assets/universe-teeming-intro.mp4";
+const FADE_OUT_MS = 700;
 
-type PlaybackState = "fallback" | "loading" | "paused" | "playing" | "replay";
+type PlaybackState = "loading" | "paused" | "playing";
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
 
   useEffect(() => {
     if (!window.matchMedia) return;
+
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setReduced(media.matches);
     update();
@@ -27,60 +29,84 @@ function useReducedMotion() {
 export default function IntroVideo() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fallbackTimerRef = useRef<number | null>(null);
+  const exitTimerRef = useRef<number | null>(null);
   const playbackTokenRef = useRef(0);
-  const [attempt, setAttempt] = useState(0);
+  const hasExitedRef = useRef(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const [playback, setPlayback] = useState<PlaybackState>("loading");
   const reducedMotion = useReducedMotion();
 
   const clearFallbackTimer = useCallback(() => {
     if (fallbackTimerRef.current === null) return;
+
     window.clearTimeout(fallbackTimerRef.current);
     fallbackTimerRef.current = null;
   }, []);
 
-  const showFallback = useCallback(() => {
+  const clearExitTimer = useCallback(() => {
+    if (exitTimerRef.current === null) return;
+
+    window.clearTimeout(exitTimerRef.current);
+    exitTimerRef.current = null;
+  }, []);
+
+  const transitionToSpline = useCallback((immediate = false) => {
     clearFallbackTimer();
+    playbackTokenRef.current += 1;
     videoRef.current?.pause();
-    setPlayback("fallback");
+
+    if (hasExitedRef.current) return;
+
+    hasExitedRef.current = true;
+    setIsExiting(true);
+
+    if (immediate) {
+      setIsVisible(false);
+      return;
+    }
+
+    exitTimerRef.current = window.setTimeout(() => setIsVisible(false), FADE_OUT_MS);
   }, [clearFallbackTimer]);
 
   const startPlayback = useCallback(async (token: number) => {
     const video = videoRef.current;
-    if (!video || reducedMotion) return;
+    if (!video || reducedMotion || hasExitedRef.current) return;
 
     clearFallbackTimer();
     setPlayback("loading");
     video.muted = true;
-    let timedOut = false;
     fallbackTimerRef.current = window.setTimeout(() => {
-      if (token !== playbackTokenRef.current) return;
-      timedOut = true;
-      showFallback();
+      if (token === playbackTokenRef.current) transitionToSpline();
     }, 3000);
 
     try {
       await video.play();
-      if (timedOut || token !== playbackTokenRef.current) return;
+      if (token !== playbackTokenRef.current || hasExitedRef.current) return;
+
       clearFallbackTimer();
       setPlayback("playing");
     } catch {
-      showFallback();
+      transitionToSpline();
     }
-  }, [clearFallbackTimer, reducedMotion, showFallback]);
+  }, [clearFallbackTimer, reducedMotion, transitionToSpline]);
 
   useEffect(() => {
     playbackTokenRef.current += 1;
     const token = playbackTokenRef.current;
 
     if (reducedMotion) {
-      showFallback();
+      transitionToSpline(true);
       return;
     }
 
     void startPlayback(token);
 
-    return clearFallbackTimer;
-  }, [attempt, clearFallbackTimer, reducedMotion, showFallback, startPlayback]);
+    return () => {
+      clearFallbackTimer();
+      clearExitTimer();
+    };
+  }, [clearExitTimer, clearFallbackTimer, reducedMotion, startPlayback, transitionToSpline]);
 
   const pause = useCallback(() => {
     clearFallbackTimer();
@@ -88,27 +114,32 @@ export default function IntroVideo() {
     setPlayback("paused");
   }, [clearFallbackTimer]);
 
-  const replay = useCallback(() => {
+  const resume = useCallback(async () => {
     const video = videoRef.current;
-    if (!video) return;
-    video.currentTime = 0;
-    setAttempt((value) => value + 1);
-  }, []);
+    if (!video || hasExitedRef.current) return;
+
+    try {
+      await video.play();
+      if (!hasExitedRef.current) setPlayback("playing");
+    } catch {
+      transitionToSpline();
+    }
+  }, [transitionToSpline]);
 
   const onCanPlay = useCallback(() => {
     clearFallbackTimer();
   }, [clearFallbackTimer]);
 
-  const onEnded = useCallback(() => {
-    clearFallbackTimer();
-    setPlayback("replay");
-  }, [clearFallbackTimer]);
+  if (!isVisible) return null;
 
-  const videoVisible = playback === "loading" || playback === "playing" || playback === "paused";
-  const primaryAction = playback === "playing" ? "Pause introduction" : playback === "replay" ? "Replay introduction" : "Play introduction";
+  const isPlaying = playback === "playing";
 
   return (
-    <section aria-label="WZRD.tech introduction film" className={styles.intro} data-playback={playback}>
+    <section
+      aria-label="WZRD.tech introduction film"
+      className={styles.intro}
+      data-exiting={isExiting}
+    >
       <div className={styles.frame}>
         <video
           aria-label="WZRD.tech introduction film"
@@ -116,8 +147,8 @@ export default function IntroVideo() {
           className={styles.video}
           muted
           onCanPlay={onCanPlay}
-          onEnded={onEnded}
-          onError={showFallback}
+          onEnded={() => transitionToSpline()}
+          onError={() => transitionToSpline()}
           playsInline
           preload="metadata"
           ref={videoRef}
@@ -125,24 +156,16 @@ export default function IntroVideo() {
           tabIndex={-1}
         />
         <div aria-hidden="true" className={styles.frameOverlay} />
-        {!videoVisible && <span aria-hidden="true" className={styles.staticLabel}>The WZRD universe, at rest</span>}
-      </div>
-
-      <div className={styles.controls}>
-        <p aria-live="polite" className={styles.status}>
-          {reducedMotion
-            ? "Motion is reduced. The hero is ready to explore."
-            : playback === "fallback"
-              ? "The hero is ready to explore."
-              : playback === "replay"
-                ? "Introduction complete."
-                : playback === "paused"
-                  ? "Introduction paused."
-                  : "Introduction playing."}
-        </p>
-        <button className={styles.button} onClick={playback === "playing" ? pause : replay} type="button">
-          {primaryAction}
-        </button>
+        {playback !== "loading" && (
+          <button
+            aria-label={isPlaying ? "Pause introduction" : "Play introduction"}
+            className={styles.button}
+            onClick={isPlaying ? pause : resume}
+            type="button"
+          >
+            <span aria-hidden="true">{isPlaying ? "Ⅱ" : "▶"}</span>
+          </button>
+        )}
       </div>
     </section>
   );

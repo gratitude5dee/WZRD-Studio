@@ -6,12 +6,12 @@ import SplinePartnerHero from '@/components/creator-os/SplinePartnerHero';
 vi.mock('@splinetool/react-spline/next', () => ({ default: () => <div data-testid="spline-scene" /> }));
 
 describe('SplinePartnerHero', () => {
-  it('makes the purpose and primary actions available before the optional introduction film', () => {
+  it('uses the introduction film as the only visible hero content before the Spline scene', () => {
     render(<SplinePartnerHero />);
 
-    expect(screen.getByRole('heading', { name: 'Creative infrastructure for what comes next.' })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Explore Creator OS/ })).toHaveAttribute('href', '#creator-os');
-    expect(screen.getByRole('link', { name: /Enter Studio/ })).toHaveAttribute('href', 'https://studio.wzrd.tech');
+    expect(screen.getByRole('heading', { name: 'WZRD.tech Creator OS' })).toBeInTheDocument();
+    expect(screen.queryByText('Creative infrastructure for what comes next.')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /Explore Creator OS/ })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'WZRD.tech introduction film' })).toBeInTheDocument();
   });
 });

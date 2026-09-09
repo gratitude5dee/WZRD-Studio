@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import IntroVideo from '@/components/creator-os/IntroVideo';
@@ -26,7 +26,7 @@ describe('IntroVideo', () => {
     pause.mockClear();
   });
 
-  it('keeps the introduction as a non-modal hero film with pause and replay controls', async () => {
+  it('keeps the introduction as a non-modal hero film with an inline pause control', async () => {
     render(<IntroVideo />);
 
     const film = screen.getByRole('region', { name: 'WZRD.tech introduction film' });
@@ -48,17 +48,21 @@ describe('IntroVideo', () => {
     await waitFor(() => expect(play).toHaveBeenCalledTimes(2));
   });
 
-  it('falls back to the static hero when the film cannot load', async () => {
+  it('dissolves into the Spline hero when the film cannot load', async () => {
+    vi.useFakeTimers();
     render(<IntroVideo />);
 
     fireEvent.error(getVideo());
 
-    await waitFor(() => expect(screen.getByText('The hero is ready to explore.')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Play introduction' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'WZRD.tech introduction film' })).toHaveAttribute('data-exiting', 'true');
     expect(pause).toHaveBeenCalled();
+
+    act(() => vi.advanceTimersByTime(700));
+    expect(screen.queryByRole('region', { name: 'WZRD.tech introduction film' })).not.toBeInTheDocument();
+    vi.useRealTimers();
   });
 
-  it('uses the static hero when the visitor asks for reduced motion', async () => {
+  it('shows the static Spline hero immediately when the visitor asks for reduced motion', async () => {
     vi.mocked(window.matchMedia).mockReturnValue({
       addEventListener: vi.fn(),
       matches: true,
@@ -67,7 +71,6 @@ describe('IntroVideo', () => {
 
     render(<IntroVideo />);
 
-    await waitFor(() => expect(screen.getByText('Motion is reduced. The hero is ready to explore.')).toBeInTheDocument());
-    expect(screen.getByRole('button', { name: 'Play introduction' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('region', { name: 'WZRD.tech introduction film' })).not.toBeInTheDocument());
   });
 });

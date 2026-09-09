@@ -4,7 +4,6 @@ import styles from "./CreatorOSLanding.module.css";
 import IntroVideo from "./IntroVideo";
 
 const SPLINE_SCENE = "https://prod.spline.design/7n8f5YWSgL4MSvLr/scene.splinecode";
-const STUDIO_URL = "https://studio.wzrd.tech";
 
 const partners = [
   { logo: "https://cdn.simpleicons.org/anthropic/E6DFD2", name: "Anthropic" },
@@ -38,24 +37,8 @@ export default function SplinePartnerHero() {
 
       <div className={styles.splineWash} />
 
-      <div className={styles.splineContent}>
-        <div className={styles.splineCopy}>
-          <p className={styles.splineKicker}>WZRD.tech / Creator OS</p>
-          <h1>Creative infrastructure for what comes next.</h1>
-          <p>
-            Bring your artists, studios, and intelligent tools into one place for turning a signal into culture.
-          </p>
-          <div className={styles.splineActions}>
-            <a className={styles.splinePrimaryAction} href="#creator-os">
-              Explore Creator OS <span aria-hidden="true">↓</span>
-            </a>
-            <a className={styles.splineSecondaryAction} href={STUDIO_URL} rel="noopener" target="_top">
-              Enter Studio <span aria-hidden="true">↗</span>
-            </a>
-          </div>
-        </div>
-        <IntroVideo />
-      </div>
+      <h1 className={styles.visuallyHidden}>WZRD.tech Creator OS</h1>
+      <IntroVideo />
 
       <div aria-label="Technology ecosystem" className={styles.partnerRail}>
         <p>Built across the AI ecosystem</p>

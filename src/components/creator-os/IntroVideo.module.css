@@ -1,18 +1,20 @@
 .intro {
-  display: grid;
-  gap: 0.85rem;
   max-width: 46rem;
   position: relative;
+  transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1), transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
   width: 100%;
   z-index: 3;
 }
 
+.intro[data-exiting="true"] {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-0.5rem);
+}
+
 .frame {
   aspect-ratio: 16 / 9;
-  background:
-    url("/creator-os/assets/universe-teeming-poster.jpg") center / contain no-repeat,
-    radial-gradient(circle at 50% 45%, rgba(143, 202, 255, 0.28), transparent 28%),
-    linear-gradient(135deg, rgba(13, 42, 78, 0.7), rgba(4, 8, 16, 0.76));
+  background: #020304;
   border: 1px solid rgba(241, 235, 221, 0.23);
   border-radius: clamp(0.85rem, 2vw, 1.5rem);
   box-shadow: 0 1.75rem 4.5rem rgba(0, 0, 0, 0.38);
@@ -31,67 +33,34 @@
 
 .video {
   object-fit: contain;
-  opacity: 1;
-  transition: opacity 700ms cubic-bezier(0.22, 1, 0.36, 1);
   z-index: 1;
 }
 
-.intro[data-playback="fallback"] .video,
-.intro[data-playback="replay"] .video {
-  opacity: 0;
-  pointer-events: none;
-}
-
 .frameOverlay {
-  background: linear-gradient(180deg, rgba(3, 8, 17, 0.05), rgba(3, 8, 17, 0.35));
+  background: linear-gradient(180deg, rgba(3, 8, 17, 0.02), rgba(3, 8, 17, 0.18));
   pointer-events: none;
   z-index: 2;
 }
 
-.staticLabel {
-  bottom: 1rem;
-  color: rgba(241, 235, 221, 0.8);
-  font-family: "Azeret Mono", ui-monospace, Consolas, monospace;
-  font-size: 0.61rem;
-  left: 1rem;
-  letter-spacing: 0.1em;
-  position: absolute;
-  text-transform: uppercase;
-  z-index: 3;
-}
-
-.controls {
-  align-items: center;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.7rem 1rem;
-  justify-content: space-between;
-}
-
-.status {
-  color: rgba(241, 235, 221, 0.82);
-  font-family: "Azeret Mono", ui-monospace, Consolas, monospace;
-  font-size: 0.68rem;
-  letter-spacing: 0.02em;
-  line-height: 1.45;
-  margin: 0;
-}
-
 .button {
   align-items: center;
-  background: rgba(5, 7, 10, 0.58);
-  border: 1px solid rgba(241, 235, 221, 0.5);
+  background: rgba(5, 7, 10, 0.62);
+  border: 1px solid rgba(241, 235, 221, 0.68);
   border-radius: 999px;
+  bottom: 0.75rem;
   color: #f1ebdd;
   cursor: pointer;
   display: inline-flex;
-  font-family: "Azeret Mono", ui-monospace, Consolas, monospace;
-  font-size: 0.66rem;
+  font-family: Arial, sans-serif;
+  font-size: 0.88rem;
+  height: 44px;
   justify-content: center;
-  letter-spacing: 0.04em;
-  min-height: 44px;
-  padding: 0.7rem 1rem;
+  padding: 0;
+  position: absolute;
+  right: 0.75rem;
   transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+  width: 44px;
+  z-index: 3;
 }
 
 .button:hover,
@@ -100,24 +69,17 @@
   color: #05070a;
 }
 
+.button:focus-visible {
+  outline: 2px solid #f1ebdd;
+  outline-offset: 4px;
+}
+
 .button:active {
   transform: scale(0.97);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .video,
-  .button {
-    transition: none;
-  }
-}
-
-@media (max-width: 680px) {
   .intro {
-    gap: 0.7rem;
-  }
-
-  .controls {
-    align-items: flex-start;
-    flex-direction: column;
+    transition: none;
   }
 }
