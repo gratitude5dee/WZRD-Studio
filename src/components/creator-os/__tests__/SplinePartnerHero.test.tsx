@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import SplinePartnerHero from '@/components/creator-os/SplinePartnerHero';
 import { MotionPreferenceProvider } from '@/components/creator-os/MotionPreference';
 
-vi.mock('@splinetool/react-spline', () => ({ default: () => <div data-testid="spline-scene" /> }));
+vi.mock('@splinetool/react-spline/next', () => ({ default: () => <div data-testid="spline-scene" /> }));
 
 describe('SplinePartnerHero', () => {
   it('uses the introduction film as the only visible hero content before the Spline scene', () => {

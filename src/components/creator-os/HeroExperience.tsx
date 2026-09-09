@@ -1,8 +1,7 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { RefObject } from "react";
+import { cloneElement, useCallback, useEffect, useRef, useState } from "react";
+import type { ReactElement, RefObject } from "react";
 
 import styles from "./CreatorOSLanding.module.css";
 import IntroVideo from "./IntroVideo";
@@ -10,8 +9,6 @@ import { useMotionPreference } from "./MotionPreference";
 
 const SPLINE_SCENE = "https://prod.spline.design/7n8f5YWSgL4MSvLr/scene.splinecode";
 const SPLINE_PRELOAD_LEAD_SECONDS = 8;
-
-const Spline = dynamic(() => import("@splinetool/react-spline"), { loading: () => null, ssr: false });
 
 const partners = [
   { logo: "https://cdn.simpleicons.org/anthropic/E6DFD2", name: "Anthropic" },
@@ -62,7 +59,11 @@ function useStageVisibility(stageRef: RefObject<HTMLElement | null>) {
   return inViewport && pageVisible;
 }
 
-export default function HeroExperience() {
+type HeroExperienceProps = {
+  splineScene: ReactElement<{ onLoad?: () => void; renderOnDemand?: boolean }>;
+};
+
+export default function HeroExperience({ splineScene }: HeroExperienceProps) {
   const { motionAllowed, reduced } = useMotionPreference();
   const stageRef = useRef<HTMLElement>(null);
   const stageVisible = useStageVisibility(stageRef);
@@ -99,7 +100,10 @@ export default function HeroExperience() {
 
         {mountSpline && (
           <div aria-hidden="true" className={styles.splineLayer} data-ready={sceneReady}>
-            <Spline onLoad={() => setSceneReady(true)} renderOnDemand={!motionAllowed || reduced} scene={SPLINE_SCENE} />
+            {cloneElement(splineScene, {
+              onLoad: () => setSceneReady(true),
+              renderOnDemand: !motionAllowed || reduced,
+            })}
           </div>
         )}
 
