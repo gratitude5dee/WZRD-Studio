@@ -11,7 +11,7 @@ import { useMotionPreference } from "./MotionPreference";
 const SPLINE_SCENE = "https://prod.spline.design/7n8f5YWSgL4MSvLr/scene.splinecode";
 const SPLINE_PRELOAD_LEAD_SECONDS = 8;
 
-const Spline = dynamic(() => import("@splinetool/react-spline/next"), { loading: () => null, ssr: false });
+const Spline = dynamic(() => import("@splinetool/react-spline"), { loading: () => null, ssr: false });
 
 const partners = [
   { logo: "https://cdn.simpleicons.org/anthropic/E6DFD2", name: "Anthropic" },
