@@ -694,6 +694,18 @@
   to { transform: translateX(-50%); }
 }
 
+@media (min-width: 1024px) {
+  .splineHero[data-hero-experience] {
+    justify-content: flex-start;
+    padding-bottom: clamp(2rem, 4vh, 3.5rem);
+    padding-top: clamp(5rem, 8vh, 6rem);
+  }
+
+  .heroStage {
+    max-width: min(90vw, calc((100svh - 8rem) * 16 / 9));
+  }
+}
+
 @media (max-width: 680px) {
   .splineHero {
     justify-content: flex-start;
