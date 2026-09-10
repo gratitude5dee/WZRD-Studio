@@ -795,6 +795,12 @@
 
 }
 
+@media (max-width: 375px) and (orientation: portrait) {
+  .heroStage {
+    --spline-pan-x: -2rem;
+  }
+}
+
 @media (max-width: 680px) and (orientation: landscape) {
   .splineHero {
     min-height: auto;
