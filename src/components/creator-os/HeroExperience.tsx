@@ -99,6 +99,9 @@ function SplineSceneFrame({
       const bounds = frame.getBoundingClientRect();
       if (bounds.width > 0 && bounds.height > 0) {
         runtime.setSize(bounds.width, bounds.height);
+        // The exported scene is landscape-first. A modest portrait zoom keeps
+        // its central sculpture legible without cropping the silhouette.
+        runtime.setZoom(bounds.height > bounds.width ? 1.35 : 1);
       }
     };
 
