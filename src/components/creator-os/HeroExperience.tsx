@@ -131,7 +131,7 @@ function SplineSceneFrame({
     };
   }, [active, scene]);
 
-  return <div className={styles.splineLayer} data-ready={loaded ? "true" : "false"} ref={frameRef} />;
+  return <div aria-hidden="true" className={styles.splineLayer} data-ready={loaded ? "true" : "false"} ref={frameRef} />;
 }
 
 export default function HeroExperience() {
