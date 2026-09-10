@@ -548,6 +548,12 @@
   z-index: 0;
 }
 
+.splineFallback picture {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 .splineFallback img {
   display: block;
   filter: drop-shadow(0 1.5rem 3.5rem rgba(10, 96, 199, 0.3));
@@ -556,6 +562,19 @@
   object-fit: contain;
   transform: translate3d(var(--spline-pan-x), var(--spline-pan-y), 0);
   width: 100%;
+}
+
+/* iOS Safari receives this painted still from the first server render. Keep
+   its image in the regular compositor: the safe path must never allocate an
+   extra filtered or translated layer over the hero. */
+.splineHero[data-hero-mode="static"] .splineFallback {
+  background: #020304;
+}
+
+.splineHero[data-hero-mode="static"] .splineFallback img {
+  filter: none;
+  object-fit: cover;
+  transform: none;
 }
 
 .splineWash {
@@ -768,6 +787,11 @@
   .splineFallback img {
     max-width: none;
     width: calc(100% + (var(--spline-bleed) * 2));
+  }
+
+  .splineHero[data-hero-mode="static"] .splineFallback img {
+    height: 100%;
+    width: 100%;
   }
 
   .stageActionSlot {

@@ -6,6 +6,7 @@ import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { css } from "./canonicalStyle";
 import styles from "./CreatorOSLanding.module.css";
 import { useMotionPreference } from "./MotionPreference";
+import { useIOSSafari } from "./iosSafari";
 
 /**
  * Native React port of the canonical "WZRD CREATOR OS — STANDALONE SOURCE"
@@ -404,9 +405,11 @@ export default function CreatorOSLanding() {
   const calmViewport = useMediaQuery("(pointer: coarse), (max-width: 859px)");
   const touchInput = useMediaQuery("(pointer: coarse)");
   const { motionAllowed, motionLabel, reduced, toggleMotion } = useMotionPreference();
+  const iosSafari = useIOSSafari();
+  const fxBootAllowed = iosSafari === false;
   const baseMode = calmViewport ? "calm" : "full";
-  const fxModeAttr = motionAllowed ? baseMode : "off";
-  const creatorCinematic = motionAllowed && !calmViewport;
+  const fxModeAttr = fxBootAllowed && motionAllowed ? baseMode : "off";
+  const creatorCinematic = fxBootAllowed && motionAllowed && !calmViewport;
   const headerMotionVisible = navHover && !touchInput;
 
   const closeBubbleMenu = useCallback(() => setBubbleOpen(false), []);
@@ -468,6 +471,7 @@ export default function CreatorOSLanding() {
 
   // gl-matrix must be evaluated before fx.js — the Earth wheel reads it as a global.
   useEffect(() => {
+    if (!fxBootAllowed) return;
     window.__resources = { ...FX_RESOURCES, ...(window.__resources ?? {}) };
     let cancelled = false;
 
@@ -487,7 +491,7 @@ export default function CreatorOSLanding() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [fxBootAllowed]);
 
 
   // Chapter reveals.

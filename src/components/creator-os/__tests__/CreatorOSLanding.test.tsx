@@ -1,12 +1,21 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import CreatorOSLanding from '@/components/creator-os/CreatorOSLanding';
 import { MotionPreferenceProvider } from '@/components/creator-os/MotionPreference';
 
 const canonicalSectionIds = ['creator-os', 'air', 'zap', 'studio', 'earth', 'coming-soon', 'enter'];
+const iosSafariMock = vi.hoisted(() => vi.fn<() => boolean | null>());
+
+vi.mock('@/components/creator-os/iosSafari', () => ({
+  useIOSSafari: iosSafariMock,
+}));
 
 describe('CreatorOSLanding', () => {
+  beforeEach(() => {
+    iosSafariMock.mockReturnValue(false);
+    document.querySelectorAll('script[src="/creator-os/fx.js"], script[src="/creator-os/gl-matrix-min.js"]').forEach((script) => script.remove());
+  });
   const renderLanding = () => render(<MotionPreferenceProvider><CreatorOSLanding /></MotionPreferenceProvider>);
 
   it('renders the cloud narrative natively, without the legacy iframe', () => {
@@ -85,6 +94,15 @@ describe('CreatorOSLanding', () => {
 
     expect(toggle).toHaveTextContent('off');
     expect(root.dataset.fxMode).toBe('off');
+  });
+
+  it('keeps the atmosphere engine off on iOS Safari', () => {
+    iosSafariMock.mockReturnValue(true);
+    const { container } = renderLanding();
+
+    expect((container.firstElementChild as HTMLElement).dataset.fxMode).toBe('off');
+    expect(document.querySelector('script[src="/creator-os/fx.js"]')).not.toBeInTheDocument();
+    expect(document.querySelector('script[src="/creator-os/gl-matrix-min.js"]')).not.toBeInTheDocument();
   });
 
   it('keeps a still hero screenshot once motion is off', () => {

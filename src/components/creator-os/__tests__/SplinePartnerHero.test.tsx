@@ -1,11 +1,16 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import SplinePartnerHero from '@/components/creator-os/SplinePartnerHero';
 import { MotionPreferenceProvider } from '@/components/creator-os/MotionPreference';
 import { getSplineZoom } from '@/components/creator-os/splineZoom';
 
 const runtimeMocks = vi.hoisted(() => ({ instances: [] as Array<Record<string, ReturnType<typeof vi.fn>>> }));
+const iosSafariMock = vi.hoisted(() => vi.fn<() => boolean | null>());
+
+vi.mock('@/components/creator-os/iosSafari', () => ({
+  useIOSSafari: iosSafariMock,
+}));
 
 vi.mock('@splinetool/runtime', () => ({
   Application: vi.fn().mockImplementation(() => {
@@ -23,6 +28,11 @@ vi.mock('@splinetool/runtime', () => ({
 }));
 
 describe('SplinePartnerHero', () => {
+  beforeEach(() => {
+    iosSafariMock.mockReturnValue(false);
+    runtimeMocks.instances.length = 0;
+  });
+
   it('keeps portrait zoom within the aspect-aware framing range', () => {
     expect(getSplineZoom(390, 617)).toBeGreaterThanOrEqual(1.58);
     expect(getSplineZoom(390, 617)).toBeLessThanOrEqual(1.72);
@@ -30,19 +40,32 @@ describe('SplinePartnerHero', () => {
     expect(getSplineZoom(1280, 720)).toBe(1);
   });
 
-  it('uses the introduction film as the only visible hero content before the Spline scene', () => {
+  it('uses the introduction film as the only visible hero content before the Spline scene', async () => {
     render(<MotionPreferenceProvider><SplinePartnerHero /></MotionPreferenceProvider>);
 
     expect(screen.getByRole('heading', { name: 'WZRD.tech Creator OS' })).toBeInTheDocument();
     expect(screen.queryByText('Creative infrastructure for what comes next.')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Explore Air' })).not.toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'WZRD.tech introduction film' })).toBeInTheDocument();
-    expect(document.querySelector('img[src="/creator-os/spline-scene-still.svg"]')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('region', { name: 'WZRD.tech introduction film' })).toBeInTheDocument());
+    expect(document.querySelector('img[src="/creator-os/wzrd-ios-hero-landscape.webp"]')).toBeInTheDocument();
   });
 
-  it('reveals the Air action when video playback fails', () => {
+  it('renders a complete static hero on iOS Safari without starting video or Spline', () => {
+    iosSafariMock.mockReturnValue(true);
+    render(<MotionPreferenceProvider><SplinePartnerHero /></MotionPreferenceProvider>);
+
+    expect(screen.getByRole('link', { name: 'Explore Air' })).toHaveAttribute('href', 'https://air.wzrd.tech/');
+    expect(screen.getByRole('region', { name: 'Technology ecosystem' })).toBeInTheDocument();
+    expect(document.querySelector('img[src="/creator-os/wzrd-ios-hero-landscape.webp"]')).toBeInTheDocument();
+    expect(document.querySelector('video')).not.toBeInTheDocument();
+    expect(document.querySelector('canvas')).not.toBeInTheDocument();
+    expect(runtimeMocks.instances).toHaveLength(0);
+  });
+
+  it('reveals the Air action when video playback fails', async () => {
     const { unmount } = render(<MotionPreferenceProvider><SplinePartnerHero /></MotionPreferenceProvider>);
 
+    await waitFor(() => expect(document.querySelector('video[aria-label="WZRD.tech introduction film"]')).toBeInTheDocument());
     fireEvent.error(document.querySelector('video[aria-label="WZRD.tech introduction film"]')!);
 
     const exploreAir = screen.getByRole('link', { name: 'Explore Air' });

@@ -1,13 +1,16 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
-import { Application } from "@splinetool/runtime";
+import type { Application } from "@splinetool/runtime";
 
 import styles from "./CreatorOSLanding.module.css";
-import IntroVideo from "./IntroVideo";
+import { useIOSSafari } from "./iosSafari";
 import { useMotionPreference } from "./MotionPreference";
 import { getSplineZoom } from "./splineZoom";
+
+const IntroVideo = dynamic(() => import("./IntroVideo"), { ssr: false });
 
 const SPLINE_SCENE = "https://prod.spline.design/7n8f5YWSgL4MSvLr/scene.splinecode";
 const SPLINE_PRELOAD_LEAD_SECONDS = 8;
@@ -85,24 +88,15 @@ function SplineSceneFrame({
     canvas.setAttribute("aria-hidden", "true");
     frame.appendChild(canvas);
     let disposed = false;
-    let runtime: Application;
-
-    try {
-      runtime = new Application(canvas, { renderOnDemand: true });
-      runtimeRef.current = runtime;
-    } catch {
-      return () => {
-        canvas.remove();
-      };
-    }
+    let runtime: Application | null = null;
 
     const resize = () => {
       const bounds = frame.getBoundingClientRect();
       if (bounds.width > 0 && bounds.height > 0) {
-        runtime.setSize(bounds.width, bounds.height);
+        runtime?.setSize(bounds.width, bounds.height);
         canvas.style.width = `${bounds.width}px`;
         canvas.style.height = `${bounds.height}px`;
-        runtime.setZoom(getSplineZoom(bounds.width, bounds.height));
+        runtime?.setZoom(getSplineZoom(bounds.width, bounds.height));
       }
     };
 
@@ -111,22 +105,31 @@ function SplineSceneFrame({
     const animationFrame = window.requestAnimationFrame(resize);
     const readyTimer = window.setTimeout(resize, 1000);
 
-    void runtime.load(scene).then(() => {
-      if (disposed) return;
-      resize();
-      runtime.play();
-      setLoaded(true);
-    }).catch(() => {
-      if (!disposed) setLoaded(false);
-    });
+    void import("@splinetool/runtime")
+      .then(({ Application: SplineApplication }) => {
+        if (disposed) return;
+        runtime = new SplineApplication(canvas, { renderOnDemand: true });
+        runtimeRef.current = runtime;
+        resize();
+        return runtime.load(scene);
+      })
+      .then(() => {
+        if (disposed || !runtime) return;
+        resize();
+        runtime.play();
+        setLoaded(true);
+      })
+      .catch(() => {
+        if (!disposed) setLoaded(false);
+      });
 
     return () => {
       disposed = true;
       observer?.disconnect();
       window.cancelAnimationFrame(animationFrame);
       window.clearTimeout(readyTimer);
-      runtime.stop();
-      runtime.dispose();
+      runtime?.stop();
+      runtime?.dispose();
       runtimeRef.current = null;
       canvas.remove();
     };
@@ -137,30 +140,40 @@ function SplineSceneFrame({
 
 export default function HeroExperience() {
   const { motionAllowed, reduced } = useMotionPreference();
+  const iosSafari = useIOSSafari();
   const stageRef = useRef<HTMLElement>(null);
   const stageVisible = useStageVisibility(stageRef);
   const [sceneRequested, setSceneRequested] = useState(false);
-  const [heroRevealed, setHeroRevealed] = useState(false);
+  const [cinematicResolved, setCinematicResolved] = useState(false);
+
+  // The safe composition is server-rendered. Non-iOS browsers opt into the
+  // cinematic experience after classification, so an iPhone never creates a
+  // video decoder or WebGL context during its first load.
+  const cinematicEnabled = iosSafari === false;
+  const heroRevealed = !cinematicEnabled || cinematicResolved;
 
   const requestScene = useCallback(() => setSceneRequested(true), []);
   const revealHero = useCallback(() => {
     requestScene();
-    setHeroRevealed(true);
+    setCinematicResolved(true);
   }, [requestScene]);
 
   useEffect(() => {
-    if (!motionAllowed || reduced) revealHero();
-  }, [motionAllowed, reduced, revealHero]);
+    if (cinematicEnabled && (!motionAllowed || reduced)) revealHero();
+  }, [cinematicEnabled, motionAllowed, reduced, revealHero]);
 
-  const mountSpline = sceneRequested && stageVisible && motionAllowed && !reduced;
+  const mountSpline = cinematicEnabled && sceneRequested && stageVisible && motionAllowed && !reduced;
 
   return (
-    <section aria-label="WZRD.tech" className={styles.splineHero} data-hero-experience="true" id="top">
+    <section aria-label="WZRD.tech" className={styles.splineHero} data-hero-experience="true" data-hero-mode={cinematicEnabled ? "cinematic" : "static"} id="top">
       <h1 className={styles.visuallyHidden}>WZRD.tech Creator OS</h1>
 
       <section aria-label="WZRD.tech hero" className={styles.heroStage} ref={stageRef}>
           <div aria-hidden="true" className={styles.splineFallback}>
-            <img alt="" src="/creator-os/spline-scene-still.svg" />
+            <picture>
+              <source media="(orientation: portrait)" srcSet="/creator-os/wzrd-ios-hero-portrait.webp" type="image/webp" />
+              <img alt="" decoding="async" fetchPriority="high" src="/creator-os/wzrd-ios-hero-landscape.webp" />
+            </picture>
           </div>
 
         {mountSpline && (
@@ -190,13 +203,15 @@ export default function HeroExperience() {
             </div>
           </section>
         )}
-        <IntroVideo
-          motionAllowed={motionAllowed}
-          onPrefetchSpline={requestScene}
-          onReveal={revealHero}
-          prefetchLeadSeconds={SPLINE_PRELOAD_LEAD_SECONDS}
-          reducedMotion={reduced}
-        />
+        {cinematicEnabled && (
+          <IntroVideo
+            motionAllowed={motionAllowed}
+            onPrefetchSpline={requestScene}
+            onReveal={revealHero}
+            prefetchLeadSeconds={SPLINE_PRELOAD_LEAD_SECONDS}
+            reducedMotion={reduced}
+          />
+        )}
       </section>
     </section>
   );
