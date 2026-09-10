@@ -751,13 +751,20 @@
 
 @media (min-width: 1024px) {
   .splineHero[data-hero-experience] {
+    height: 100svh;
+    min-height: 44rem;
     justify-content: flex-start;
-    padding-bottom: clamp(2rem, 4vh, 3.5rem);
+    padding-bottom: 0;
     padding-top: clamp(5rem, 8vh, 6rem);
   }
 
   .heroStage {
-    max-width: min(90vw, calc((100svh - 8rem) * 16 / 9));
+    /* The hero owns the remaining first-screen height after the header. The
+       Spline runtime scales its camera uniformly, so the artwork remains
+       undistorted while the native partner rail reaches the viewport edge. */
+    aspect-ratio: auto;
+    height: calc(100svh - clamp(5rem, 8vh, 6rem));
+    max-width: min(90vw, 86rem);
   }
 }
 
