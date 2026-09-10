@@ -777,7 +777,7 @@
 
 @media (max-width: 430px) and (orientation: portrait) {
   .heroStage {
-    --spline-pan-x: -3rem;
+    --spline-pan-x: -4rem;
     --spline-pan-y: -2rem;
   }
 
