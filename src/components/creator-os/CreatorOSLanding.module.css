@@ -747,6 +747,11 @@
   .stageActionSlot {
     bottom: 10.5rem;
   }
+
+  .splineLayer,
+  .splineFallback {
+    transform: translateY(-2rem);
+  }
 }
 
 @media (max-width: 680px) and (orientation: landscape) {
