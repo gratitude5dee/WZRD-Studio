@@ -820,13 +820,20 @@
 
 @media (max-width: 680px) and (orientation: portrait) {
   .heroStage {
+    /* Let the actual stage reach beyond the safe-area gutters. The outer hero
+       clips it at the page edge, while the matching canvas adjustment keeps
+       the established scene framing stationary on screen. */
+    --stage-edge-bleed: 1.75rem;
+    --spline-bleed: 2rem;
     --spline-pan-x: -2rem;
+    margin-inline: calc(-1 * var(--stage-edge-bleed));
+    width: calc(100% + (var(--stage-edge-bleed) * 2));
   }
 }
 
 @media (max-width: 430px) and (orientation: portrait) {
   .heroStage {
-    --spline-bleed: 6.25rem;
+    --spline-bleed: 4.5rem;
     --spline-pan-x: -4rem;
     --spline-pan-y: -2rem;
   }
@@ -835,7 +842,7 @@
 
 @media (max-width: 375px) and (orientation: portrait) {
   .heroStage {
-    --spline-bleed: 4.25rem;
+    --spline-bleed: 2.5rem;
     --spline-pan-x: -2rem;
   }
 }
