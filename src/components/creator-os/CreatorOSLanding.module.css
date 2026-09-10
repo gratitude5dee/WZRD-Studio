@@ -235,6 +235,20 @@
   position: relative;
 }
 
+/* The immersive cloud layer is rendered by child elements, so this veil lives
+   above that artwork and below the narrative to carry the hero's ink into the
+   first content chapter. */
+.creatorSticky::before {
+  background: linear-gradient(180deg, #050506 0, rgba(5, 7, 10, 0.9) 22%, rgba(5, 12, 20, 0.48) 56%, rgba(5, 7, 10, 0) 100%);
+  content: "";
+  height: clamp(9rem, 22vw, 15rem);
+  inset-inline: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  z-index: 7;
+}
+
 .creatorSequence[data-cinematic="true"] .creatorSticky {
   height: 100svh;
   position: sticky;
