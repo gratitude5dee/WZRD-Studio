@@ -176,7 +176,7 @@ export default function HeroExperience() {
 
         <div aria-hidden="true" className={styles.splineWash} />
         {heroRevealed && (
-          <div aria-label="Technology ecosystem" className={styles.partnerRail}>
+          <section aria-label="Technology ecosystem" className={styles.partnerRail}>
             <p>Built across the AI ecosystem</p>
             <div className={styles.partnerViewport}>
               <div className={styles.partnerTrack}>
@@ -184,7 +184,7 @@ export default function HeroExperience() {
                 <PartnerSet hidden />
               </div>
             </div>
-          </div>
+          </section>
         )}
         <IntroVideo
           motionAllowed={motionAllowed}
