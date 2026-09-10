@@ -100,6 +100,8 @@ function SplineSceneFrame({
       const bounds = frame.getBoundingClientRect();
       if (bounds.width > 0 && bounds.height > 0) {
         runtime.setSize(bounds.width, bounds.height);
+        canvas.style.width = `${bounds.width}px`;
+        canvas.style.height = `${bounds.height}px`;
         runtime.setZoom(getSplineZoom(bounds.width, bounds.height));
       }
     };
