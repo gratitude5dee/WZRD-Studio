@@ -2,6 +2,11 @@ export function getSplineZoom(width: number, height: number) {
   if (width <= 0 || height <= 0) return 1;
 
   if (width >= height) {
+    // Phone landscape has a compact, intentionally centered composition.
+    // Keep that framing intact; the larger desktop stage is the only place
+    // where the export leaves enough empty space to merit an additional zoom.
+    if (width < 960 || height < 600) return 1;
+
     // The Spline export's native orthographic frame leaves too much unused
     // desktop stage around the sculpture. Scale only the landscape camera so
     // the artwork carries the hero without clipping its silhouette or copy.
