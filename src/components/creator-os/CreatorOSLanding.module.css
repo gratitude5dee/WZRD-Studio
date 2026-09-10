@@ -721,41 +721,39 @@
   }
 
   .stageActionSlot {
-    bottom: 8.25rem;
+    bottom: 6.25rem;
   }
 
   .partnerSet {
-    column-gap: clamp(0.8rem, 3.6vw, 1.15rem);
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 0 0.35rem;
-    row-gap: 0.7rem;
-    width: 100%;
+    flex-wrap: nowrap;
+    gap: clamp(0.95rem, 3.6vw, 1.2rem);
+    padding: 0 0.85rem;
+    width: max-content;
   }
 
   .partnerRail {
-    min-height: 7.15rem;
-    padding: 1.3rem 0.65rem 0.8rem;
+    min-height: 5.25rem;
+    padding: 1.1rem 0.65rem 0.65rem;
   }
 
   .partnerRail > p {
-    margin-bottom: 0.7rem;
+    margin-bottom: 0.55rem;
   }
 
   .partnerViewport {
-    -webkit-mask-image: none;
-    mask-image: none;
-    overflow: visible;
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    overflow: hidden;
   }
 
   .partnerTrack {
-    animation: none;
-    justify-content: center;
-    width: 100%;
+    animation: partnerMarquee 28s linear infinite;
+    justify-content: flex-start;
+    width: max-content;
   }
 
   .partnerSet[aria-hidden="true"] {
-    display: none;
+    display: flex;
   }
 
   .partnerLogo {
@@ -781,9 +779,6 @@
     --spline-pan-y: -2rem;
   }
 
-  .stageActionSlot {
-    bottom: 10.5rem;
-  }
 }
 
 @media (max-width: 680px) and (orientation: landscape) {
