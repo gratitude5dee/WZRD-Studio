@@ -212,7 +212,9 @@
 }
 
 .creatorSequence {
-  background: #071124;
+  background:
+    linear-gradient(180deg, #050506 0, rgba(5, 7, 10, 0.88) clamp(3.5rem, 7vw, 6.5rem), #071124 clamp(8rem, 14vw, 12rem)),
+    #071124;
   position: relative;
   scroll-margin-top: 4rem;
 }
@@ -464,7 +466,7 @@
 }
 
 .heroStage::after {
-  background: linear-gradient(180deg, transparent 60%, #050506 100%);
+  background: linear-gradient(180deg, transparent 48%, rgba(5, 5, 6, 0.36) 73%, #050506 100%);
   bottom: 0;
   content: "";
   height: 27%;
@@ -620,11 +622,31 @@
   background: linear-gradient(180deg, rgba(5, 5, 6, 0) 0, rgba(5, 5, 6, 0.9) 1.4rem, #050506 2.9rem, #050506 100%);
   bottom: 0;
   inset-inline: 0;
+  isolation: isolate;
   min-height: 5.2rem;
   padding: 1.55rem 1rem 0.9rem;
   position: absolute;
   width: 100%;
   z-index: 3;
+}
+
+/* The rail reaches upward into the artwork before becoming opaque, so the
+   partner marks read as the scene's final layer instead of a separate bar. */
+.partnerRail::before {
+  background: linear-gradient(180deg, rgba(5, 5, 6, 0), rgba(5, 5, 6, 0.44) 42%, #050506 100%);
+  content: "";
+  height: 3.75rem;
+  inset-inline: 0;
+  pointer-events: none;
+  position: absolute;
+  top: -3.75rem;
+  z-index: 0;
+}
+
+.partnerRail > p,
+.partnerViewport {
+  position: relative;
+  z-index: 1;
 }
 
 .partnerRail > p {
@@ -718,7 +740,9 @@
     height: clamp(20rem, calc(100svh - 0.5rem), 60rem);
     max-height: none;
     min-height: 17.5rem;
-    --spline-bleed: 3rem;
+    /* Stage gutters are 8px. Together with the portrait pan, this keeps the
+       runtime canvas 20px beyond the physical page edge without overflow. */
+    --spline-bleed: 3.75rem;
   }
 
   .splineLayer {
@@ -788,7 +812,7 @@
 
 @media (max-width: 430px) and (orientation: portrait) {
   .heroStage {
-    --spline-bleed: 5rem;
+    --spline-bleed: 6.25rem;
     --spline-pan-x: -4rem;
     --spline-pan-y: -2rem;
   }
@@ -797,6 +821,7 @@
 
 @media (max-width: 375px) and (orientation: portrait) {
   .heroStage {
+    --spline-bleed: 4.25rem;
     --spline-pan-x: -2rem;
   }
 }
