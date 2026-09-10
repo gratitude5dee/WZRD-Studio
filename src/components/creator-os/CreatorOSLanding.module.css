@@ -721,7 +721,7 @@
   }
 
   .stageActionSlot {
-    bottom: 6.25rem;
+    bottom: 6.5rem;
   }
 
   .partnerSet {
@@ -732,7 +732,8 @@
   }
 
   .partnerRail {
-    min-height: 5.25rem;
+    background: #050506;
+    min-height: 6rem;
     padding: 1.1rem 0.65rem 0.65rem;
   }
 
