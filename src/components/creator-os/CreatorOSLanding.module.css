@@ -699,7 +699,7 @@
 
   .heroStage {
     aspect-ratio: auto;
-    height: clamp(20rem, calc(100svh - 11.5rem), 46rem);
+    height: clamp(20rem, calc(100svh - 4rem), 46rem);
     max-height: none;
     min-height: 17.5rem;
   }
