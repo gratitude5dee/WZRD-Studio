@@ -453,6 +453,8 @@
 
 .heroStage {
   aspect-ratio: 16 / 9;
+  --spline-pan-x: 0rem;
+  --spline-pan-y: 0rem;
   background: #020304;
   isolation: isolate;
   max-width: 72rem;
@@ -487,6 +489,7 @@
   opacity: 0;
   pointer-events: none;
   touch-action: pan-y;
+  transform: translate3d(var(--spline-pan-x), var(--spline-pan-y), 0);
   z-index: 0;
 }
 
@@ -535,6 +538,7 @@
   height: 100%;
   max-width: 100%;
   object-fit: contain;
+  transform: translate3d(var(--spline-pan-x), var(--spline-pan-y), 0);
   width: 100%;
 }
 
@@ -743,14 +747,20 @@
   }
 }
 
+@media (max-width: 680px) and (orientation: portrait) {
+  .heroStage {
+    --spline-pan-x: -2rem;
+  }
+}
+
 @media (max-width: 430px) and (orientation: portrait) {
-  .stageActionSlot {
-    bottom: 10.5rem;
+  .heroStage {
+    --spline-pan-x: -3rem;
+    --spline-pan-y: -2rem;
   }
 
-  .splineLayer,
-  .splineFallback {
-    transform: translateY(-2rem);
+  .stageActionSlot {
+    bottom: 10.5rem;
   }
 }
 
