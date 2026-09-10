@@ -27,13 +27,13 @@
 }
 
 .frame::before {
-  background: url("/creator-os/assets/universe-teeming-poster.jpg") center / cover no-repeat;
+  background: url("/creator-os/assets/universe-teeming-ambient.jpg") center / cover no-repeat;
   content: "";
-  filter: blur(1.35rem);
-  inset: -1.5rem;
-  opacity: 0.42;
+  filter: blur(1.35rem) brightness(0.68) saturate(0.88);
+  inset: -1.75rem;
+  opacity: 0.78;
   position: absolute;
-  transform: scale(1.06);
+  transform: scale(1.08);
   z-index: 0;
 }
 
@@ -51,7 +51,9 @@
 }
 
 .frameOverlay {
-  background: linear-gradient(180deg, transparent 64%, rgba(2, 3, 4, 0.72) 100%);
+  background:
+    radial-gradient(ellipse at center, transparent 48%, rgba(2, 3, 4, 0.46) 100%),
+    linear-gradient(180deg, rgba(2, 3, 4, 0.18), transparent 26%, rgba(2, 3, 4, 0.68) 100%);
   pointer-events: none;
   z-index: 2;
 }

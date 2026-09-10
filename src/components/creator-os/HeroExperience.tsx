@@ -11,6 +11,16 @@ import { useMotionPreference } from "./MotionPreference";
 const SPLINE_SCENE = "https://prod.spline.design/7n8f5YWSgL4MSvLr/scene.splinecode";
 const SPLINE_PRELOAD_LEAD_SECONDS = 8;
 
+function getSplineZoom(width: number, height: number) {
+  if (width <= 0 || height <= 0 || width >= height) return 1;
+
+  // Keep the portrait framing proportional as the stage grows. The exported
+  // scene has a wide camera, so this modest zoom makes the sculpture legible
+  // while preserving its complete silhouette and the scene copy above it.
+  const aspectRatio = height / width;
+  return Math.min(1.72, Math.max(1.58, 1.62 + (aspectRatio - 1.25) * 0.16));
+}
+
 const partners = [
   { logo: "https://cdn.simpleicons.org/anthropic/E6DFD2", name: "Anthropic" },
   { logo: "/creator-os/openai-white-monoblossom.svg", name: "OpenAI" },
@@ -99,9 +109,7 @@ function SplineSceneFrame({
       const bounds = frame.getBoundingClientRect();
       if (bounds.width > 0 && bounds.height > 0) {
         runtime.setSize(bounds.width, bounds.height);
-        // The exported scene is landscape-first. A modest portrait zoom keeps
-        // its central sculpture legible without cropping the silhouette.
-        runtime.setZoom(bounds.height > bounds.width ? 1.35 : 1);
+        runtime.setZoom(getSplineZoom(bounds.width, bounds.height));
       }
     };
 
@@ -138,7 +146,6 @@ export default function HeroExperience() {
   const { motionAllowed, reduced } = useMotionPreference();
   const stageRef = useRef<HTMLElement>(null);
   const stageVisible = useStageVisibility(stageRef);
-  const [introKey, setIntroKey] = useState(0);
   const [sceneRequested, setSceneRequested] = useState(false);
   const [heroRevealed, setHeroRevealed] = useState(false);
 
@@ -151,11 +158,6 @@ export default function HeroExperience() {
   useEffect(() => {
     if (!motionAllowed || reduced) revealHero();
   }, [motionAllowed, reduced, revealHero]);
-
-  const replay = useCallback(() => {
-    if (reduced || !motionAllowed) return;
-    setIntroKey((value) => value + 1);
-  }, [motionAllowed, reduced]);
 
   const mountSpline = sceneRequested && stageVisible && motionAllowed && !reduced;
 
@@ -172,10 +174,19 @@ export default function HeroExperience() {
           <SplineSceneFrame active={mountSpline} scene={SPLINE_SCENE} />
         )}
 
-        <div aria-hidden="true" className={styles.splineBadgeMask} />
         <div aria-hidden="true" className={styles.splineWash} />
+        {heroRevealed && (
+          <div aria-label="Technology ecosystem" className={styles.partnerRail}>
+            <p>Built across the AI ecosystem</p>
+            <div className={styles.partnerViewport}>
+              <div className={styles.partnerTrack}>
+                <PartnerSet />
+                <PartnerSet hidden />
+              </div>
+            </div>
+          </div>
+        )}
         <IntroVideo
-          key={introKey}
           motionAllowed={motionAllowed}
           onPrefetchSpline={requestScene}
           onReveal={revealHero}
@@ -194,27 +205,8 @@ export default function HeroExperience() {
                 <path d="M8 10.2h8M8 13h5.5" fill="none" stroke="#1170d6" strokeLinecap="round" strokeWidth="1.45" />
               </svg>
             </a>
-            {!reduced && (
-              <button aria-label="Replay introduction" className={styles.replayIntro} onClick={replay} type="button">
-                <svg aria-hidden="true" viewBox="0 0 24 24">
-                  <path d="M19.4 8.3A7.8 7.8 0 1 0 20 15" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
-                  <path d="M19.7 4.6v4.1h-4.1" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
-                </svg>
-                <span>Replay</span>
-              </button>
-            )}
           </>
         )}
-      </div>
-
-      <div aria-label="Technology ecosystem" className={styles.partnerRail}>
-        <p>Built across the AI ecosystem</p>
-        <div className={styles.partnerViewport}>
-          <div className={styles.partnerTrack}>
-            <PartnerSet />
-            <PartnerSet hidden />
-          </div>
-        </div>
       </div>
     </section>
   );

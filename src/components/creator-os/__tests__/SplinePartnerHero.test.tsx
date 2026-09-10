@@ -4,7 +4,16 @@ import { describe, expect, it, vi } from 'vitest';
 import SplinePartnerHero from '@/components/creator-os/SplinePartnerHero';
 import { MotionPreferenceProvider } from '@/components/creator-os/MotionPreference';
 
-vi.mock('@splinetool/react-spline/next', () => ({ default: () => <div data-testid="spline-scene" /> }));
+vi.mock('@splinetool/runtime', () => ({
+  Application: vi.fn().mockImplementation(() => ({
+    dispose: vi.fn(),
+    load: vi.fn().mockResolvedValue(undefined),
+    play: vi.fn(),
+    setSize: vi.fn(),
+    setZoom: vi.fn(),
+    stop: vi.fn(),
+  })),
+}));
 
 describe('SplinePartnerHero', () => {
   it('uses the introduction film as the only visible hero content before the Spline scene', () => {
@@ -23,6 +32,8 @@ describe('SplinePartnerHero', () => {
     fireEvent.error(document.querySelector('video[aria-label="WZRD.tech introduction film"]')!);
 
     expect(screen.getByRole('link', { name: 'Explore Air' })).toHaveAttribute('href', 'https://air.wzrd.tech/');
-    expect(screen.getByRole('button', { name: 'Replay introduction' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Replay introduction' })).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Technology ecosystem' })).toBeInTheDocument();
+    expect(document.querySelector('[class*="splineBadgeMask"]')).not.toBeInTheDocument();
   });
 });
