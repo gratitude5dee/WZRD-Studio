@@ -3,6 +3,7 @@ import { Azeret_Mono, Inter, Newsreader } from "next/font/google";
 import type { ReactNode } from "react";
 
 import PwaRegistration from "@/components/pwa/PwaRegistration";
+import AirWaitlistProvider from "@/components/air/AirWaitlistProvider";
 
 import "../index.css";
 import "../styles/themes/light-premium.css";
@@ -62,7 +63,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${editorialFont.variable} ${systemFont.variable} ${shinyFont.variable}`}>
-        {children}
+        <AirWaitlistProvider>{children}</AirWaitlistProvider>
         <PwaRegistration />
       </body>
     </html>

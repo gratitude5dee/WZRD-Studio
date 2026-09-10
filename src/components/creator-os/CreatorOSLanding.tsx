@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { css } from "./canonicalStyle";
+import { useAirWaitlist } from "../air/AirWaitlistProvider";
 import styles from "./CreatorOSLanding.module.css";
 import { useMotionPreference } from "./MotionPreference";
 import { useIOSSafari } from "./iosSafari";
@@ -405,6 +406,7 @@ export default function CreatorOSLanding() {
   const calmViewport = useMediaQuery("(pointer: coarse), (max-width: 859px)");
   const touchInput = useMediaQuery("(pointer: coarse)");
   const { motionAllowed, motionLabel, reduced, toggleMotion } = useMotionPreference();
+  const { openAirWaitlist } = useAirWaitlist();
   const iosSafari = useIOSSafari();
   const fxBootAllowed = iosSafari === false;
   const baseMode = calmViewport ? "calm" : "full";
@@ -1186,6 +1188,9 @@ export default function CreatorOSLanding() {
               >
                 Access Air via iMessage <span aria-hidden="true">↓</span>
               </a>
+              <button className={styles.airWaitlistButton} type="button" onClick={openAirWaitlist} aria-haspopup="dialog">
+                Join the Air waitlist <span aria-hidden="true">↗</span>
+              </button>
             </header>
             <article
               aria-label="A sample Air conversation"
