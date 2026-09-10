@@ -546,16 +546,21 @@
   z-index: 2;
 }
 
-.heroActionSlot {
+.stageActionSlot {
   align-items: center;
+  bottom: calc(5.2rem + 0.9rem);
   display: flex;
-  gap: 0.8rem;
   justify-content: center;
-  margin-top: 1.5rem;
+  inset-inline: 0;
   min-height: 3.25rem;
-  position: relative;
+  pointer-events: none;
+  position: absolute;
   width: 100%;
   z-index: 4;
+}
+
+.stageActionSlot .exploreAir {
+  pointer-events: auto;
 }
 
 .exploreAir {
@@ -689,7 +694,7 @@
   .splineHero {
     justify-content: flex-start;
     min-height: 100svh;
-    padding: max(5rem, calc(env(safe-area-inset-top) + 4.35rem)) max(0.5rem, calc(env(safe-area-inset-right) + 0.5rem)) max(3rem, calc(env(safe-area-inset-bottom) + 2rem)) max(0.5rem, calc(env(safe-area-inset-left) + 0.5rem));
+    padding: max(0.5rem, env(safe-area-inset-top)) max(0.5rem, calc(env(safe-area-inset-right) + 0.5rem)) max(3rem, calc(env(safe-area-inset-bottom) + 2rem)) max(0.5rem, calc(env(safe-area-inset-left) + 0.5rem));
   }
 
   .heroStage {
@@ -699,8 +704,8 @@
     min-height: 17.5rem;
   }
 
-  .heroActionSlot {
-    margin-top: 1.5rem;
+  .stageActionSlot {
+    bottom: 8.25rem;
   }
 
   .partnerSet {
@@ -735,6 +740,12 @@
 
   .partnerLogo {
     font-size: 0.86rem;
+  }
+}
+
+@media (max-width: 430px) and (orientation: portrait) {
+  .stageActionSlot {
+    bottom: 10.5rem;
   }
 }
 

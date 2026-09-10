@@ -168,6 +168,17 @@ export default function HeroExperience() {
         )}
 
         <div aria-hidden="true" className={styles.splineWash} />
+        <div aria-live="polite" className={styles.stageActionSlot}>
+          {heroRevealed && (
+            <a className={styles.exploreAir} href="https://air.wzrd.tech/">
+              <span>Explore Air</span>
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M5.2 5.75h13.6A1.2 1.2 0 0 1 20 6.95v8.1a1.2 1.2 0 0 1-1.2 1.2h-7.05l-3.72 2.65.7-2.65H5.2A1.2 1.2 0 0 1 4 15.05v-8.1a1.2 1.2 0 0 1 1.2-1.2Z" fill="currentColor" />
+                <path d="M8 10.2h8M8 13h5.5" fill="none" stroke="#1170d6" strokeLinecap="round" strokeWidth="1.45" />
+              </svg>
+            </a>
+          )}
+        </div>
         {heroRevealed && (
           <section aria-label="Technology ecosystem" className={styles.partnerRail}>
             <p>Built across the AI ecosystem</p>
@@ -187,20 +198,6 @@ export default function HeroExperience() {
           reducedMotion={reduced}
         />
       </section>
-
-      <div aria-live="polite" className={styles.heroActionSlot}>
-        {heroRevealed && (
-          <>
-            <a className={styles.exploreAir} href="https://air.wzrd.tech/">
-              <span>Explore Air</span>
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M5.2 5.75h13.6A1.2 1.2 0 0 1 20 6.95v8.1a1.2 1.2 0 0 1-1.2 1.2h-7.05l-3.72 2.65.7-2.65H5.2A1.2 1.2 0 0 1 4 15.05v-8.1a1.2 1.2 0 0 1 1.2-1.2Z" fill="currentColor" />
-                <path d="M8 10.2h8M8 13h5.5" fill="none" stroke="#1170d6" strokeLinecap="round" strokeWidth="1.45" />
-              </svg>
-            </a>
-          </>
-        )}
-      </div>
     </section>
   );
 }
