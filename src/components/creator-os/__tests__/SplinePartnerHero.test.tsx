@@ -45,9 +45,12 @@ describe('SplinePartnerHero', () => {
 
     fireEvent.error(document.querySelector('video[aria-label="WZRD.tech introduction film"]')!);
 
-    expect(screen.getByRole('link', { name: 'Explore Air' })).toHaveAttribute('href', 'https://air.wzrd.tech/');
+    const exploreAir = screen.getByRole('link', { name: 'Explore Air' });
+    const partnerRail = screen.getByRole('region', { name: 'Technology ecosystem' });
+    expect(exploreAir).toHaveAttribute('href', 'https://air.wzrd.tech/');
+    expect(exploreAir.compareDocumentPosition(partnerRail) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Replay introduction' })).not.toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Technology ecosystem' })).toBeInTheDocument();
+    expect(partnerRail).toBeInTheDocument();
     expect(document.querySelector('[class*="splineBadgeMask"]')).not.toBeInTheDocument();
 
     await waitFor(() => expect(runtimeMocks.instances).toHaveLength(1));
