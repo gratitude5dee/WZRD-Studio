@@ -755,15 +755,14 @@
     min-height: 44rem;
     justify-content: flex-start;
     padding-bottom: 0;
-    padding-top: clamp(5rem, 8vh, 6rem);
+    padding-top: 0;
   }
 
   .heroStage {
-    /* The hero owns the remaining first-screen height after the header. It
-       also escapes the desktop content gutters, so the scene and its native
-       partner rail meet the page edges as one full-width first-screen stage. */
+    /* The fixed header layers above this edge-to-edge surface. The scene and
+       its native partner rail therefore meet every page border as one stage. */
     aspect-ratio: auto;
-    height: calc(100svh - clamp(5rem, 8vh, 6rem));
+    height: 100svh;
     margin-inline: calc(-1 * clamp(1.15rem, 4.5vw, 4.5rem));
     max-width: none;
     width: calc(100% + (clamp(1.15rem, 4.5vw, 4.5rem) * 2));
