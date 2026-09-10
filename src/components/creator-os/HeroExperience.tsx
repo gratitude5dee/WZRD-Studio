@@ -181,7 +181,7 @@ export default function HeroExperience() {
         </div>
         {heroRevealed && (
           <section aria-label="Technology ecosystem" className={styles.partnerRail}>
-            <p>Built across the AI ecosystem</p>
+            <p>Built in partnership with</p>
             <div className={styles.partnerViewport}>
               <div className={styles.partnerTrack}>
                 <PartnerSet />

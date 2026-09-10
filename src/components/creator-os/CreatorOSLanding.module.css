@@ -718,6 +718,18 @@
     height: clamp(20rem, calc(100svh - 0.5rem), 60rem);
     max-height: none;
     min-height: 17.5rem;
+    --spline-bleed: 3rem;
+  }
+
+  .splineLayer {
+    inset-block: 0;
+    inset-inline: calc(-1 * var(--spline-bleed));
+    width: calc(100% + (var(--spline-bleed) * 2));
+  }
+
+  .splineFallback img {
+    max-width: none;
+    width: calc(100% + (var(--spline-bleed) * 2));
   }
 
   .stageActionSlot {
@@ -758,8 +770,8 @@
   }
 
   .partnerLogo {
-    font-size: clamp(0.74rem, 3.1vw, 0.84rem);
-    gap: 0.42rem;
+    font-size: clamp(1.48rem, 6.2vw, 1.68rem);
+    gap: 0.58rem;
   }
 
   .partnerLogoMark {
@@ -776,6 +788,7 @@
 
 @media (max-width: 430px) and (orientation: portrait) {
   .heroStage {
+    --spline-bleed: 5rem;
     --spline-pan-x: -4rem;
     --spline-pan-y: -2rem;
   }
