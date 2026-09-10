@@ -33,11 +33,12 @@ describe('SplinePartnerHero', () => {
     runtimeMocks.instances.length = 0;
   });
 
-  it('keeps portrait zoom within the aspect-aware framing range', () => {
+  it('keeps desktop and portrait zoom within the aspect-aware framing range', () => {
     expect(getSplineZoom(390, 617)).toBeGreaterThanOrEqual(1.58);
     expect(getSplineZoom(390, 617)).toBeLessThanOrEqual(1.72);
     expect(getSplineZoom(390, 801)).toBe(1.72);
-    expect(getSplineZoom(1280, 720)).toBe(1);
+    expect(getSplineZoom(1280, 720)).toBeCloseTo(1.29, 2);
+    expect(getSplineZoom(1920, 900)).toBe(1.32);
   });
 
   it('uses the introduction film as the only visible hero content before the Spline scene', async () => {
