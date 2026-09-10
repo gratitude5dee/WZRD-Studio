@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { ReactNode, RefObject } from "react";
+import type { RefObject } from "react";
+import { Application } from "@splinetool/runtime";
 
 import styles from "./CreatorOSLanding.module.css";
 import IntroVideo from "./IntroVideo";
@@ -59,11 +60,78 @@ function useStageVisibility(stageRef: RefObject<HTMLElement | null>) {
   return inViewport && pageVisible;
 }
 
-type HeroExperienceProps = {
-  splineScene: ReactNode;
-};
+function SplineSceneFrame({
+  active,
+  scene,
+}: {
+  active: boolean;
+  scene: string;
+}) {
+  const frameRef = useRef<HTMLDivElement>(null);
+  const runtimeRef = useRef<Application | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
-export default function HeroExperience({ splineScene }: HeroExperienceProps) {
+  useEffect(() => {
+    if (!active) {
+      setLoaded(false);
+      return;
+    }
+
+    const frame = frameRef.current;
+    if (!frame) return;
+    setLoaded(false);
+    const canvas = document.createElement("canvas");
+    canvas.setAttribute("aria-hidden", "true");
+    frame.appendChild(canvas);
+    let disposed = false;
+    let runtime: Application;
+
+    try {
+      runtime = new Application(canvas, { renderOnDemand: true });
+      runtimeRef.current = runtime;
+    } catch {
+      return () => {
+        canvas.remove();
+      };
+    }
+
+    const resize = () => {
+      const bounds = frame.getBoundingClientRect();
+      if (bounds.width > 0 && bounds.height > 0) {
+        runtime.setSize(bounds.width, bounds.height);
+      }
+    };
+
+    const observer = window.ResizeObserver ? new ResizeObserver(resize) : null;
+    observer?.observe(frame);
+    const animationFrame = window.requestAnimationFrame(resize);
+    const readyTimer = window.setTimeout(resize, 1000);
+
+    void runtime.load(scene).then(() => {
+      if (disposed) return;
+      resize();
+      runtime.play();
+      setLoaded(true);
+    }).catch(() => {
+      if (!disposed) setLoaded(false);
+    });
+
+    return () => {
+      disposed = true;
+      observer?.disconnect();
+      window.cancelAnimationFrame(animationFrame);
+      window.clearTimeout(readyTimer);
+      runtime.stop();
+      runtime.dispose();
+      runtimeRef.current = null;
+      canvas.remove();
+    };
+  }, [active, scene]);
+
+  return <div className={styles.splineLayer} data-ready={loaded ? "true" : "false"} ref={frameRef} />;
+}
+
+export default function HeroExperience() {
   const { motionAllowed, reduced } = useMotionPreference();
   const stageRef = useRef<HTMLElement>(null);
   const stageVisible = useStageVisibility(stageRef);
@@ -86,21 +154,22 @@ export default function HeroExperience({ splineScene }: HeroExperienceProps) {
     setIntroKey((value) => value + 1);
   }, [motionAllowed, reduced]);
 
-  const mountSpline = sceneRequested && stageVisible;
+  const mountSpline = sceneRequested && stageVisible && motionAllowed && !reduced;
 
   return (
-    <section aria-label="WZRD.tech" className={styles.splineHero} id="top">
+    <section aria-label="WZRD.tech" className={styles.splineHero} data-hero-experience="true" id="top">
       <h1 className={styles.visuallyHidden}>WZRD.tech Creator OS</h1>
 
       <section aria-label="WZRD.tech hero" className={styles.heroStage} ref={stageRef}>
-        <div aria-hidden="true" className={styles.splineFallback}>
-          <img alt="" src="/creator-os/wzrd-wordmark-1600.png" />
-        </div>
+          <div aria-hidden="true" className={styles.splineFallback}>
+            <img alt="" src="/creator-os/spline-scene-still.svg" />
+          </div>
 
         {mountSpline && (
-          <div aria-hidden="true" className={styles.splineLayer} data-ready="true">{splineScene}</div>
+          <SplineSceneFrame active={mountSpline} scene={SPLINE_SCENE} />
         )}
 
+        <div aria-hidden="true" className={styles.splineBadgeMask} />
         <div aria-hidden="true" className={styles.splineWash} />
         <IntroVideo
           key={introKey}

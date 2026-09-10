@@ -26,10 +26,12 @@ export default function IntroVideo({
 }: IntroVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fallbackTimerRef = useRef<number | null>(null);
+  const stalledTimerRef = useRef<number | null>(null);
   const exitTimerRef = useRef<number | null>(null);
   const playbackTokenRef = useRef(0);
   const hasPrefetchedRef = useRef(false);
   const hasExitedRef = useRef(false);
+  const intentionalPauseRef = useRef(false);
   const [isExiting, setIsExiting] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [playback, setPlayback] = useState<PlaybackState>("loading");
@@ -41,6 +43,13 @@ export default function IntroVideo({
     fallbackTimerRef.current = null;
   }, []);
 
+  const clearStalledTimer = useCallback(() => {
+    if (stalledTimerRef.current === null) return;
+
+    window.clearTimeout(stalledTimerRef.current);
+    stalledTimerRef.current = null;
+  }, []);
+
   const clearExitTimer = useCallback(() => {
     if (exitTimerRef.current === null) return;
 
@@ -50,6 +59,7 @@ export default function IntroVideo({
 
   const transitionToSpline = useCallback((immediate = false) => {
     clearFallbackTimer();
+    clearStalledTimer();
     playbackTokenRef.current += 1;
     videoRef.current?.pause();
 
@@ -66,13 +76,27 @@ export default function IntroVideo({
     }
 
     exitTimerRef.current = window.setTimeout(() => setIsVisible(false), FADE_OUT_MS);
-  }, [clearFallbackTimer, onPrefetchSpline, onReveal]);
+  }, [clearFallbackTimer, clearStalledTimer, onPrefetchSpline, onReveal]);
+
+  const armStalledTimer = useCallback(() => {
+    clearStalledTimer();
+    if (intentionalPauseRef.current || hasExitedRef.current) return;
+
+    const token = playbackTokenRef.current;
+    stalledTimerRef.current = window.setTimeout(() => {
+      const video = videoRef.current;
+      if (!video || intentionalPauseRef.current || token !== playbackTokenRef.current || hasExitedRef.current) return;
+      transitionToSpline(true);
+    }, 3000);
+  }, [clearStalledTimer, transitionToSpline]);
 
   const startPlayback = useCallback(async (token: number) => {
     const video = videoRef.current;
     if (!video || reducedMotion || !motionAllowed || hasExitedRef.current) return;
 
     clearFallbackTimer();
+    clearStalledTimer();
+    intentionalPauseRef.current = false;
     setPlayback("loading");
     video.muted = true;
     fallbackTimerRef.current = window.setTimeout(() => {
@@ -87,7 +111,7 @@ export default function IntroVideo({
     } catch {
       if (token === playbackTokenRef.current) transitionToSpline(true);
     }
-  }, [clearFallbackTimer, motionAllowed, reducedMotion, transitionToSpline]);
+  }, [clearFallbackTimer, clearStalledTimer, motionAllowed, reducedMotion, transitionToSpline]);
 
   useEffect(() => {
     playbackTokenRef.current += 1;
@@ -102,39 +126,49 @@ export default function IntroVideo({
 
     return () => {
       clearFallbackTimer();
+      clearStalledTimer();
       clearExitTimer();
     };
-  }, [clearExitTimer, clearFallbackTimer, motionAllowed, reducedMotion, startPlayback, transitionToSpline]);
+  }, [clearExitTimer, clearFallbackTimer, clearStalledTimer, motionAllowed, reducedMotion, startPlayback, transitionToSpline]);
 
   const pause = useCallback(() => {
     clearFallbackTimer();
+    clearStalledTimer();
+    intentionalPauseRef.current = true;
     videoRef.current?.pause();
     setPlayback("paused");
-  }, [clearFallbackTimer]);
+  }, [clearFallbackTimer, clearStalledTimer]);
 
   const resume = useCallback(async () => {
     const video = videoRef.current;
     if (!video || hasExitedRef.current) return;
 
+    intentionalPauseRef.current = false;
+    armStalledTimer();
     try {
       await video.play();
       if (!hasExitedRef.current) setPlayback("playing");
     } catch {
       transitionToSpline(true);
     }
-  }, [transitionToSpline]);
+  }, [armStalledTimer, transitionToSpline]);
 
   const onTimeUpdate = useCallback(() => {
     const video = videoRef.current;
     if (!video || hasExitedRef.current) return;
 
     if (video.currentTime > 0.1) clearFallbackTimer();
+    clearStalledTimer();
 
     if (!hasPrefetchedRef.current && Number.isFinite(video.duration) && video.currentTime >= video.duration - prefetchLeadSeconds) {
       hasPrefetchedRef.current = true;
       onPrefetchSpline?.();
     }
-  }, [clearFallbackTimer, onPrefetchSpline, prefetchLeadSeconds]);
+  }, [clearFallbackTimer, clearStalledTimer, onPrefetchSpline, prefetchLeadSeconds]);
+
+  const onWaiting = useCallback(() => {
+    armStalledTimer();
+  }, [armStalledTimer]);
 
   if (!isVisible) return null;
 
@@ -154,7 +188,10 @@ export default function IntroVideo({
           muted
           onEnded={() => transitionToSpline()}
           onError={() => transitionToSpline(true)}
+          onPlaying={clearStalledTimer}
+          onStalled={onWaiting}
           onTimeUpdate={onTimeUpdate}
+          onWaiting={onWaiting}
           playsInline
           preload="metadata"
           ref={videoRef}

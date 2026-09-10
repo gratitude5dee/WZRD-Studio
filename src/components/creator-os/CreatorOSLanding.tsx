@@ -402,10 +402,12 @@ export default function CreatorOSLanding() {
   const [logoHover, setLogoHover] = useState(false);
 
   const calmViewport = useMediaQuery("(pointer: coarse), (max-width: 859px)");
+  const touchInput = useMediaQuery("(pointer: coarse)");
   const { motionAllowed, motionLabel, reduced, toggleMotion } = useMotionPreference();
   const baseMode = calmViewport ? "calm" : "full";
   const fxModeAttr = motionAllowed ? baseMode : "off";
   const creatorCinematic = motionAllowed && !calmViewport;
+  const headerMotionVisible = navHover && !touchInput;
 
   const closeBubbleMenu = useCallback(() => setBubbleOpen(false), []);
 
@@ -835,11 +837,17 @@ export default function CreatorOSLanding() {
   }, [motionAllowed]);
 
   const bubbleScale = bubbleOpen ? 1 : 0;
-  const navPop: CSSProperties = {
-    opacity: 1,
-    pointerEvents: "auto",
-    transform: "translateX(-3.75rem) scale(1)",
-  };
+  const navPop: CSSProperties = navHover
+    ? {
+        opacity: 1,
+        pointerEvents: "auto",
+        transform: "translateX(-3.75rem) scale(1)",
+      }
+    : {
+        opacity: 0,
+        pointerEvents: "none",
+        transform: "translateX(0) scale(0.7)",
+      };
 
   return (
     <div
@@ -880,32 +888,20 @@ export default function CreatorOSLanding() {
           />
         </a>
         <div
-          onBlur={() => setNavHover(false)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setNavHover(false);
+          }}
           onFocus={() => setNavHover(true)}
           onPointerEnter={() => setNavHover(true)}
-          onPointerLeave={() => setNavHover(false)}
+          onPointerLeave={(event) => {
+            if (!event.currentTarget.contains(document.activeElement)) setNavHover(false);
+          }}
           style={css(
             // The motion preference stays visible on every input type. The
             // container reserves room for its 44px target beside navigation.
             "position:relative;box-sizing:content-box;pointer-events:auto;width:clamp(2.8rem,9vw,3.15rem);height:clamp(2.8rem,9vw,3.15rem);padding-left:4.6rem;margin-left:-4.6rem",
           )}
         >
-          <button
-            aria-label={reduced ? "Motion reduced" : `Motion ${motionLabel}. Toggle motion`}
-            aria-pressed={motionAllowed}
-            className={styles.motionButton}
-            disabled={reduced}
-            onClick={toggleMotion}
-            style={{
-              ...css(
-                "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;width:clamp(2.8rem,9vw,3.15rem);height:clamp(2.8rem,9vw,3.15rem);border-radius:50%;border:1.5px solid transparent;background:linear-gradient(rgba(12,11,16,0.62),rgba(12,11,16,0.62)) padding-box,radial-gradient(circle at 25% 20%, rgba(140,200,255,0.14), transparent 60%) padding-box,conic-gradient(from 90deg, rgba(140,200,255,0.6), rgba(109,200,215,0.6) 25%, rgba(240,161,69,0.5) 50%, rgba(240,106,71,0.5) 75%, rgba(140,200,255,0.6) 100%) border-box;backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);cursor:pointer;font-size:0.52rem;letter-spacing:0.03em;text-transform:uppercase;color:rgba(241,235,221,0.65);box-shadow:0 0.5rem 1.3rem rgba(2,5,10,0.4),inset 0 1px 0 rgba(255,255,255,0.08);z-index:1;transition:color 200ms ease,transform 260ms cubic-bezier(0.34,1.56,0.64,1),opacity 220ms ease,box-shadow 200ms ease",
-              ),
-              ...navPop,
-            }}
-            type="button"
-          >
-            {motionLabel}
-          </button>
           <button
             aria-expanded={bubbleOpen}
             aria-label="Toggle navigation"
@@ -940,6 +936,24 @@ export default function CreatorOSLanding() {
               style={css("position:absolute;inset:-9px;z-index:2;pointer-events:none;display:block")}
             />
           </button>
+          <button
+            aria-label={reduced ? "Motion reduced" : `Motion ${motionLabel}. Toggle motion`}
+            aria-hidden={!headerMotionVisible}
+            aria-pressed={motionAllowed}
+            className={styles.motionButton}
+            disabled={reduced}
+            onClick={toggleMotion}
+            tabIndex={headerMotionVisible ? 0 : -1}
+            style={{
+              ...css(
+                "position:absolute;top:0;right:0;display:inline-flex;align-items:center;justify-content:center;width:clamp(2.8rem,9vw,3.15rem);height:clamp(2.8rem,9vw,3.15rem);border-radius:50%;border:1.5px solid transparent;background:linear-gradient(rgba(12,11,16,0.62),rgba(12,11,16,0.62)) padding-box,radial-gradient(circle at 25% 20%, rgba(140,200,255,0.14), transparent 60%) padding-box,conic-gradient(from 90deg, rgba(140,200,255,0.6), rgba(109,200,215,0.6) 25%, rgba(240,161,69,0.5) 50%, rgba(240,106,71,0.5) 75%, rgba(140,200,255,0.6) 100%) border-box;backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);cursor:pointer;font-size:0.52rem;letter-spacing:0.03em;text-transform:uppercase;color:rgba(241,235,221,0.65);box-shadow:0 0.5rem 1.3rem rgba(2,5,10,0.4),inset 0 1px 0 rgba(255,255,255,0.08);z-index:1;transition:color 200ms ease,transform 260ms cubic-bezier(0.34,1.56,0.64,1),opacity 220ms ease,box-shadow 200ms ease",
+              ),
+              ...navPop,
+            }}
+            type="button"
+          >
+            {motionLabel}
+          </button>
         </div>
       </header>
 
@@ -952,7 +966,7 @@ export default function CreatorOSLanding() {
         role="dialog"
         style={{
           ...css(
-            "position:fixed;inset:0;z-index:45;display:flex;align-items:center;justify-content:center;overflow-y:auto;overscroll-behavior:contain;padding:clamp(5.5rem,17vw,6rem) clamp(1.15rem,4.5vw,1.7rem) 2rem;background:rgba(5,7,10,0.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:opacity 320ms ease,visibility 320ms ease",
+            "position:fixed;inset:0;z-index:45;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;overflow-y:auto;overscroll-behavior:contain;padding:clamp(5.5rem,17vw,6rem) clamp(1.15rem,4.5vw,1.7rem) 2rem;background:rgba(5,7,10,0.9);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:opacity 320ms ease,visibility 320ms ease",
           ),
           opacity: bubbleOpen ? 1 : 0,
           pointerEvents: bubbleOpen ? "auto" : "none",
@@ -989,6 +1003,16 @@ export default function CreatorOSLanding() {
             </li>
           ))}
         </ul>
+        <button
+          aria-label={reduced ? "Motion reduced" : `Motion ${motionLabel}. Toggle motion`}
+          aria-pressed={motionAllowed}
+          className={styles.mobileMotionSetting}
+          disabled={reduced}
+          onClick={toggleMotion}
+          type="button"
+        >
+          {reduced ? "Reduced motion" : `Motion ${motionLabel}`}
+        </button>
       </div>
 
       <main style={css("display:flex;flex-direction:column")}>

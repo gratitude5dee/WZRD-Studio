@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">WZRD.tech hero scene</title>
+  <desc id="desc">A still of the WZRD.tech dimensional wordmark on a dark blue field.</desc>
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="52%" r="64%">
+      <stop offset="0" stop-color="#123f78" stop-opacity=".72"/>
+      <stop offset=".48" stop-color="#07162d" stop-opacity=".7"/>
+      <stop offset="1" stop-color="#020304"/>
+    </radialGradient>
+    <filter id="soft" x="-20%" y="-30%" width="140%" height="160%">
+      <feGaussianBlur stdDeviation="34"/>
+    </filter>
+  </defs>
+  <rect width="1600" height="900" fill="#020304"/>
+  <ellipse cx="800" cy="490" rx="560" ry="260" fill="#0d4da7" opacity=".27" filter="url(#soft)"/>
+  <rect width="1600" height="900" fill="url(#glow)"/>
+  <image href="/creator-os/wzrd-wordmark-1600.png" x="145" y="300" width="1310" height="325" preserveAspectRatio="xMidYMid meet"/>
+</svg>

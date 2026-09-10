@@ -441,6 +441,10 @@
   outline-offset: 4px;
 }
 
+.splineHero[data-hero-experience] {
+  min-height: 100svh;
+}
+
 .splineHero *,
 .splineHero *::before,
 .splineHero *::after {
@@ -507,6 +511,12 @@
   width: 100% !important;
 }
 
+.splineLayer canvas {
+  display: block;
+  max-height: 100%;
+  max-width: 100%;
+}
+
 .splineFallback {
   align-items: center;
   background:
@@ -522,9 +532,10 @@
 .splineFallback img {
   display: block;
   filter: drop-shadow(0 1.5rem 3.5rem rgba(10, 96, 199, 0.3));
-  height: auto;
-  max-width: 58%;
-  width: min(58%, 32rem);
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  width: 100%;
 }
 
 .splineWash {
@@ -532,6 +543,17 @@
   inset: 0;
   pointer-events: none;
   position: absolute;
+  z-index: 2;
+}
+
+.splineBadgeMask {
+  background: linear-gradient(135deg, rgba(5, 5, 6, 0) 0%, #050506 34%, #050506 100%);
+  bottom: 0;
+  height: 15%;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  width: 25%;
   z-index: 2;
 }
 
@@ -549,7 +571,7 @@
 
 .exploreAir {
   align-items: center;
-  background: #0a7cff;
+  background: #0066cc;
   border-radius: 1.25rem 1.25rem 0.38rem 1.25rem;
   box-shadow: 0 0.9rem 2.2rem rgba(10, 124, 255, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.22);
   color: #fff;
@@ -567,7 +589,7 @@
 }
 
 .exploreAir::after {
-  background: #0a7cff;
+  background: #0066cc;
   bottom: -0.18rem;
   clip-path: polygon(0 0, 100% 0, 100% 100%);
   content: "";
@@ -578,10 +600,15 @@
 }
 
 .exploreAir:hover {
-  background: #3694ff;
+  background: #0052a3;
   box-shadow: 0 1.1rem 2.5rem rgba(10, 124, 255, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.28);
   color: #fff;
   transform: translateY(-1px);
+}
+
+.exploreAir:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
 }
 
 .exploreAir svg {
@@ -692,7 +719,20 @@
 
 @media (max-width: 680px) {
   .splineHero {
-    padding: max(5rem, calc(env(safe-area-inset-top) + 4.35rem)) max(1.15rem, calc(env(safe-area-inset-right) + 1.15rem)) max(3rem, calc(env(safe-area-inset-bottom) + 2rem)) max(1.15rem, calc(env(safe-area-inset-left) + 1.15rem));
+    justify-content: flex-start;
+    min-height: 100svh;
+    padding: max(5rem, calc(env(safe-area-inset-top) + 4.35rem)) max(1rem, calc(env(safe-area-inset-right) + 1rem)) max(3rem, calc(env(safe-area-inset-bottom) + 2rem)) max(1rem, calc(env(safe-area-inset-left) + 1rem));
+  }
+
+  .heroStage {
+    aspect-ratio: auto;
+    height: clamp(20rem, 68svh, 38rem);
+    max-height: none;
+    min-height: 17.5rem;
+  }
+
+  .heroActionSlot {
+    margin-top: 1.5rem;
   }
 
   .partnerSet {
@@ -727,6 +767,23 @@
   .partnerLogo {
     font-size: 0.86rem;
   }
+
+  .splineBadgeMask {
+    height: 18%;
+    width: 34%;
+  }
+}
+
+@media (max-width: 680px) and (orientation: landscape) {
+  .splineHero {
+    min-height: auto;
+  }
+
+  .heroStage {
+    aspect-ratio: 16 / 9;
+    height: auto;
+    min-height: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -756,6 +813,39 @@
 .motionButton:hover:not(:disabled) {
   box-shadow: 0 0.5rem 1.3rem rgba(2, 5, 10, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   color: #f1ebdd;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .motionButton {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(0) scale(0.7);
+  }
+}
+
+@media (max-width: 680px), (pointer: coarse) {
+  .motionButton {
+    display: none !important;
+  }
+
+  .mobileMotionSetting {
+    align-items: center;
+    border: 1px solid rgba(241, 235, 221, 0.24);
+    border-radius: 999px;
+    color: #f1ebdd;
+    display: inline-flex;
+    font-family: "Azeret Mono", ui-monospace, Consolas, monospace;
+    font-size: 0.7rem;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+  }
+}
+
+@media (min-width: 681px) {
+  .mobileMotionSetting {
+    display: none;
+  }
 }
 
 .menuButton:hover {

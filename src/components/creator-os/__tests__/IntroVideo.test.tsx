@@ -88,6 +88,34 @@ describe('IntroVideo', () => {
     vi.useRealTimers();
   });
 
+  it('falls back after a later media stall', async () => {
+    vi.useFakeTimers();
+    const onReveal = vi.fn();
+    render(<IntroVideo onReveal={onReveal} />);
+
+    await act(async () => undefined);
+    fireEvent.playing(getVideo());
+    fireEvent.waiting(getVideo());
+    act(() => vi.advanceTimersByTime(3000));
+
+    expect(onReveal).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
+
+  it('does not treat an intentional pause as a media stall', async () => {
+    vi.useFakeTimers();
+    const onReveal = vi.fn();
+    render(<IntroVideo onReveal={onReveal} />);
+
+    await act(async () => undefined);
+    fireEvent.click(screen.getByRole('button', { name: 'Pause introduction' }));
+    fireEvent.waiting(getVideo());
+    act(() => vi.advanceTimersByTime(3000));
+
+    expect(onReveal).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
   it('shows the static Spline hero immediately when the visitor asks for reduced motion', async () => {
     vi.mocked(window.matchMedia).mockReturnValue({
       addEventListener: vi.fn(),

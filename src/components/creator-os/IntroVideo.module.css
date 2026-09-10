@@ -26,6 +26,17 @@
   width: 100%;
 }
 
+.frame::before {
+  background: url("/creator-os/assets/universe-teeming-poster.jpg") center / cover no-repeat;
+  content: "";
+  filter: blur(1.35rem);
+  inset: -1.5rem;
+  opacity: 0.42;
+  position: absolute;
+  transform: scale(1.06);
+  z-index: 0;
+}
+
 .video,
 .frameOverlay {
   height: 100%;

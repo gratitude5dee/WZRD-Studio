@@ -14,6 +14,7 @@ describe('SplinePartnerHero', () => {
     expect(screen.queryByText('Creative infrastructure for what comes next.')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Explore Air' })).not.toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'WZRD.tech introduction film' })).toBeInTheDocument();
+    expect(document.querySelector('img[src="/creator-os/spline-scene-still.svg"]')).toBeInTheDocument();
   });
 
   it('reveals the Air action when video playback fails', () => {
