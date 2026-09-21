@@ -61,6 +61,7 @@ const Clipper = lazyWithRetry(() => import('@/legacy-pages/Clipper'));
 const Sourcify = lazyWithRetry(() => import('@/legacy-pages/Sourcify'));
 const Postz = lazyWithRetry(() => import('@/legacy-pages/Postz'));
 const IPVault = lazyWithRetry(() => import('@/legacy-pages/IPVault'));
+const MotionSplatPage = lazyWithRetry(() => import('@/legacy-pages/MotionSplatPage'));
 const NotFound = lazyWithRetry(() => import('@/legacy-pages/NotFound'));
 
 const CursorWrapper = () => {
@@ -289,6 +290,16 @@ const AuthenticatedRoutes = () => {
                       <ProtectedRoute>
                         <StudioErrorBoundary fallbackTitle="Postz error" fallbackDescription="The social schedule calendar hit an unexpected issue">
                           <Postz />
+                        </StudioErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path={appRoutes.motionSplat}
+                    element={
+                      <ProtectedRoute>
+                        <StudioErrorBoundary fallbackTitle="Motion Splat error" fallbackDescription="The motion splat studio hit an unexpected issue">
+                          <MotionSplatPage />
                         </StudioErrorBoundary>
                       </ProtectedRoute>
                     }
