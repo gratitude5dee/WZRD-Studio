@@ -118,3 +118,21 @@ describe('MotionSplatViewer', () => {
     expect(engine.play).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('error reporting', () => {
+  it('reports an error raised after a successful load, and only once', () => {
+    const onError = vi.fn();
+    state = makeState({ status: 'ready', error: null });
+    const { rerender } = render(<MotionSplatViewer manifest={manifest} onError={onError} />);
+    expect(onError).not.toHaveBeenCalled();
+
+    // Autoplay blocked mid-run: status stays ready, but the error must surface.
+    state = makeState({ status: 'ready', error: 'Playback was blocked', playing: false });
+    rerender(<MotionSplatViewer manifest={manifest} onError={onError} />);
+    expect(onError).toHaveBeenCalledWith('Playback was blocked');
+
+    state = makeState({ status: 'ready', error: 'Playback was blocked', playing: false, time: 2 });
+    rerender(<MotionSplatViewer manifest={manifest} onError={onError} />);
+    expect(onError).toHaveBeenCalledTimes(1);
+  });
+});

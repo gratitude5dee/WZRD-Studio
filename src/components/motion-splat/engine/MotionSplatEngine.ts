@@ -166,7 +166,7 @@ export class MotionSplatEngine {
       loop: this.state.loop,
       speed: this.state.speed,
       onEnded: () => this.handleEnded(),
-      onError: (error) => this.emit({ error: error.message }),
+      onError: (error) => this.handlePlaybackError(error),
     });
   }
 
@@ -264,6 +264,19 @@ export class MotionSplatEngine {
     if (Math.abs(time - this.state.time) > 1e-4) this.emit({ time });
   }
 
+  /**
+   * A failure after load (blocked autoplay, a decode error mid-clip). Playback
+   * cannot continue, so stop claiming it is playing and let a cinematic run
+   * finish instead of holding the page on a frozen frame.
+   */
+  private handlePlaybackError(error: Error): void {
+    this.emit({ playing: false, error: error.message });
+    if (this.mode === 'cinematic' && !this.completed) {
+      this.completed = true;
+      this.options.onComplete?.();
+    }
+  }
+
   private handleEnded(): void {
     if (this.state.loop) return;
     if (this.state.playing) this.emit({ playing: false });
@@ -279,7 +292,13 @@ export class MotionSplatEngine {
       await this.seek(0);
     }
     this.emit({ playing: true });
-    if (this.backend.ownsClock) await this.backend.play?.();
+    if (this.backend.ownsClock) {
+      try {
+        await this.backend.play?.();
+      } catch (error) {
+        this.handlePlaybackError(error instanceof Error ? error : new Error('Playback was blocked'));
+      }
+    }
   }
 
   pause(): void {

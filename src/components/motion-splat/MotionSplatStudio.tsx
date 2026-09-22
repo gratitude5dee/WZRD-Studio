@@ -3,6 +3,7 @@ import { Orbit } from 'lucide-react';
 
 import CreditsDisplay from '@/components/CreditsDisplay';
 import { KanvasEmptyState, KanvasRail } from '@/components/kanvas/primitives';
+import { videoModelCost } from '@/lib/motion-splat/constants';
 import { useMotionSplatStore } from '@/lib/stores/motion-splat-store';
 import { cn } from '@/lib/utils';
 import { MotionSplatViewer } from './MotionSplatViewer';
@@ -89,11 +90,14 @@ export function MotionSplatStudio({ className }: MotionSplatStudioProps) {
             video={store.video}
             busy={store.busy}
             canGenerate={imageUploaded}
-            creditCost={Math.max(24, estimate.video || 24)}
+            creditCost={estimate.video || videoModelCost(store.videoModelId)}
+            progress={store.progress}
+            active={store.step === 'generating-video' || store.step === 'uploading'}
             onPrompt={store.setPrompt}
             onModel={store.setVideoModelId}
             onDuration={store.setVideoDuration}
             onGenerate={pipeline.generateVideo}
+            onCancel={pipeline.cancel}
           />
           <hr className="border-kanvas-border-subtle" />
           <SplatPanel
@@ -103,7 +107,7 @@ export function MotionSplatStudio({ className }: MotionSplatStudioProps) {
             busy={store.busy}
             canBuild={Boolean(store.video)}
             creditCost={estimate.splat}
-            progress={store.progress}
+            progress={store.step === 'building-splat' ? store.progress : null}
             hasManifest={Boolean(store.manifest)}
             onBuildMode={store.setBuildMode}
             onKeyframeCount={store.setKeyframeCount}

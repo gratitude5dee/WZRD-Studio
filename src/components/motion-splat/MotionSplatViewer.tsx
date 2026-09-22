@@ -87,13 +87,20 @@ export const MotionSplatViewer = forwardRef<MotionSplatViewerHandle, MotionSplat
   });
 
   const readyNotified = useRef(false);
+  const reportedError = useRef<string | null>(null);
   useEffect(() => {
     onStateChange?.(state);
     if (state.status === 'ready' && !readyNotified.current) {
       readyNotified.current = true;
       onReady?.();
     }
-    if (state.status === 'error' && state.error) onError?.(state.error);
+    // Report any error once, including one raised after a successful load
+    // (blocked autoplay, a decode failure mid-clip) which leaves status ready.
+    if (state.error && state.error !== reportedError.current) {
+      reportedError.current = state.error;
+      onError?.(state.error);
+    }
+    if (!state.error) reportedError.current = null;
     if (state.status !== 'ready') readyNotified.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);

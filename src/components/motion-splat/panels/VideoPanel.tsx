@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { Clapperboard } from 'lucide-react';
 
-import { KanvasButton, KanvasChip, KanvasFieldRow, KanvasSectionHeader } from '@/components/kanvas/primitives';
+import { KanvasButton, KanvasChip, KanvasFieldRow, KanvasProgress, KanvasSectionHeader } from '@/components/kanvas/primitives';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { MotionSplatVideoAsset } from '@/lib/stores/motion-splat-store';
+import type { MotionSplatProgress, MotionSplatVideoAsset } from '@/lib/stores/motion-splat-store';
 import { formatTimecode } from '@/lib/motion-splat/timeline';
 import { imageToVideoModels } from './videoModels';
 
@@ -16,14 +16,34 @@ export interface VideoPanelProps {
   busy: boolean;
   canGenerate: boolean;
   creditCost: number;
+  /** Progress of this step only; null while another step is running. */
+  progress?: MotionSplatProgress | null;
+  /** True while this step owns the run, so it can show progress and cancel. */
+  active?: boolean;
   onPrompt: (prompt: string) => void;
   onModel: (modelId: string) => void;
   onDuration: (duration: 5 | 10) => void;
   onGenerate: () => void;
+  onCancel: () => void;
 }
 
 /** Step 2 — turn the still into a short clip. */
-export function VideoPanel({ prompt, modelId, duration, video, busy, canGenerate, creditCost, onPrompt, onModel, onDuration, onGenerate }: VideoPanelProps) {
+export function VideoPanel({
+  prompt,
+  modelId,
+  duration,
+  video,
+  busy,
+  canGenerate,
+  creditCost,
+  progress,
+  active = false,
+  onPrompt,
+  onModel,
+  onDuration,
+  onGenerate,
+  onCancel,
+}: VideoPanelProps) {
   const models = useMemo(() => imageToVideoModels(), []);
   const selected = models.find((model) => model.id === modelId);
 
@@ -86,18 +106,33 @@ export function VideoPanel({ prompt, modelId, duration, video, busy, canGenerate
           </div>
         </div>
       )}
-      <KanvasButton
-        variant={video ? 'outline' : 'accent'}
-        fullWidth
-        icon={<Clapperboard className="h-4 w-4" />}
-        busy={busy}
-        disabled={!canGenerate || busy}
-        onClick={onGenerate}
-        data-testid="motion-splat-generate-video"
-      >
-        {video ? 'Regenerate video' : 'Generate video'}
-        <span className="ml-2 font-mono text-[11px] opacity-70">{creditCost} cr</span>
-      </KanvasButton>
+      {active && progress && (
+        <div className="flex flex-col gap-2" aria-live="polite">
+          <div className="flex items-center justify-between font-mono text-[11px] uppercase tracking-[0.16em] text-kanvas-text-secondary">
+            <span>{progress.label}</span>
+            <span className="tabular-nums">{Math.round(progress.value * 100)}%</span>
+          </div>
+          <KanvasProgress label={progress.label} value={progress.value * 100} />
+        </div>
+      )}
+      {active ? (
+        <KanvasButton variant="outline" fullWidth onClick={onCancel} data-testid="motion-splat-cancel-video">
+          Cancel
+        </KanvasButton>
+      ) : (
+        <KanvasButton
+          variant={video ? 'outline' : 'accent'}
+          fullWidth
+          icon={<Clapperboard className="h-4 w-4" />}
+          busy={busy}
+          disabled={!canGenerate || busy}
+          onClick={onGenerate}
+          data-testid="motion-splat-generate-video"
+        >
+          {video ? 'Regenerate video' : 'Generate video'}
+          <span className="ml-2 font-mono text-[11px] opacity-70">{creditCost} cr</span>
+        </KanvasButton>
+      )}
       {selected?.description && <p className="text-[11px] leading-relaxed text-kanvas-text-faint">{selected.description}</p>}
     </section>
   );

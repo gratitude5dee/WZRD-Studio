@@ -33,6 +33,28 @@ export function isWebGL2Available(): boolean {
   }
 }
 
+/**
+ * Set for the session once a probe finds no intro asset, so later navigations
+ * skip the gate entirely instead of shielding the page on every visit.
+ */
+export const SPLAT_INTRO_MISSING_KEY = 'wzrd-splat-intro-missing';
+
+export function markSplatIntroMissing(): void {
+  try {
+    sessionStorage.setItem(SPLAT_INTRO_MISSING_KEY, 'true');
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function introAssetKnownMissing(): boolean {
+  try {
+    return sessionStorage.getItem(SPLAT_INTRO_MISSING_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 function landingMotionDisabled(): boolean {
   try {
     return sessionStorage.getItem('wzrd:landing-motion') === 'off';
@@ -52,7 +74,7 @@ export function shouldShowSplatIntro(search?: string): boolean {
   const forced = params.get('intro');
   if (forced === '0') return false;
   if (forced === '1') return true;
-  if (prefersReducedMotion() || landingMotionDisabled()) return false;
+  if (prefersReducedMotion() || landingMotionDisabled() || introAssetKnownMissing()) return false;
   try {
     return sessionStorage.getItem(SPLAT_INTRO_SEEN_KEY) !== 'true';
   } catch {

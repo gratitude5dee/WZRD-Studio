@@ -21,6 +21,12 @@ export interface VideoSplatPlayerOptions extends Omit<VideoSplatRendererOptions,
   onEnded?: () => void;
   onError?: (error: Error) => void;
   signal?: AbortSignal;
+  /**
+   * Set when a host render loop calls `render()` every frame. The player then
+   * does not run its own requestAnimationFrame loop, so a playing clip is
+   * drawn once per frame instead of twice.
+   */
+  externallyDriven?: boolean;
 }
 
 const SYNC_TOLERANCE_SECONDS = 0.045;
@@ -55,6 +61,7 @@ export class VideoSplatPlayer {
       boxEdgeAlpha: options.boxEdgeAlpha,
       boxFaceAlpha: options.boxFaceAlpha,
       showBox: options.showBox,
+      onContextLost: (error) => options.onError?.(error),
     });
   }
 
@@ -144,10 +151,15 @@ export class VideoSplatPlayer {
       while (next !== null && !this.disposed) {
         const t = next;
         next = null;
-        await Promise.all([seekElement(this.rgb, t), seekElement(this.depth, t)]);
+        const rgb = this.rgb;
+        const depth = this.depth;
+        if (!rgb || !depth) break;
+        await Promise.all([seekElement(rgb, t), seekElement(depth, t)]);
+        // dispose() can land while the seek is in flight.
+        if (this.disposed || !this.rgb) break;
         this.uploadIfReady(true);
         this.renderer.render();
-        this.options.onTime?.(this.rgb.currentTime, this.duration);
+        this.options.onTime?.(rgb.currentTime, this.duration);
         if (this.pendingSeek !== null) {
           next = this.pendingSeek;
           this.pendingSeek = null;
@@ -158,9 +170,24 @@ export class VideoSplatPlayer {
     }
   }
 
-  /** Render one frame with the current textures (e.g. after a camera change). */
+  /** Render one frame: re-sync depth, upload if the clip advanced, then draw. */
   render(): void {
+    this.frame();
+  }
+
+  private frame(): void {
+    if (this.disposed) return;
+    const rgb = this.rgb;
+    const depth = this.depth;
+    if (rgb && depth) {
+      // Keep the depth clip locked to the colour clip.
+      if (this.playing && Math.abs(depth.currentTime - rgb.currentTime) > SYNC_TOLERANCE_SECONDS) {
+        depth.currentTime = rgb.currentTime;
+      }
+      this.uploadIfReady();
+    }
     this.renderer.render();
+    if (this.playing && rgb) this.options.onTime?.(rgb.currentTime, this.duration);
   }
 
   private uploadIfReady(force = false): void {
@@ -173,15 +200,10 @@ export class VideoSplatPlayer {
 
   private startLoop(): void {
     this.stopLoop();
+    if (this.options.externallyDriven) return;
     const tick = () => {
       if (this.disposed || !this.playing || !this.rgb || !this.depth) return;
-      // Keep the depth clip locked to the colour clip.
-      if (Math.abs(this.depth.currentTime - this.rgb.currentTime) > SYNC_TOLERANCE_SECONDS) {
-        this.depth.currentTime = this.rgb.currentTime;
-      }
-      this.uploadIfReady();
-      this.renderer.render();
-      this.options.onTime?.(this.rgb.currentTime, this.duration);
+      this.frame();
       this.frameHandle = requestAnimationFrame(tick);
     };
     this.frameHandle = requestAnimationFrame(tick);

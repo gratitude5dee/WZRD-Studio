@@ -10,7 +10,7 @@ vi.mock('@/components/landing/SplatIntroOverlay', () => ({
 }));
 
 import LandingIntroGate from '../LandingIntroGate';
-import { SPLAT_INTRO_SEEN_KEY } from '@/components/landing/introGate';
+import { SPLAT_INTRO_MISSING_KEY, SPLAT_INTRO_SEEN_KEY } from '@/components/landing/introGate';
 
 const realCreateElement = document.createElement.bind(document);
 
@@ -109,6 +109,50 @@ describe('LandingIntroGate', () => {
     );
     await waitFor(() => expect(screen.getByTestId('hero2')).toBeInTheDocument());
     await waitFor(() => expect(screen.queryByTestId('landing-intro-gate')).toBeNull());
+  });
+
+  it('keeps the landing mounted while the manifest is probed', async () => {
+    let release: (value: Response) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>((resolve) => { release = resolve; })),
+    );
+    render(
+      <LandingIntroGate>
+        <div data-testid="hero">hero</div>
+      </LandingIntroGate>,
+    );
+    // Shield up, but the hero is never torn down for a probe that usually finds nothing.
+    await waitFor(() => expect(screen.getByTestId('landing-intro-gate').dataset.phase).toBe('probing'));
+    expect(screen.getByTestId('hero')).toBeInTheDocument();
+    await act(async () => {
+      release(new Response(JSON.stringify(manifest), { status: 200 }));
+    });
+    await waitFor(() => expect(screen.getByTestId('landing-intro-gate').dataset.phase).toBe('active'));
+    expect(screen.queryByTestId('hero')).toBeNull();
+  });
+
+  it('remembers a missing asset so later visits never shield the page', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('missing', { status: 404 })));
+    const { unmount } = render(
+      <LandingIntroGate>
+        <div data-testid="hero">hero</div>
+      </LandingIntroGate>,
+    );
+    await waitFor(() => expect(sessionStorage.getItem(SPLAT_INTRO_MISSING_KEY)).toBe('true'));
+    unmount();
+
+    const fetchSpy = vi.fn(async () => new Response(JSON.stringify(manifest), { status: 200 }));
+    vi.stubGlobal('fetch', fetchSpy);
+    render(
+      <LandingIntroGate>
+        <div data-testid="hero2">hero</div>
+      </LandingIntroGate>,
+    );
+    await act(async () => {});
+    expect(screen.getByTestId('hero2')).toBeInTheDocument();
+    expect(screen.queryByTestId('landing-intro-gate')).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it('does not replay within the same session', async () => {

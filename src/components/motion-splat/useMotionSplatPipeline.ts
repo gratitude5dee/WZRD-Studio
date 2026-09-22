@@ -18,13 +18,13 @@ import {
   DEPTH_MODEL_ID,
   MOTION_SPLAT_GRID_PRESETS,
   TRIPOSPLAT_CREDIT_COST,
+  videoModelCost,
 } from '@/lib/motion-splat/constants';
 import { createRgbdManifest, createSplatKeyframesManifest, generateManifestId } from '@/lib/motion-splat/manifest';
 import { keyframeTimes } from '@/lib/motion-splat/timeline';
 import { resolveGrid } from '@/lib/motion-splat/unproject';
 import { captureVideoStills, loadVideoElement } from '@/lib/motion-splat/videoFrames';
 import type { MotionSplatManifest } from '@/types/motionSplat';
-import { getModelById } from '@/lib/studio-model-constants';
 
 const TRIPOSPLAT_KEYFRAMES = 6;
 
@@ -63,13 +63,29 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
   const { user } = useAuth();
   const { refreshCredits } = useCredits();
   const abortRef = useRef<AbortController | null>(null);
+  /** Jobs submitted by the current run, so cancelling refunds their holds. */
+  const liveJobsRef = useRef<Set<string>>(new Set());
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  /** Abandon every job this run started; the credit hold is released server-side. */
+  const releaseLiveJobs = useCallback(() => {
+    const jobs = [...liveJobsRef.current];
+    liveJobsRef.current.clear();
+    for (const jobId of jobs) {
+      void motionSplatService.cancelJob(jobId).catch(() => {
+        /* a job that already finished cannot be cancelled; nothing to undo */
+      });
+    }
+  }, []);
 
   const ownerId = user?.id ?? 'anonymous';
 
+  const trackJob = useCallback((jobId: string) => {
+    liveJobsRef.current.add(jobId);
+  }, []);
+
   const startRun = useCallback(() => {
     abortRef.current?.abort();
+    liveJobsRef.current.clear();
     const controller = new AbortController();
     abortRef.current = controller;
     return controller;
@@ -77,9 +93,21 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
+    releaseLiveJobs();
     const store = useMotionSplatStore.getState();
     if (store.busy) store.fail('Cancelled');
-  }, []);
+  }, [releaseLiveJobs]);
+
+  // Leaving the page mid-run must not strand the store busy or leak a hold.
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+      releaseLiveJobs();
+      const store = useMotionSplatStore.getState();
+      if (store.busy) store.fail('Cancelled');
+    },
+    [releaseLiveJobs],
+  );
 
   const uploadImage = useCallback(
     async (file: File) => {
@@ -130,6 +158,7 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
         {
           signal,
           clientRequestId,
+          onJob: trackJob,
           onProgress: (progress, status) =>
             useMotionSplatStore.getState().setProgress({
               value: progress / 100,
@@ -147,7 +176,7 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
       useMotionSplatStore.getState().finishStep('idle');
       void refreshCredits();
     },
-    [refreshCredits],
+    [refreshCredits, trackJob],
   );
 
   const buildSplatInternal = useCallback(
@@ -174,6 +203,7 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
           {
             signal,
             clientRequestId: generateManifestId(),
+            onJob: trackJob,
             onProgress: (progress) => useMotionSplatStore.getState().setProgress({ value: progress / 100, label: 'Estimating depth' }),
           },
         );
@@ -217,7 +247,7 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
               .runStage(
                 'triposplat',
                 { imageUrl: upload.url, time: times[index] },
-                { signal, clientRequestId: generateManifestId() },
+                { signal, clientRequestId: generateManifestId(), onJob: trackJob },
               )
               .then((result) => {
                 completed += 1;
@@ -268,7 +298,7 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
       current.finishStep('ready');
       void refreshCredits();
     },
-    [ownerId, refreshCredits],
+    [ownerId, refreshCredits, trackJob],
   );
 
   const generateVideo = useCallback(async () => {
@@ -328,8 +358,9 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
     try {
       const manifest = await motionSplatService.fetchManifest(manifestUrl);
       const store = useMotionSplatStore.getState();
-      store.setVideo({ url: manifest.source.videoUrl, duration: manifest.duration, width: manifest.width, height: manifest.height, fps: manifest.fps, modelId: manifest.source.videoModel });
+      // Order matters: a new source image clears the video and manifest.
       if (manifest.source.imageUrl) store.setSourceImage({ url: manifest.source.imageUrl, name: manifest.title });
+      store.setVideo({ url: manifest.source.videoUrl, duration: manifest.duration, width: manifest.width, height: manifest.height, fps: manifest.fps, modelId: manifest.source.videoModel });
       store.setTitle(manifest.title);
       store.setManifest(manifest, manifestUrl);
     } catch (error) {
@@ -339,8 +370,8 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
 
   const estimateCredits = useCallback(() => {
     const store = useMotionSplatStore.getState();
-    const model = getModelById(store.videoModelId);
-    const video = store.video ? 0 : Math.max(24, model?.credits ?? 24);
+    // Quote from the same table the edge function reserves against.
+    const video = store.video ? 0 : videoModelCost(store.videoModelId);
     const splat = store.buildMode === 'rgbd' ? DEPTH_CREDIT_COST : TRIPOSPLAT_CREDIT_COST * TRIPOSPLAT_KEYFRAMES;
     return { video, splat, total: video + splat };
   }, []);

@@ -24,7 +24,6 @@ import { executeFalModel, getCanonicalFalModel, mergeFalModelInputs, pollFalStat
 import {
   buildCreditIdempotencyKey,
   commitCredits,
-  getCreditCostForModel,
   InsufficientCreditsError,
   insufficientCreditsResponse,
   releaseCredits,
@@ -46,9 +45,13 @@ import {
   MOTION_SPLAT_JOB_KIND,
   MOTION_SPLAT_MAX_DOWNLOAD_BYTES,
   MOTION_SPLAT_MODELS,
+  buildClaimToken,
+  clampListLimit,
+  isClaimExpired,
   normalizeFalStatus,
   parseExtraInputs,
   pickOutputFile,
+  videoModelCost,
   progressForState,
   toJobSummary,
   type FalFileRef,
@@ -92,17 +95,19 @@ function prepareStage(stage: MotionSplatStage, rawInput: Record<string, unknown>
     if (!isHttpUrl(imageUrl)) throw new ValidationError('input.imageUrl must be an http(s) URL');
     const prompt = typeof rawInput.prompt === 'string' ? rawInput.prompt.slice(0, MAX_PROMPT_LENGTH) : '';
     const duration = typeof rawInput.duration === 'number' && Number.isFinite(rawInput.duration) ? rawInput.duration : 5;
-    const requestedModel = typeof rawInput.modelId === 'string' && rawInput.modelId.trim() ? rawInput.modelId.trim() : MOTION_SPLAT_MODELS.defaultVideo;
-    const canonical = getCanonicalFalModel(requestedModel);
+    const modelId = typeof rawInput.modelId === 'string' && rawInput.modelId.trim() ? rawInput.modelId.trim() : MOTION_SPLAT_MODELS.defaultVideo;
+    // Only models the studio offers, priced from the explicit table: the shared
+    // resolver would substitute a fallback model (and its price) for anything else.
+    const cost = videoModelCost(modelId);
+    if (cost === null) throw new ValidationError(`Unsupported image-to-video model: ${modelId}`);
+    const canonical = getCanonicalFalModel(modelId);
     if (!canonical || canonical.media_type !== 'video' || canonical.workflow_type !== 'image-to-video') {
-      throw new ValidationError(`Unsupported image-to-video model: ${requestedModel}`);
+      throw new ValidationError(`Unsupported image-to-video model: ${modelId}`);
     }
-    const modelId = canonical.id;
     const inputs =
       modelId === MOTION_SPLAT_MODELS.defaultVideo
         ? buildKlingImageToVideoInputs({ imageUrl, prompt, duration, generateAudio: false })
         : mergeFalModelInputs(modelId, buildGenericImageToVideoInputs({ imageUrl, prompt, duration })).inputs;
-    const cost = Math.max(MOTION_SPLAT_COSTS.video, getCreditCostForModel(modelId, 'video'));
     return {
       modelId,
       inputs,
@@ -202,6 +207,32 @@ serve(async (req) => {
           throw error;
         }
         const clientRequestId = typeof body.clientRequestId === 'string' && body.clientRequestId.length <= 80 ? body.clientRequestId : crypto.randomUUID();
+
+        // A retried submit must return the job it already created rather than
+        // start a second fal run: the credit hold is bound to one job id, so a
+        // replayed request id can never back more work than it paid for.
+        const { data: existing } = await userClient
+          .from('generation_jobs')
+          .select('id, status, progress, external_request_id')
+          .eq('user_id', userId)
+          .eq('config->>kind', MOTION_SPLAT_JOB_KIND)
+          .eq('config->>stage', stage)
+          .eq('config->>client_request_id', clientRequestId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (existing) {
+          return successResponse({
+            jobId: existing.id,
+            stage,
+            status: existing.status === 'failed' || existing.status === 'cancelled' ? 'failed' : existing.status === 'completed' ? 'completed' : 'processing',
+            progress: existing.progress ?? 10,
+            requestId: existing.external_request_id ?? null,
+            credits: submission.cost,
+            deduplicated: true,
+          });
+        }
+
         const jobId = crypto.randomUUID();
 
         const reservation = await reserveCredits({
@@ -212,8 +243,8 @@ serve(async (req) => {
           requestedAmount: submission.cost,
           referenceType: 'motion_splat',
           referenceId: jobId,
-          idempotencyKey: buildCreditIdempotencyKey('motion-splat', userId, clientRequestId, stage),
-          metadata: { endpoint: 'motion-splat', stage, model: submission.modelId },
+          idempotencyKey: buildCreditIdempotencyKey('motion-splat', userId, jobId),
+          metadata: { endpoint: 'motion-splat', stage, model: submission.modelId, client_request_id: clientRequestId },
         });
 
         const { error: insertError } = await admin.from('generation_jobs').insert({
@@ -247,7 +278,7 @@ serve(async (req) => {
           return errorResponse(submit.error ?? 'Failed to submit generation', 502);
         }
 
-        await admin
+        const { error: linkError } = await admin
           .from('generation_jobs')
           .update({
             external_request_id: submit.requestId,
@@ -263,6 +294,14 @@ serve(async (req) => {
             },
           })
           .eq('id', jobId);
+        if (linkError) {
+          // Without the request id the job can never be polled, so fail it now
+          // and refund rather than stranding the hold on an unreachable job.
+          await releaseCredits({ supabase: userClient, holdId: reservation.holdId, skipped: reservation.skipped, amount: submission.cost, reason: 'job_link_failed', userId, tokenId });
+          await admin.from('generation_jobs').update({ status: 'failed', error_message: 'Could not link the generation request', completed_at: new Date().toISOString() }).eq('id', jobId);
+          safeLog('error', 'motion-splat.submit.link_failed', { jobId, stage, error: linkError.message });
+          return errorResponse('Could not record the generation request; no credits were charged', 500);
+        }
 
         safeLog('info', 'motion-splat.submit.ok', { stage, model: submission.modelId, jobId, requestId: submit.requestId });
         return successResponse({ jobId, stage, status: 'processing', progress: 10, requestId: submit.requestId, credits: submission.cost });
@@ -312,14 +351,20 @@ serve(async (req) => {
           return successResponse({ jobId, stage, status: 'processing', progress, queuePosition: poll.data?.queue_position ?? null });
         }
 
-        // Claim finalisation so concurrent status calls do not double-copy or double-commit.
-        const claim = crypto.randomUUID();
-        const { data: claimed } = await admin
-          .from('generation_jobs')
-          .update({ worker_id: claim })
-          .eq('id', jobId)
-          .is('worker_id', null)
-          .select('id');
+        // Claim finalisation so concurrent status calls do not double-copy or
+        // double-commit. The claim carries its timestamp: if the worker holding
+        // it dies mid-copy, a later poller takes the claim over once the lease
+        // expires instead of leaving the job processing forever.
+        const now = Date.now();
+        const previousClaim = typeof row.worker_id === 'string' ? row.worker_id : null;
+        const claim = buildClaimToken(now, crypto.randomUUID());
+        const claimQuery = admin.from('generation_jobs').update({ worker_id: claim }).eq('id', jobId);
+        const { data: claimed } = await (previousClaim
+          ? isClaimExpired(previousClaim, now)
+            ? claimQuery.eq('worker_id', previousClaim)
+            : claimQuery.eq('worker_id', '__never__')
+          : claimQuery.is('worker_id', null)
+        ).select('id');
         if (!claimed || claimed.length === 0) {
           return successResponse({ jobId, stage, status: 'processing', progress: 95 });
         }
@@ -421,9 +466,52 @@ serve(async (req) => {
         return successResponse({ jobId, manifestUrl, storagePath: path });
       }
 
+      // ---------------------------------------------------------------- cancel
+      case 'cancel': {
+        const jobId = typeof body.jobId === 'string' ? body.jobId : '';
+        if (!jobId) return errorResponse('jobId is required', 400);
+        const { data: row, error: rowError } = await userClient
+          .from('generation_jobs')
+          .select('id, status, config, worker_id')
+          .eq('id', jobId)
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (rowError || !row) return errorResponse('Job not found', 404);
+        const config = asRecord(row.config);
+        if (config.kind !== MOTION_SPLAT_JOB_KIND) return errorResponse('Job not found', 404);
+        const stage = config.stage as MotionSplatStage;
+        if (row.status !== 'processing') {
+          return successResponse({ jobId, stage, status: row.status === 'completed' ? 'completed' : 'failed', progress: 100, cancelled: false });
+        }
+        // Take the finalisation claim first: a poller that is already storing
+        // outputs owns the hold, and cancelling underneath it would refund work
+        // the user is about to receive.
+        const now = Date.now();
+        const previousClaim = typeof row.worker_id === 'string' ? row.worker_id : null;
+        const claim = buildClaimToken(now, crypto.randomUUID());
+        const claimQuery = admin.from('generation_jobs').update({ worker_id: claim }).eq('id', jobId);
+        const { data: claimed } = await (previousClaim
+          ? isClaimExpired(previousClaim, now)
+            ? claimQuery.eq('worker_id', previousClaim)
+            : claimQuery.eq('worker_id', '__never__')
+          : claimQuery.is('worker_id', null)
+        ).select('id');
+        if (!claimed || claimed.length === 0) {
+          return successResponse({ jobId, stage, status: 'processing', progress: 95, cancelled: false });
+        }
+        const credits = asRecord(config.credits);
+        await releaseCredits({ supabase: userClient, holdId: (credits.hold_id as string | null) ?? null, skipped: credits.skipped === true, amount: Number(credits.amount ?? 0), reason: 'cancelled_by_user', userId, tokenId });
+        await admin
+          .from('generation_jobs')
+          .update({ status: 'cancelled', progress: 100, error_message: 'Cancelled', completed_at: new Date().toISOString() })
+          .eq('id', jobId);
+        safeLog('info', 'motion-splat.cancel.ok', { jobId, stage });
+        return successResponse({ jobId, stage, status: 'failed', progress: 100, cancelled: true, error: 'Cancelled' });
+      }
+
       // ------------------------------------------------------------------ list
       case 'list': {
-        const limit = Math.min(100, Math.max(1, Number(body.limit ?? 40)));
+        const limit = clampListLimit(body.limit);
         const { data, error } = await userClient
           .from('generation_jobs')
           .select('id, status, created_at, completed_at, result_url, result_payload, config, model_id')

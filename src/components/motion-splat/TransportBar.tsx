@@ -95,6 +95,9 @@ export function TransportBar({
   const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (disabled) return;
     event.preventDefault();
+    // preventDefault suppresses the implicit focus, so the slider's arrow keys
+    // would only work after tabbing to it.
+    event.currentTarget.focus?.();
     event.currentTarget.setPointerCapture?.(event.pointerId);
     setScrubbing(true);
     queueSeek(ratioFromEvent(event));

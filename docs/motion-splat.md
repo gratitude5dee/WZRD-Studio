@@ -25,7 +25,7 @@ image ──▶ fal image-to-video ──▶ rgb.mp4
 | Stage | Where | Model | Credits |
 | --- | --- | --- | --- |
 | Upload image / stills | browser → `workflow-media` bucket (`motion-splat/<user>/uploads/`) | — | 0 |
-| Video | `motion-splat` action `submit` stage `video` | canonical fal image-to-video model (default `fal-ai/kling-video/o3/standard/image-to-video`) | catalog price, min 24 |
+| Video | `motion-splat` action `submit` stage `video` | one of the eight models in `MOTION_SPLAT_VIDEO_MODELS` (default `fal-ai/kling-video/o3/standard/image-to-video`) | 20–32, per the table |
 | Depth video | stage `depth` | `fal-ai/depth-anything-video` | 10 |
 | 3D keyframe | stage `triposplat` (one job per still, 6 stills) | `tripo3d/triposplat` | 12 each |
 | Manifest | action `manifest` | — | 0 |
@@ -35,6 +35,17 @@ so the viewer never depends on temporary fal.media URLs, and each job is a
 `generation_jobs` row (`config.kind = 'motion_splat'`) so the UI can resume
 and list saved splats through RLS.
 
+### Video models and pricing
+
+`MOTION_SPLAT_VIDEO_MODELS` in `supabase/functions/_shared/motion-splat.ts`
+lists every image-to-video model the studio offers, with the credits reserved
+for it. `src/lib/motion-splat/constants.ts` mirrors that table, the model
+picker offers exactly those ids, and the quote on the Generate button comes
+from the same numbers. Anything outside the table is rejected with 400 rather
+than silently priced as a fallback model, and
+`src/lib/motion-splat/__tests__/videoModels.test.ts` fails if the two tables
+or the catalog prices drift apart.
+
 ### Two-phase jobs
 
 `submit` reserves credits, records the job and enqueues the fal request; the
@@ -43,6 +54,20 @@ first `status` call to observe it claims the row (`worker_id`), copies the
 outputs to Storage, commits the credit hold and marks the row completed. A
 failed job releases the hold. Long generations therefore never run inside one
 edge request.
+
+Three details keep the credit ledger honest:
+
+- **Idempotent submit.** A repeated `clientRequestId` for the same stage
+  returns the job it already created (`deduplicated: true`); the hold is keyed
+  by the server-generated job id, so one hold can never back two fal runs.
+- **Leased claims.** The `worker_id` claim carries the time it was taken. If
+  the claiming request dies mid-copy, a later `status` call takes the claim
+  over once `MOTION_SPLAT_CLAIM_LEASE_MS` (3 min) has passed, instead of
+  leaving the job processing forever with its credits held.
+- **Cancel.** Action `cancel` takes the claim, releases the hold and marks the
+  row cancelled. The studio calls it for every in-flight job when the user
+  cancels or navigates away, so an abandoned build is not billed. The fal job
+  itself is abandoned, not recalled.
 
 ### Manifest v1
 
@@ -108,6 +133,17 @@ Gating (`src/components/landing/introGate.ts`): skipped on
 off, without WebGL2, or once per session (`sessionStorage`
 `wzrd-splat-intro-seen`). `?intro=1` forces a replay, `?intro=0` skips. The
 manifest is probed with a 1.5 s, uncached `GET`; any failure means no intro.
+
+The landing stays mounted while the probe runs, so a deployment without an
+intro asset never tears down and rebuilds the hero. A failed probe is
+remembered for the session (`wzrd-splat-intro-missing`) and the gate is not
+armed again. The page is handed back unconditionally after 4 s of probing or
+30 s of intro, whatever the overlay is doing.
+
+Note the trade-off while the intro plays: the landing is unmounted so only one
+WebGL context is live. A JavaScript-rendering crawler that snapshots during
+those seconds sees the intro, not the landing copy. That only applies to
+deployments that ship an intro asset.
 
 ### Producing the asset
 

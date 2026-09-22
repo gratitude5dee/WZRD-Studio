@@ -43,9 +43,32 @@ export const DEPTH_MODEL_ID = 'fal-ai/depth-anything-video';
 export const TRIPOSPLAT_MODEL_ID = 'tripo3d/triposplat';
 export const DEFAULT_VIDEO_MODEL_ID = 'fal-ai/kling-video/o3/standard/image-to-video';
 
-/** Credits charged per call (mirrors MODEL_COST_OVERRIDES in supabase/functions/_shared/credits.ts). */
+/** Credits charged per call (mirrors MOTION_SPLAT_COSTS in supabase/functions/_shared/motion-splat.ts). */
 export const DEPTH_CREDIT_COST = 10;
 export const TRIPOSPLAT_CREDIT_COST = 12;
+
+/**
+ * The image-to-video models the studio offers, with the credits the edge
+ * function actually reserves. Mirrors MOTION_SPLAT_VIDEO_MODELS in
+ * supabase/functions/_shared/motion-splat.ts, which rejects anything absent
+ * here; a parity test asserts the two tables stay identical.
+ */
+export const MOTION_SPLAT_VIDEO_MODELS: Record<string, number> = {
+  'fal-ai/kling-video/o3/standard/image-to-video': 24,
+  'fal-ai/kling-video/o3/pro/image-to-video': 32,
+  'fal-ai/kling-video/v3/pro/image-to-video': 30,
+  'fal-ai/kling-video/v2.5-turbo/pro/image-to-video': 22,
+  'fal-ai/kling-video/o1/image-to-video': 28,
+  'fal-ai/bytedance/seedance/v1/lite/image-to-video': 20,
+  'fal-ai/bytedance/seedance/v1/pro/image-to-video': 32,
+  'fal-ai/magi/image-to-video': 22,
+};
+
+/** Credits for an offered model, falling back to the default model's price. */
+export function videoModelCost(modelId: string | undefined): number {
+  const cost = modelId ? MOTION_SPLAT_VIDEO_MODELS[modelId] : undefined;
+  return typeof cost === 'number' ? cost : MOTION_SPLAT_VIDEO_MODELS[DEFAULT_VIDEO_MODEL_ID];
+}
 
 export const SPLAT_INTRO_SEEN_KEY = 'wzrd-splat-intro-seen';
 export const DEFAULT_INTRO_MANIFEST_URL = '/intro-splat/manifest.json';

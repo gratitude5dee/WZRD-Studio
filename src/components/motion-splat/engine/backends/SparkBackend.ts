@@ -342,6 +342,13 @@ export class SparkBackend implements MotionSplatBackend {
     internals.freeAccumulators?.forEach((acc) => acc.splats?.dispose?.());
     internals.material?.dispose?.();
     renderer.dispose();
+    // Release the GPU context outright: browsers cap live WebGL contexts, and
+    // the studio builds a fresh backend every time the manifest changes.
+    try {
+      renderer.forceContextLoss();
+    } catch {
+      /* already lost */
+    }
   }
 }
 

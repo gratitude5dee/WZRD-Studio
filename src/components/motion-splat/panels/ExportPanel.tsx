@@ -85,12 +85,18 @@ export function ExportPanel({ manifest, manifestUrl, title, onTitle }: ExportPan
         )}
         {manifest.track.kind !== 'rgbd' && (
           <KanvasButton variant="outline" fullWidth icon={<Download className="h-4 w-4" />} onClick={downloadBundle} busy={bundling}>
-            Download manifest
+            Download bundle (.zip)
           </KanvasButton>
         )}
       </div>
       <p className="text-[11px] leading-relaxed text-kanvas-text-faint">
-        The intro bundle unzips into <code className="font-mono">public/intro-splat/</code>; the landing plays it once per visitor and falls back to the film when WebGL2 is unavailable.
+        {manifest.track.kind === 'rgbd' ? (
+          <>
+            The intro bundle unzips into <code className="font-mono">public/intro-splat/</code>; the landing plays it once per visitor and falls back to the film when WebGL2 is unavailable.
+          </>
+        ) : (
+          <>The bundle holds the manifest and every keyframe splat. Only depth-video splats can play as the site intro.</>
+        )}
       </p>
     </section>
   );

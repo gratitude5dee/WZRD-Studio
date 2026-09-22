@@ -1,19 +1,24 @@
 import {
+  MOTION_SPLAT_CLAIM_LEASE_MS,
+  buildClaimToken,
   buildDepthInputs,
   buildKlingImageToVideoInputs,
   buildManifestPath,
   buildStoragePath,
   buildTriposplatInputs,
+  clampListLimit,
   collectFileRefs,
   contentTypeFor,
   extensionFor,
+  isClaimExpired,
   normalizeFalStatus,
   parseExtraInputs,
   pickOutputFile,
   toJobSummary,
+  videoModelCost,
 } from './motion-splat.ts';
 
-function assertEquals<T>(actual: T, expected: T, message: string) {
+function assertEquals<T>(actual: T, expected: T, message = 'assertion failed') {
   if (actual !== expected) {
     throw new Error(`${message}. Expected ${String(expected)}, got ${String(actual)}`);
   }
@@ -86,4 +91,32 @@ Deno.test('job summaries and fal status normalisation', () => {
   assertEquals(normalizeFalStatus('COMPLETED'), 'completed', 'completed');
   assertEquals(normalizeFalStatus('FAILED'), 'failed', 'failed');
   assertEquals(normalizeFalStatus('IN_PROGRESS'), 'processing', 'processing');
+});
+
+Deno.test('videoModelCost only prices offered models', () => {
+  assertEquals(videoModelCost('fal-ai/kling-video/o3/standard/image-to-video'), 24);
+  assertEquals(videoModelCost('fal-ai/kling-video/o3/pro/image-to-video'), 32);
+  assertEquals(videoModelCost('fal-ai/veo3.1/image-to-video'), null);
+  assertEquals(videoModelCost(''), null);
+});
+
+Deno.test('claim tokens expire so a dead worker cannot wedge a job', () => {
+  const now = 1_000_000;
+  const token = buildClaimToken(now, 'worker-a');
+  assertEquals(isClaimExpired(token, now + 1_000), false);
+  assertEquals(isClaimExpired(token, now + MOTION_SPLAT_CLAIM_LEASE_MS + 1), true);
+  // A claim written before the lease existed carries no timestamp: let it go.
+  assertEquals(isClaimExpired('legacy-uuid', now), true);
+  assertEquals(isClaimExpired(null, now), false);
+  assertEquals(isClaimExpired('worker-b@nonsense', now), true);
+});
+
+Deno.test('clampListLimit keeps PostgREST away from NaN', () => {
+  assertEquals(clampListLimit(undefined), 40);
+  assertEquals(clampListLimit('abc'), 40);
+  assertEquals(clampListLimit(Number.NaN), 40);
+  assertEquals(clampListLimit(0), 1);
+  assertEquals(clampListLimit(7.9), 7);
+  assertEquals(clampListLimit(1_000), 100);
+  assertEquals(clampListLimit('12'), 12);
 });

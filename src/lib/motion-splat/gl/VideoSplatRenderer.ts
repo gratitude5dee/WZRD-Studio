@@ -33,6 +33,8 @@ export interface VideoSplatRendererOptions {
   boxEdgeAlpha?: number;
   boxFaceAlpha?: number;
   showBox?: boolean;
+  /** Called when the browser takes the GPU context away (driver reset, tab evicted). */
+  onContextLost?: (error: Error) => void;
 }
 
 export interface VideoSplatViewOptions {
@@ -109,6 +111,9 @@ export class VideoSplatRenderer {
   private aspect: number;
   private hasFrame = false;
   private disposed = false;
+  private contextLost = false;
+  private readonly onContextLost?: (error: Error) => void;
+  private readonly handleContextLost: (event: Event) => void;
   private readonly view: Mat4 = new Float32Array(16);
   private readonly proj: Mat4 = new Float32Array(16);
   private readonly viewProj: Mat4 = new Float32Array(16);
@@ -141,6 +146,15 @@ export class VideoSplatRenderer {
     this.boxEdgeAlpha = options.boxEdgeAlpha ?? 0.35;
     this.boxFaceAlpha = options.boxFaceAlpha ?? 0.05;
     this.orbit = { theta: 0.72, phi: 0.36, radius: 4.6, target: [0, 0, -(this.camera.near + this.camera.far) / 2] };
+    // A lost context makes every later GL call a no-op; stop drawing and say so
+    // rather than painting a frozen canvas.
+    this.onContextLost = options.onContextLost;
+    this.handleContextLost = (event: Event) => {
+      event.preventDefault();
+      this.contextLost = true;
+      this.onContextLost?.(new Error('The WebGL context was lost'));
+    };
+    this.canvas.addEventListener('webglcontextlost', this.handleContextLost);
 
     this.splatProgram = linkProgram(gl, SPLAT_VERTEX_SHADER, SPLAT_FRAGMENT_SHADER);
     this.lineProgram = linkProgram(gl, LINE_VERTEX_SHADER, LINE_FRAGMENT_SHADER);
@@ -261,7 +275,7 @@ export class VideoSplatRenderer {
   }
 
   render(): void {
-    if (this.disposed) return;
+    if (this.disposed || this.contextLost) return;
     const { gl } = this;
     this.updateMatrices();
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
@@ -335,6 +349,7 @@ export class VideoSplatRenderer {
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.canvas.removeEventListener('webglcontextlost', this.handleContextLost);
     const { gl } = this;
     gl.deleteTexture(this.rgbTexture);
     gl.deleteTexture(this.depthTexture);

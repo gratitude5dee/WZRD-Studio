@@ -62,6 +62,8 @@ export class GpuBackend implements MotionSplatBackend {
       onTime: (time) => {
         this.lastTime = time;
       },
+      // MotionSplatEngine drives the frame loop; a second one would draw twice.
+      externallyDriven: true,
       signal,
     });
     await this.player.load();

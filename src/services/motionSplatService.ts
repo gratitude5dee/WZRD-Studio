@@ -147,6 +147,14 @@ export const motionSplatService = {
     return invoke<JobStatusResponse>({ action: 'status', jobId });
   },
 
+  /**
+   * Release a still-running job: the fal work is abandoned and the credit hold
+   * is refunded. Safe to call for a job that already finished.
+   */
+  async cancelJob(jobId: string): Promise<void> {
+    await invoke<{ cancelled: boolean }>({ action: 'cancel', jobId });
+  },
+
   /** Poll a job until it completes; resolves with its outputs or throws. */
   async waitForJob(jobId: string, options: PollOptions = {}): Promise<MotionSplatJobOutputs> {
     const interval = options.intervalMs ?? 2_500;
@@ -173,8 +181,13 @@ export const motionSplatService = {
     throw new MotionSplatServiceError('Timed out waiting for the generation', 'timeout');
   },
 
-  async runStage(stage: MotionSplatStage, input: Record<string, unknown>, options: PollOptions & { clientRequestId?: string } = {}): Promise<MotionSplatJobOutputs & { jobId: string }> {
+  async runStage(
+    stage: MotionSplatStage,
+    input: Record<string, unknown>,
+    options: PollOptions & { clientRequestId?: string; onJob?: (jobId: string) => void } = {},
+  ): Promise<MotionSplatJobOutputs & { jobId: string }> {
     const submitted = await this.submitStage(stage, input, options.clientRequestId);
+    options.onJob?.(submitted.jobId);
     const outputs = await this.waitForJob(submitted.jobId, options);
     return { ...outputs, jobId: submitted.jobId };
   },

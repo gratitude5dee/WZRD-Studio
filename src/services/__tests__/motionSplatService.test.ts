@@ -115,3 +115,27 @@ describe('motionSplatService', () => {
     vi.unstubAllGlobals();
   });
 });
+
+describe('cancelJob', () => {
+  it('asks the edge function to release the job', async () => {
+    invoke.mockResolvedValue({ data: { jobId: 'job-1', cancelled: true }, error: null });
+    await motionSplatService.cancelJob('job-1');
+    expect(invoke).toHaveBeenCalledWith('motion-splat', expect.objectContaining({ body: { action: 'cancel', jobId: 'job-1' } }));
+  });
+});
+
+describe('runStage', () => {
+  it('reports the job id before polling so an aborted run can cancel it', async () => {
+    invoke
+      .mockResolvedValueOnce({ data: { jobId: 'job-2', stage: 'video', status: 'processing', progress: 10 }, error: null })
+      .mockResolvedValueOnce({
+        data: { jobId: 'job-2', stage: 'video', status: 'completed', progress: 100, outputs: { files: [{ kind: 'video', url: 'https://cdn/v.mp4' }], primary_url: 'https://cdn/v.mp4' } },
+        error: null,
+      });
+    const onJob = vi.fn();
+    const result = await motionSplatService.runStage('video', { imageUrl: 'https://cdn/i.png' }, { onJob, intervalMs: 1 });
+    expect(onJob).toHaveBeenCalledWith('job-2');
+    expect(result.jobId).toBe('job-2');
+    expect(result.files[0].url).toBe('https://cdn/v.mp4');
+  });
+});

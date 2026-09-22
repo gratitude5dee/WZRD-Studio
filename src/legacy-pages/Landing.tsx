@@ -8,6 +8,7 @@ import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
 import { shouldShowVideoIntro } from '@/components/landing/VideoIntroOverlay';
 import {
   isWebGL2Available,
+  markSplatIntroMissing,
   markSplatIntroSeen,
   probeIntroManifest,
   resolveIntroManifestUrl,
@@ -47,6 +48,11 @@ const Landing = () => {
     if (typeof window === 'undefined') return false;
     return new URLSearchParams(window.location.search).get('intro') === '1';
   });
+  /** `?intro=0` suppresses every intro on the landing, not just the splat. */
+  const [introSuppressed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('intro') === '0';
+  });
   const [introComplete, setIntroComplete] = useState(() => {
     if (typeof window === 'undefined') return true;
     if (new URLSearchParams(window.location.search).get('intro') !== '1') return true;
@@ -58,9 +64,10 @@ const Landing = () => {
   const [splatIntro, setSplatIntro] = useState<'pending' | MotionSplatManifest | null>(() =>
     shouldShowSplatIntro() && isWebGL2Available() ? 'pending' : null,
   );
-  const [videoIntroActive, setVideoIntroActive] = useState(
-    () => !(shouldShowSplatIntro() && isWebGL2Available()) && shouldShowVideoIntro(),
-  );
+  const [videoIntroActive, setVideoIntroActive] = useState(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('intro') === '0') return false;
+    return !(shouldShowSplatIntro() && isWebGL2Available()) && shouldShowVideoIntro();
+  });
 
   useEffect(() => {
     if (splatIntro !== 'pending') return;
@@ -70,14 +77,15 @@ const Landing = () => {
       if (manifest) {
         setSplatIntro(manifest);
       } else {
+        markSplatIntroMissing();
         setSplatIntro(null);
-        setVideoIntroActive(shouldShowVideoIntro());
+        setVideoIntroActive(introSuppressed ? false : shouldShowVideoIntro());
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [splatIntro]);
+  }, [introSuppressed, splatIntro]);
 
   const handleSplatIntroComplete = useCallback(() => {
     markSplatIntroSeen();
@@ -183,7 +191,7 @@ const Landing = () => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {!introComplete && introReady && (
+        {!introComplete && introReady && splatIntro === null && !videoIntroActive && (
           <Suspense fallback={<div className="fixed inset-0 z-[99999] bg-black" />}>
             <CinematicIntro onComplete={handleIntroComplete} />
           </Suspense>

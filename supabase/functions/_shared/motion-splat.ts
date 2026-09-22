@@ -25,6 +25,56 @@ export const MOTION_SPLAT_COSTS: Record<MotionSplatStage, number> = {
   triposplat: 12,
 };
 
+/**
+ * Image-to-video models the studio offers, with the credits actually charged.
+ * The shared resolver silently substitutes a fallback model (and its price) for
+ * ids outside the canonical catalog, so this explicit table is the single
+ * source of truth for both the quote shown in the UI and the amount reserved.
+ * Mirrored verbatim by MOTION_SPLAT_VIDEO_MODELS in
+ * src/lib/motion-splat/constants.ts; a vitest parity test keeps them in step.
+ */
+export const MOTION_SPLAT_VIDEO_MODELS: Record<string, number> = {
+  'fal-ai/kling-video/o3/standard/image-to-video': 24,
+  'fal-ai/kling-video/o3/pro/image-to-video': 32,
+  'fal-ai/kling-video/v3/pro/image-to-video': 30,
+  'fal-ai/kling-video/v2.5-turbo/pro/image-to-video': 22,
+  'fal-ai/kling-video/o1/image-to-video': 28,
+  'fal-ai/bytedance/seedance/v1/lite/image-to-video': 20,
+  'fal-ai/bytedance/seedance/v1/pro/image-to-video': 32,
+  'fal-ai/magi/image-to-video': 22,
+};
+
+/** Credits for an offered image-to-video model, or null when it is not offered. */
+export function videoModelCost(modelId: string): number | null {
+  const cost = MOTION_SPLAT_VIDEO_MODELS[modelId];
+  return typeof cost === 'number' ? cost : null;
+}
+
+/** How long a finalisation claim stays valid before another poller may take over. */
+export const MOTION_SPLAT_CLAIM_LEASE_MS = 180_000;
+
+/** Claim token carrying the time it was taken, so a dead worker's claim expires. */
+export function buildClaimToken(nowMs: number, id: string): string {
+  return `${id}@${Math.floor(nowMs)}`;
+}
+
+/** True when an existing claim is old enough that its worker is presumed dead. */
+export function isClaimExpired(token: unknown, nowMs: number, leaseMs = MOTION_SPLAT_CLAIM_LEASE_MS): boolean {
+  if (typeof token !== 'string') return false;
+  const at = token.lastIndexOf('@');
+  if (at < 0) return true; // A claim without a timestamp predates the lease; let it be retaken.
+  const stamped = Number(token.slice(at + 1));
+  if (!Number.isFinite(stamped)) return true;
+  return nowMs - stamped > leaseMs;
+}
+
+/** PostgREST `limit` values must be finite integers; anything else is the default. */
+export function clampListLimit(value: unknown, fallback = 40, max = 100): number {
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(1, Math.floor(parsed)));
+}
+
 export const MOTION_SPLAT_JOB_KIND = 'motion_splat';
 export const MOTION_SPLAT_BUCKET = 'workflow-media';
 export const MOTION_SPLAT_MAX_DOWNLOAD_BYTES = 200 * 1024 * 1024;

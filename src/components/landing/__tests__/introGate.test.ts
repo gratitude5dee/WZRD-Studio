@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   DEFAULT_INTRO_MANIFEST_URL,
   SPLAT_INTRO_SEEN_KEY,
+  markSplatIntroMissing,
   markSplatIntroSeen,
   probeIntroManifest,
   resolveIntroManifestUrl,
@@ -85,5 +86,17 @@ describe('probeIntroManifest', () => {
     expect(await probeIntroManifest('/x.json')).toBeNull();
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('offline'); }));
     expect(await probeIntroManifest('/x.json')).toBeNull();
+  });
+});
+
+describe('missing-asset cache', () => {
+  it('skips the intro for the rest of the session once a probe found no asset', () => {
+    sessionStorage.clear();
+    expect(shouldShowSplatIntro('')).toBe(true);
+    markSplatIntroMissing();
+    expect(shouldShowSplatIntro('')).toBe(false);
+    // The QA override still forces a replay.
+    expect(shouldShowSplatIntro('?intro=1')).toBe(true);
+    sessionStorage.clear();
   });
 });
