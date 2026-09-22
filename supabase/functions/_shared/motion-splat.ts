@@ -289,3 +289,44 @@ export function progressForState(state: FalQueueState, queuePosition?: number): 
   if (state === 'queued') return typeof queuePosition === 'number' ? Math.max(5, Math.min(30, 30 - queuePosition)) : 10;
   return 60;
 }
+
+// ---------------------------------------------------------------------------
+// Outbound URL allowlists. fal's own response supplies the status, response and
+// output-file URLs, and we fetch them with the FAL_KEY attached (control plane)
+// or republish their bodies to public storage (delivery). Neither is worth
+// doing to an arbitrary host, so both are pinned to fal's domains.
+// ---------------------------------------------------------------------------
+
+const FAL_CONTROL_HOSTS = ['fal.run', 'queue.fal.run', 'rest.alpha.fal.ai'];
+const FAL_DELIVERY_SUFFIXES = ['.fal.media', '.fal.run'];
+const FAL_DELIVERY_HOSTS = ['fal.media'];
+
+function parseHttpsUrl(value: unknown): URL | null {
+  if (typeof value !== 'string' || !value) return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== 'https:') return null;
+  // Credentials in a URL are never legitimate here and can smuggle a host past
+  // a careless reader.
+  if (url.username || url.password) return null;
+  return url;
+}
+
+/** A fal control-plane URL: safe to call with the FAL_KEY attached. */
+export function isFalControlUrl(value: unknown): boolean {
+  const url = parseHttpsUrl(value);
+  return url !== null && FAL_CONTROL_HOSTS.includes(url.hostname);
+}
+
+/** A fal delivery URL: safe to download and copy into our storage bucket. */
+export function isFalDeliveryUrl(value: unknown): boolean {
+  const url = parseHttpsUrl(value);
+  if (!url) return false;
+  if (FAL_DELIVERY_HOSTS.includes(url.hostname)) return true;
+  if (FAL_CONTROL_HOSTS.includes(url.hostname)) return true;
+  return FAL_DELIVERY_SUFFIXES.some((suffix) => url.hostname.endsWith(suffix));
+}

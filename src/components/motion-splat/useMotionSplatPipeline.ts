@@ -65,6 +65,8 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
   const abortRef = useRef<AbortController | null>(null);
   /** Jobs submitted by the current run, so cancelling refunds their holds. */
   const liveJobsRef = useRef<Set<string>>(new Set());
+  /** The object URL backing the current source preview, released on replace. */
+  const previewUrlRef = useRef<string | null>(null);
 
   /** Abandon every job this run started; the credit hold is released server-side. */
   const releaseLiveJobs = useCallback(() => {
@@ -83,13 +85,19 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
     liveJobsRef.current.add(jobId);
   }, []);
 
+  /** A settled job owns no hold any more, so it must not be cancelled later. */
+  const untrackJob = useCallback((jobId: string) => {
+    liveJobsRef.current.delete(jobId);
+  }, []);
+
   const startRun = useCallback(() => {
     abortRef.current?.abort();
-    liveJobsRef.current.clear();
+    // A superseded run's jobs keep their holds until something releases them.
+    releaseLiveJobs();
     const controller = new AbortController();
     abortRef.current = controller;
     return controller;
-  }, []);
+  }, [releaseLiveJobs]);
 
   const cancel = useCallback(() => {
     abortRef.current?.abort();
@@ -98,11 +106,16 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
     if (store.busy) store.fail('Cancelled');
   }, [releaseLiveJobs]);
 
-  // Leaving the page mid-run must not strand the store busy or leak a hold.
+  // Leaving the page mid-run must not strand the store busy, leak a hold, or
+  // keep the last preview blob alive.
   useEffect(
     () => () => {
       abortRef.current?.abort();
       releaseLiveJobs();
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = null;
+      }
       const store = useMotionSplatStore.getState();
       if (store.busy) store.fail('Cancelled');
     },
@@ -112,7 +125,10 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
   const uploadImage = useCallback(
     async (file: File) => {
       const store = useMotionSplatStore.getState();
+      // Each createObjectURL pins its blob until revoked.
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
       const previewUrl = URL.createObjectURL(file);
+      previewUrlRef.current = previewUrl;
       store.setSourceImage({ url: previewUrl, name: file.name, previewUrl });
       store.beginStep('uploading', 'Uploading image');
       try {
@@ -169,6 +185,7 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
             }),
         },
       );
+      untrackJob(result.jobId);
       const videoFile = primaryFile(result.files, 'video');
       if (!videoFile) throw new MotionSplatServiceError('The video generation returned no video');
       const meta = await probeVideo(videoFile.url);
@@ -176,7 +193,7 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
       useMotionSplatStore.getState().finishStep('idle');
       void refreshCredits();
     },
-    [refreshCredits, trackJob],
+    [refreshCredits, trackJob, untrackJob],
   );
 
   const buildSplatInternal = useCallback(
@@ -207,6 +224,7 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
             onProgress: (progress) => useMotionSplatStore.getState().setProgress({ value: progress / 100, label: 'Estimating depth' }),
           },
         );
+        untrackJob(result.jobId);
         const depthFile = primaryFile(result.files, 'video');
         if (!depthFile) throw new MotionSplatServiceError('The depth model returned no video');
         const grid = resolveGrid('high', aspect);
@@ -250,6 +268,7 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
                 { signal, clientRequestId: generateManifestId(), onJob: trackJob },
               )
               .then((result) => {
+                untrackJob(result.jobId);
                 completed += 1;
                 useMotionSplatStore.getState().setProgress({
                   value: 0.15 + (completed / uploads.length) * 0.8,
@@ -298,7 +317,7 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
       current.finishStep('ready');
       void refreshCredits();
     },
-    [ownerId, refreshCredits, trackJob],
+    [ownerId, refreshCredits, trackJob, untrackJob],
   );
 
   const generateVideo = useCallback(async () => {
@@ -308,11 +327,12 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
       toast.success('Video ready');
     } catch (error) {
       if (!controller.signal.aborted) {
+        releaseLiveJobs();
         useMotionSplatStore.getState().fail(describeError(error));
         toast.error(describeError(error));
       }
     }
-  }, [generateVideoInternal, startRun]);
+  }, [generateVideoInternal, releaseLiveJobs, startRun]);
 
   const buildSplat = useCallback(async () => {
     const controller = startRun();
@@ -321,11 +341,12 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
       toast.success('Motion splat ready — scrub through time');
     } catch (error) {
       if (!controller.signal.aborted) {
+        releaseLiveJobs();
         useMotionSplatStore.getState().fail(describeError(error));
         toast.error(describeError(error));
       }
     }
-  }, [buildSplatInternal, startRun]);
+  }, [buildSplatInternal, releaseLiveJobs, startRun]);
 
   const runAll = useCallback(async () => {
     const controller = startRun();
@@ -335,11 +356,12 @@ export function useMotionSplatPipeline(): MotionSplatPipelineApi {
       toast.success('Motion splat ready — scrub through time');
     } catch (error) {
       if (!controller.signal.aborted) {
+        releaseLiveJobs();
         useMotionSplatStore.getState().fail(describeError(error));
         toast.error(describeError(error));
       }
     }
-  }, [buildSplatInternal, generateVideoInternal, startRun]);
+  }, [buildSplatInternal, generateVideoInternal, releaseLiveJobs, startRun]);
 
   const refreshLibrary = useCallback(async () => {
     const store = useMotionSplatStore.getState();

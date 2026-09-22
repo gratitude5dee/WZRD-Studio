@@ -31,7 +31,9 @@ export function ExportPanel({ manifest, manifestUrl, title, onTitle }: ExportPan
   const downloadBundle = useCallback(async () => {
     setBundling(true);
     try {
-      const blob = await buildIntroBundle(manifest);
+      // Export what the title field shows, not the title the manifest was saved with.
+      const exportTitle = title.trim();
+      const blob = await buildIntroBundle(exportTitle ? { ...manifest, title: exportTitle } : manifest);
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
       anchor.href = url;
@@ -44,7 +46,7 @@ export function ExportPanel({ manifest, manifestUrl, title, onTitle }: ExportPan
     } finally {
       setBundling(false);
     }
-  }, [manifest]);
+  }, [manifest, title]);
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="motion-splat-export-heading">

@@ -37,6 +37,16 @@ export function isWebGL2Supported(): boolean {
   }
 }
 
+function createStageCanvas(): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.style.display = 'block';
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  canvas.style.touchAction = 'none';
+  canvas.setAttribute('aria-hidden', 'true');
+  return canvas;
+}
+
 function resolveQuality(quality: MotionSplatQuality | undefined): Exclude<MotionSplatQuality, 'auto'> {
   if (quality && quality !== 'auto') return quality;
   if (typeof window === 'undefined') return 'medium';
@@ -48,7 +58,8 @@ function resolveQuality(quality: MotionSplatQuality | undefined): Exclude<Motion
 
 export class MotionSplatEngine {
   readonly container: HTMLElement;
-  readonly canvas: HTMLCanvasElement;
+  /** Replaced per backend attempt: a disposed backend loses this canvas' GL context. */
+  canvas: HTMLCanvasElement;
   private readonly options: MotionSplatEngineOptions;
   private readonly listeners = new Set<MotionSplatEngineListener>();
   private readonly abort = new AbortController();
@@ -69,12 +80,7 @@ export class MotionSplatEngine {
   constructor(container: HTMLElement, options: MotionSplatEngineOptions) {
     this.container = container;
     this.options = options;
-    this.canvas = document.createElement('canvas');
-    this.canvas.style.display = 'block';
-    this.canvas.style.width = '100%';
-    this.canvas.style.height = '100%';
-    this.canvas.style.touchAction = 'none';
-    this.canvas.setAttribute('aria-hidden', 'true');
+    this.canvas = createStageCanvas();
     this.container.appendChild(this.canvas);
     this.state = {
       status: 'idle',
@@ -155,7 +161,20 @@ export class MotionSplatEngine {
     this.emit({ status: 'error', error: lastError?.message ?? 'No rendering backend available', progress: null });
   }
 
+  /**
+   * Swap in a clean canvas. Disposing a backend loses its WebGL context, and a
+   * canvas keeps one context for life, so the next attempt (the gpu fallback,
+   * or a Retry) would otherwise be handed a dead context.
+   */
+  private replaceCanvas(): void {
+    const next = createStageCanvas();
+    if (this.canvas.parentNode === this.container) this.container.replaceChild(next, this.canvas);
+    else this.container.appendChild(next);
+    this.canvas = next;
+  }
+
   private createBackend(kind: MotionSplatBackendKind, quality: Exclude<MotionSplatQuality, 'auto'>): MotionSplatBackend {
+    this.replaceCanvas();
     if (kind === 'spark') {
       return new SparkBackend({ canvas: this.canvas, manifest: this.options.manifest, quality });
     }

@@ -11,6 +11,8 @@ import {
   contentTypeFor,
   extensionFor,
   isClaimExpired,
+  isFalControlUrl,
+  isFalDeliveryUrl,
   normalizeFalStatus,
   parseExtraInputs,
   pickOutputFile,
@@ -119,4 +121,23 @@ Deno.test('clampListLimit keeps PostgREST away from NaN', () => {
   assertEquals(clampListLimit(7.9), 7);
   assertEquals(clampListLimit(1_000), 100);
   assertEquals(clampListLimit('12'), 12);
+});
+
+Deno.test('fal URL allowlists keep outbound calls on fal hosts', () => {
+  assertEquals(isFalControlUrl('https://queue.fal.run/fal-ai/x/requests/abc'), true);
+  assertEquals(isFalControlUrl('https://fal.run/fal-ai/x'), true);
+  assertEquals(isFalControlUrl('https://rest.alpha.fal.ai/storage/upload/initiate'), true);
+  assertEquals(isFalControlUrl('https://evil.example/queue.fal.run'), false);
+  assertEquals(isFalControlUrl('http://queue.fal.run/x'), false);
+  assertEquals(isFalControlUrl('https://user:pass@queue.fal.run/x'), false);
+  assertEquals(isFalControlUrl('https://queue.fal.run.evil.example/x'), false);
+  assertEquals(isFalControlUrl('http://169.254.169.254/latest/meta-data'), false);
+  assertEquals(isFalControlUrl(undefined), false);
+
+  assertEquals(isFalDeliveryUrl('https://v3.fal.media/files/abc/out.mp4'), true);
+  assertEquals(isFalDeliveryUrl('https://v3b.fal.media/files/abc/out.ply'), true);
+  assertEquals(isFalDeliveryUrl('https://fal.media/files/abc.png'), true);
+  assertEquals(isFalDeliveryUrl('https://evilfal.media/x.mp4'), false);
+  assertEquals(isFalDeliveryUrl('https://attacker.example/x.mp4'), false);
+  assertEquals(isFalDeliveryUrl('file:///etc/passwd'), false);
 });

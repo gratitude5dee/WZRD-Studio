@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 
 import { MotionSplatEngine } from './engine/MotionSplatEngine';
 import type { MotionSplatEngineOptions, MotionSplatEngineState } from './engine/types';
@@ -34,7 +34,11 @@ export function useMotionSplatEngine(
   const [engine, setEngine] = useState<MotionSplatEngine | null>(null);
   const [state, setState] = useState<MotionSplatEngineState>(INITIAL_STATE);
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+  // After commit, never during render: a discarded render must not hand the
+  // live engine callbacks that belong to UI which never mounted.
+  useLayoutEffect(() => {
+    optionsRef.current = options;
+  });
 
   const manifestId = options.manifest.id;
   const mode = options.mode ?? 'interactive';

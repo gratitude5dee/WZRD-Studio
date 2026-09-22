@@ -92,7 +92,7 @@ export function MotionSplatStudio({ className }: MotionSplatStudioProps) {
             canGenerate={imageUploaded}
             creditCost={estimate.video || videoModelCost(store.videoModelId)}
             progress={store.progress}
-            active={store.step === 'generating-video' || store.step === 'uploading'}
+            active={store.step === 'generating-video'}
             onPrompt={store.setPrompt}
             onModel={store.setVideoModelId}
             onDuration={store.setVideoDuration}
@@ -105,6 +105,7 @@ export function MotionSplatStudio({ className }: MotionSplatStudioProps) {
             keyframeCount={store.keyframeCount}
             quality={store.quality}
             busy={store.busy}
+            active={store.step === 'building-splat'}
             canBuild={Boolean(store.video)}
             creditCost={estimate.splat}
             progress={store.step === 'building-splat' ? store.progress : null}

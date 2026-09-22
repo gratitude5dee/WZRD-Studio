@@ -100,3 +100,14 @@ describe('missing-asset cache', () => {
     sessionStorage.clear();
   });
 });
+
+describe('reduced motion', () => {
+  it('outranks the ?intro=1 override', () => {
+    sessionStorage.clear();
+    window.matchMedia = matchMediaMock(true) as unknown as typeof window.matchMedia;
+    expect(shouldShowSplatIntro('?intro=1')).toBe(false);
+    expect(shouldShowSplatIntro('')).toBe(false);
+    window.matchMedia = matchMediaMock(false) as unknown as typeof window.matchMedia;
+    expect(shouldShowSplatIntro('?intro=1')).toBe(true);
+  });
+});

@@ -22,8 +22,13 @@ import { execFileSync } from 'node:child_process';
 
 const DEPTH_MODEL = 'fal-ai/depth-anything-video';
 
+// The poll budget bounds the job, not a stalled socket: every request needs its own limit.
+const REQUEST_TIMEOUT_MS = 60_000;
+const UPLOAD_TIMEOUT_MS = 10 * 60_000;
+const DOWNLOAD_TIMEOUT_MS = 10 * 60_000;
+
 function parseArgs(argv) {
-  const args = { out: 'public/intro-splat', title: 'WZRD intro', fov: 50, near: 1, far: 3, keyframes: 24, grid: '320x180', fps: 24 };
+  const args = { out: 'public/intro-splat', title: 'WZRD intro', fov: 50, near: 1, far: 3, keyframes: 24, grid: '320x180' };
   for (let i = 0; i < argv.length; i++) {
     const key = argv[i];
     if (!key.startsWith('--')) continue;
@@ -40,7 +45,7 @@ function fail(message) {
 }
 
 async function downloadTo(url, filePath) {
-  const response = await fetch(url);
+  const response = await fetch(url, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) });
   if (!response.ok || !response.body) throw new Error(`Download failed (${response.status}) for ${url}`);
   await pipeline(Readable.fromWeb(response.body), createWriteStream(filePath));
   const info = await stat(filePath);
@@ -53,19 +58,21 @@ async function uploadToFal(filePath, falKey) {
   const contentType = fileName.endsWith('.webm') ? 'video/webm' : 'video/mp4';
   // fal storage: initiate → PUT → file_url
   const initiate = await fetch('https://rest.alpha.fal.ai/storage/upload/initiate', {
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     method: 'POST',
     headers: { Authorization: `Key ${falKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ file_name: fileName, content_type: contentType }),
   });
   if (!initiate.ok) throw new Error(`fal storage initiate failed (${initiate.status}): ${await initiate.text()}`);
   const { upload_url: uploadUrl, file_url: fileUrl } = await initiate.json();
-  const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': contentType }, body: bytes });
+  const put = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': contentType }, body: bytes, signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS) });
   if (!put.ok) throw new Error(`fal storage upload failed (${put.status})`);
   return fileUrl;
 }
 
 async function runFalQueue(model, input, falKey, onStatus) {
   const submit = await fetch(`https://queue.fal.run/${model}`, {
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     method: 'POST',
     headers: { Authorization: `Key ${falKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(input),
@@ -74,12 +81,12 @@ async function runFalQueue(model, input, falKey, onStatus) {
   const { status_url: statusUrl, response_url: responseUrl } = await submit.json();
   for (let attempt = 0; attempt < 600; attempt++) {
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    const status = await fetch(`${statusUrl}?logs=0`, { headers: { Authorization: `Key ${falKey}` } });
+    const status = await fetch(`${statusUrl}?logs=0`, { headers: { Authorization: `Key ${falKey}` }, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
     if (!status.ok) continue;
     const data = await status.json();
     onStatus?.(data.status, data.queue_position);
     if (data.status === 'COMPLETED') {
-      const result = await fetch(responseUrl, { headers: { Authorization: `Key ${falKey}` } });
+      const result = await fetch(responseUrl, { headers: { Authorization: `Key ${falKey}` }, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
       if (!result.ok) throw new Error(`fal result fetch failed (${result.status})`);
       return await result.json();
     }
@@ -152,7 +159,7 @@ async function main() {
     if (!falKey) fail('FAL_KEY is required to run depth estimation');
     const extra = process.env.MOTION_SPLAT_DEPTH_EXTRA_INPUT ? JSON.parse(process.env.MOTION_SPLAT_DEPTH_EXTRA_INPUT) : {};
     console.log(`→ running ${DEPTH_MODEL}`);
-    const result = await runFalQueue(DEPTH_MODEL, { video_url: sourceUrl, ...extra }, falKey, (status, position) =>
+    const result = await runFalQueue(DEPTH_MODEL, { ...extra, video_url: sourceUrl }, falKey, (status, position) =>
       console.log(`   ${status}${typeof position === 'number' ? ` (queue ${position})` : ''}`),
     );
     depthUrl = findVideoUrl(result);

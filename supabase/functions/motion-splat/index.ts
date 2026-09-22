@@ -39,6 +39,8 @@ import {
   buildTriposplatInputs,
   contentTypeFor,
   extensionFor,
+  isFalControlUrl,
+  isFalDeliveryUrl,
   isMotionSplatStage,
   MOTION_SPLAT_BUCKET,
   MOTION_SPLAT_COSTS,
@@ -149,7 +151,9 @@ function prepareStage(stage: MotionSplatStage, rawInput: Record<string, unknown>
 class ValidationError extends Error {}
 
 async function copyToStorage(ref: FalFileRef, path: string, kind: 'video' | 'splat' | 'image') {
-  const response = await fetch(ref.url);
+  // Only fal's own delivery hosts: this body is about to be republished publicly.
+  if (!isFalDeliveryUrl(ref.url)) throw new Error('Refusing to copy an output from an unexpected host');
+  const response = await fetch(ref.url, { redirect: 'error' });
   if (!response.ok) throw new Error(`Failed to download output (${response.status})`);
   const declared = Number(response.headers.get('content-length') ?? '0');
   if (declared > MOTION_SPLAT_MAX_DOWNLOAD_BYTES) throw new Error('Output exceeds the size limit');
@@ -164,7 +168,9 @@ async function copyToStorage(ref: FalFileRef, path: string, kind: 'video' | 'spl
 
 async function fetchFalResult(responseUrl: string | undefined, fallback: unknown, falKey: string): Promise<unknown> {
   if (!responseUrl) return fallback;
-  const response = await fetch(responseUrl, { headers: { Authorization: `Key ${falKey}` } });
+  // The key travels on this request, so the host must be fal's.
+  if (!isFalControlUrl(responseUrl)) throw new Error('Refusing to call an unexpected fal host');
+  const response = await fetch(responseUrl, { headers: { Authorization: `Key ${falKey}` }, redirect: 'error' });
   if (!response.ok) throw new Error(`Failed to fetch final fal result (${response.status})`);
   return await response.json();
 }
@@ -290,7 +296,14 @@ serve(async (req) => {
               input: submission.summary,
               output_kind: submission.outputKind,
               credits: { hold_id: reservation.holdId, amount: submission.cost, skipped: reservation.skipped },
-              fal: { request_id: submit.requestId, status_url: submit.statusUrl ?? null, response_url: submit.responseUrl ?? null, model: submission.modelId },
+              fal: {
+                request_id: submit.requestId,
+                // Persist only fal-hosted callbacks; anything else is dropped and
+                // the poller falls back to the request id.
+                status_url: isFalControlUrl(submit.statusUrl) ? submit.statusUrl : null,
+                response_url: isFalControlUrl(submit.responseUrl) ? submit.responseUrl : null,
+                model: submission.modelId,
+              },
             },
           })
           .eq('id', jobId);
@@ -335,8 +348,10 @@ serve(async (req) => {
         const fal = asRecord(config.fal);
         const requestId = (row.external_request_id as string | null) ?? (fal.request_id as string | undefined);
         if (!requestId) return successResponse({ jobId, stage, status: 'processing', progress: row.progress ?? 5 });
-        const statusUrl = typeof fal.status_url === 'string' ? fal.status_url : undefined;
-        const responseUrl = typeof fal.response_url === 'string' ? fal.response_url : undefined;
+        // Re-check on read: rows written before the allowlist, or edited since,
+        // must not send us off-host.
+        const statusUrl = isFalControlUrl(fal.status_url) ? (fal.status_url as string) : undefined;
+        const responseUrl = isFalControlUrl(fal.response_url) ? (fal.response_url as string) : undefined;
 
         const poll = await pollFalStatus(requestId, statusUrl);
         if (!poll.success) {

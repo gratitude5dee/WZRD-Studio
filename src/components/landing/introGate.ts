@@ -70,11 +70,13 @@ function landingMotionDisabled(): boolean {
  */
 export function shouldShowSplatIntro(search?: string): boolean {
   if (typeof window === 'undefined') return false;
+  // Reduced motion wins over everything, including the ?intro=1 QA override.
+  if (prefersReducedMotion()) return false;
   const params = new URLSearchParams(search ?? window.location.search);
   const forced = params.get('intro');
   if (forced === '0') return false;
   if (forced === '1') return true;
-  if (prefersReducedMotion() || landingMotionDisabled() || introAssetKnownMissing()) return false;
+  if (landingMotionDisabled() || introAssetKnownMissing()) return false;
   try {
     return sessionStorage.getItem(SPLAT_INTRO_SEEN_KEY) !== 'true';
   } catch {

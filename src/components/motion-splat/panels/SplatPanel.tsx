@@ -10,6 +10,8 @@ export interface SplatPanelProps {
   keyframeCount: number;
   quality: MotionSplatQuality;
   busy: boolean;
+  /** True only while the splat build owns the run, so Cancel can really abort it. */
+  active?: boolean;
   canBuild: boolean;
   creditCost: number;
   progress: MotionSplatProgress | null;
@@ -39,6 +41,7 @@ export function SplatPanel({
   keyframeCount,
   quality,
   busy,
+  active = false,
   canBuild,
   creditCost,
   progress,
@@ -96,7 +99,7 @@ export function SplatPanel({
           <KanvasProgress label={progress.label} value={progress.value * 100} />
         </div>
       )}
-      {busy ? (
+      {active ? (
         <KanvasButton variant="outline" fullWidth onClick={onCancel} data-testid="motion-splat-cancel">
           Cancel
         </KanvasButton>
