@@ -8,6 +8,7 @@ import {
   Globe,
   Layers,
   Music2,
+  Orbit,
   Scissors,
   Settings,
   ShieldCheck,
@@ -86,6 +87,7 @@ const KANVAS_GROUP: SidebarNavGroup = {
       path: kanvasStudioPath(studio),
     })),
     { id: 'kanvas-lyrics', label: 'Lyrics', icon: Music2, isRoute: true, path: appRoutes.kanvasLyrics },
+    { id: 'kanvas-motion-splat', label: 'Motion Splat', icon: Orbit, isRoute: true, path: appRoutes.motionSplat },
   ],
 };
 

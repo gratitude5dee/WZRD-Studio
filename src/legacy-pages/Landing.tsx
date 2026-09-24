@@ -6,9 +6,19 @@ import { LazySection } from '@/components/landing/LazySection';
 import { DitherGradient } from '@/components/dither-kit';
 import { ditherBloom, ditherColors } from '@/lib/ditherTheme';
 import { shouldShowVideoIntro } from '@/components/landing/VideoIntroOverlay';
+import {
+  isWebGL2Available,
+  markSplatIntroMissing,
+  markSplatIntroSeen,
+  probeIntroManifest,
+  resolveIntroManifestUrl,
+  shouldShowSplatIntro,
+} from '@/components/landing/introGate';
+import type { MotionSplatManifest } from '@/types/motionSplat';
 
 const CinematicIntro = lazy(() => import('@/components/landing/CinematicIntro'));
 const VideoIntroOverlay = lazy(() => import('@/components/landing/VideoIntroOverlay'));
+const SplatIntroOverlay = lazy(() => import('@/components/landing/SplatIntroOverlay'));
 
 // Below-fold sections — eagerly imported but rendered via LazySection
 import FeatureGrid from '@/components/landing/FeatureGrid';
@@ -38,13 +48,49 @@ const Landing = () => {
     if (typeof window === 'undefined') return false;
     return new URLSearchParams(window.location.search).get('intro') === '1';
   });
+  /** `?intro=0` suppresses every intro on the landing, not just the splat. */
+  const [introSuppressed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('intro') === '0';
+  });
   const [introComplete, setIntroComplete] = useState(() => {
     if (typeof window === 'undefined') return true;
     if (new URLSearchParams(window.location.search).get('intro') !== '1') return true;
     return sessionStorage.getItem('mog-intro-seen') === 'true';
   });
   const [introReady, setIntroReady] = useState(false);
-  const [videoIntroActive, setVideoIntroActive] = useState(() => shouldShowVideoIntro());
+  // The motion-splat intro takes precedence; 'pending' keeps a black shield up while its
+  // manifest is probed so the hero never flashes. The video intro is the fallback.
+  const [splatIntro, setSplatIntro] = useState<'pending' | MotionSplatManifest | null>(() =>
+    shouldShowSplatIntro() && isWebGL2Available() ? 'pending' : null,
+  );
+  const [videoIntroActive, setVideoIntroActive] = useState(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('intro') === '0') return false;
+    return !(shouldShowSplatIntro() && isWebGL2Available()) && shouldShowVideoIntro();
+  });
+
+  useEffect(() => {
+    if (splatIntro !== 'pending') return;
+    let cancelled = false;
+    probeIntroManifest(resolveIntroManifestUrl()).then((manifest) => {
+      if (cancelled) return;
+      if (manifest) {
+        setSplatIntro(manifest);
+      } else {
+        markSplatIntroMissing();
+        setSplatIntro(null);
+        setVideoIntroActive(introSuppressed ? false : shouldShowVideoIntro());
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [introSuppressed, splatIntro]);
+
+  const handleSplatIntroComplete = useCallback(() => {
+    markSplatIntroSeen();
+    setSplatIntro(null);
+  }, []);
 
   const handleVideoIntroComplete = useCallback(() => {
     setVideoIntroActive(false);
@@ -126,6 +172,16 @@ const Landing = () => {
 
   return (
     <div className="min-h-screen w-full relative bg-black">
+      {splatIntro !== null && (
+        <Suspense fallback={<div className="fixed inset-0 z-[99999] bg-black" />}>
+          {splatIntro === 'pending' ? (
+            <div className="fixed inset-0 z-[99999] bg-black" data-testid="splat-intro-shield" />
+          ) : (
+            <SplatIntroOverlay manifest={splatIntro} onComplete={handleSplatIntroComplete} onError={handleSplatIntroComplete} />
+          )}
+        </Suspense>
+      )}
+
       <AnimatePresence>
         {videoIntroActive && (
           <Suspense fallback={<div className="fixed inset-0 z-[99999] bg-black" />}>
@@ -135,7 +191,7 @@ const Landing = () => {
       </AnimatePresence>
 
       <AnimatePresence>
-        {!introComplete && introReady && (
+        {!introComplete && introReady && splatIntro === null && !videoIntroActive && (
           <Suspense fallback={<div className="fixed inset-0 z-[99999] bg-black" />}>
             <CinematicIntro onComplete={handleIntroComplete} />
           </Suspense>

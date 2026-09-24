@@ -121,7 +121,7 @@ navigation. `SIDEBAR_SECTIONS` holds exactly five root groups:
 1. **Studio** — All Projects, Shared with me, Community, Favorites, Aura
    (view-based; landing view `all`).
 2. **Kanvas** — Image, Video, Edit, Lip Sync, Cinema, Worldview, Characters,
-   Lyrics (`/kanvas/lyrics`); landing `/kanvas`.
+   Lyrics (`/kanvas/lyrics`), Motion Splat (`/motion-splat`); landing `/kanvas`.
 3. **IP Management** — IP Vault only; landing `/ip-vault`.
 4. **Clip Studio** — Clipper, Sourcify, Postz; landing `/clipper`.
 5. **Settings** — Billing; landing `/settings`.

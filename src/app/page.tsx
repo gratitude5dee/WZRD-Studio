@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import CreatorOSLanding from "@/components/creator-os/CreatorOSLanding";
+import LandingIntroGate from "@/components/creator-os/LandingIntroGate";
 import SplinePartnerHero from "@/components/creator-os/SplinePartnerHero";
 
 export const metadata: Metadata = {
@@ -39,9 +40,9 @@ export const metadata: Metadata = {
 
 export default function Page() {
   return (
-    <>
+    <LandingIntroGate manifestUrl={process.env.NEXT_PUBLIC_SPLAT_INTRO_MANIFEST_URL || undefined}>
       <SplinePartnerHero />
       <CreatorOSLanding />
-    </>
+    </LandingIntroGate>
   );
 }
