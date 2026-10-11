@@ -2,3 +2,7 @@
 # The file no longer exists on the branch; these only appear in commit history.
 0f5c8bedbeb084e4e38bb5b193abf94492e2c1ac:tests/plugin/mcp-auth.test.ts:jwt:109
 0f5c8bedbeb084e4e38bb5b193abf94492e2c1ac:tests/plugin/mcp-auth.test.ts:jwt:119
+# NEXT_PUBLIC_SUPABASE_ANON_KEY is the public anon key shipped to browsers by
+# design; it was committed in wrangler.jsonc vars in 201d2fd and moved to
+# worker secrets in c1da93a. The flag is on the historical diff only.
+201d2fd5d99f6d6bc0bc8a487ca0c28f0376a3b2:wrangler.jsonc:jwt:9
