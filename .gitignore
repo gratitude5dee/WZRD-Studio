@@ -48,3 +48,7 @@ worldlabsedit.mp4
 .git.backup-*
 .vercel
 live-harness-report.md
+
+# OpenNext / Wrangler build output
+.open-next
+.wrangler
