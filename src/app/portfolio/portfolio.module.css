@@ -87,7 +87,8 @@
   display: flex;
 }
 
-.bubbleLink {
+/* `.root a` also sets a colour, so keep the pill label above it. */
+.root .bubbleLink {
   align-items: center;
   background: var(--bubble-bg);
   border-radius: 999px;
@@ -109,12 +110,12 @@
   white-space: nowrap;
 }
 
-.bubbleLink:hover {
+.root .bubbleLink:hover {
   background: var(--bubble-hover-bg);
   transform: rotate(0deg) scale(1.06);
 }
 
-.bubbleLink:focus-visible {
+.root .bubbleLink:focus-visible {
   outline: 2px solid #8cc8ff;
   outline-offset: 2px;
   transform: rotate(0deg);
