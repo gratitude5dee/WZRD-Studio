@@ -42,7 +42,8 @@ const bubbleItems = [
   { bg: "#c5ba9e", delay: "140ms", href: "#earth", hoverBg: "#d8cfb4", label: "earth", rot: "-6deg" },
   { bg: "#f06a47", delay: "210ms", href: ZAP_URL, hoverBg: "#f89d80", label: "zap", rot: "8deg" },
   { bg: "#6dc8d7", delay: "280ms", href: FIRE_WATER_URL, hoverBg: "#9adde8", label: "fire+water", rot: "-4deg" },
-  { bg: "#f1ebdd", delay: "350ms", href: STUDIO_URL, hoverBg: "#ffffff", label: "enter studio", rot: "4deg" },
+  { bg: "#f5c184", delay: "350ms", href: "/portfolio", hoverBg: "#ffdca6", label: "portfolio", rot: "-7deg" },
+  { bg: "#f1ebdd", delay: "420ms", href: STUDIO_URL, hoverBg: "#ffffff", label: "enter studio", rot: "4deg" },
 ] as const;
 
 const studioSteps = [
