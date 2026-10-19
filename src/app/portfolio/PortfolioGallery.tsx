@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 
 import {
   Dialog,
@@ -17,6 +18,18 @@ const ALL_CATEGORY = "All";
 
 const TAPE_ARTWORK =
   "https://framerusercontent.com/images/7nIMvdwiijHasaaIcqEWgbIzU.png";
+
+const WORDMARK = "/creator-os/wzrd-wordmark-1600.png";
+
+const chapterBubbles = [
+  { bg: "#8cc8ff", href: "https://air.wzrd.tech", hoverBg: "#aedaff", label: "air", rot: "-8deg" },
+  { bg: "#f0a145", href: "/about", hoverBg: "#f5c184", label: "studio", rot: "6deg" },
+  { bg: "#c5ba9e", href: "/#earth", hoverBg: "#d8cfb4", label: "earth", rot: "-6deg" },
+  { bg: "#f06a47", href: "https://zap.wzrd.tech", hoverBg: "#f89d80", label: "zap", rot: "8deg" },
+  { bg: "#6dc8d7", href: "https://wtr.wzrd.tech", hoverBg: "#9adde8", label: "fire+water", rot: "-4deg" },
+  { bg: "#f5c184", href: "/portfolio", hoverBg: "#ffdca6", label: "portfolio", rot: "-7deg" },
+  { bg: "#f1ebdd", href: "https://studio.wzrd.tech", hoverBg: "#ffffff", label: "enter studio", rot: "4deg" },
+] as const;
 
 function isExternalUrl(url: string): boolean {
   return /^https?:\/\//i.test(url);
@@ -93,12 +106,32 @@ export default function PortfolioGallery({ projects }: { projects: PortfolioProj
   return (
     <div className={styles.root}>
       <header className={styles.siteHeader}>
-        <a aria-label="WZRD.tech home" className={styles.wordmark} href="/">
-          WZRD.tech
+        <a aria-label="WZRD.tech home" className={styles.logo} href="/">
+          <img alt="WZRD.tech" className={styles.logoImage} src={WORDMARK} />
         </a>
-        <a className={styles.enterLink} href="https://studio.wzrd.tech">
-          Enter Studio ↗
-        </a>
+        <nav aria-label="Chapters" className={styles.chapterNav}>
+          <ul className={styles.chapterList}>
+            {chapterBubbles.map((item) => (
+              <li className={styles.chapterCell} key={item.label}>
+                <a
+                  aria-label={item.label}
+                  className={styles.bubbleLink}
+                  href={item.href}
+                  style={
+                    {
+                      "--bubble-bg": item.bg,
+                      "--bubble-hover-bg": item.hoverBg,
+                      "--bubble-rot": item.rot,
+                    } as CSSProperties
+                  }
+                  {...(item.href.startsWith("https://") ? { rel: "noopener", target: "_top" } : {})}
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
       </header>
 
       <main className={styles.main}>
@@ -221,7 +254,7 @@ export default function PortfolioGallery({ projects }: { projects: PortfolioProj
                         ) : null}
                       </span>
                       <span aria-hidden="true" className={styles.viewPill}>
-                        View
+                        View ›
                       </span>
                     </span>
                     {project.description ? (
@@ -250,6 +283,9 @@ export default function PortfolioGallery({ projects }: { projects: PortfolioProj
                 <DialogHeader className={styles.dialogHeader}>
                   <DialogTitle className={styles.dialogTitle}>{selected.name}</DialogTitle>
                   {selected.role ? <p className={styles.dialogRole}>{selected.role}</p> : null}
+                  {selected.categories.length > 0 ? (
+                    <p className={styles.dialogCategory}>{selected.categories.join(" · ")}</p>
+                  ) : null}
                   {selected.url ? (
                     <a
                       className={styles.openPill}
@@ -262,9 +298,12 @@ export default function PortfolioGallery({ projects }: { projects: PortfolioProj
                 </DialogHeader>
               </div>
               {selected.description ? (
-                <DialogDescription className={styles.dialogDescription}>
-                  {selected.description}
-                </DialogDescription>
+                <section className={styles.dialogAbout}>
+                  <h3 className={styles.dialogAboutTitle}>About</h3>
+                  <DialogDescription className={styles.dialogDescription}>
+                    {selected.description}
+                  </DialogDescription>
+                </section>
               ) : null}
               {selected.categories.length > 0 ? (
                 <ul aria-label="Categories" className={styles.dialogTags}>
