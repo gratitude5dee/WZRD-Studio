@@ -1,4 +1,4 @@
-/* /portfolio — App Store-inspired gallery on the Creator OS palette. */
+/* /portfolio — profile hero + iOS App Store-style project gallery. */
 
 .root {
   -webkit-font-smoothing: antialiased;
@@ -29,63 +29,267 @@
 .siteHeader {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
+  gap: 1rem;
   justify-content: space-between;
   padding: 1.4rem clamp(1.15rem, 4.5vw, 4rem);
   position: relative;
   z-index: 1;
 }
 
-.wordmark {
-  color: inherit;
-  font-size: 0.8rem;
-  letter-spacing: 0.14em;
-  text-decoration: none;
+/* Logo pill mirrors the landing header's glass wordmark chip. */
+.logo {
+  align-items: center;
+  background: rgba(12, 11, 16, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  box-shadow: 0 0.5rem 1.3rem rgba(2, 5, 10, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  display: inline-flex;
+  height: clamp(3.1rem, 10.5vw, 3.9rem);
+  padding: 0 clamp(0.95rem, 3.4vw, 1.4rem);
+  transition: box-shadow 200ms ease;
 }
 
-.enterLink {
-  color: inherit;
-  font-size: 0.68rem;
-  letter-spacing: 0.11em;
-  text-decoration: none;
-  text-transform: uppercase;
+.logo:hover {
+  box-shadow: 0 0.6rem 1.6rem rgba(2, 5, 10, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.enterLink:hover {
-  color: #f0a145;
+.logo:focus-visible {
+  outline: 2px solid #8cc8ff;
+  outline-offset: 2px;
+}
+
+.logoImage {
+  display: block;
+  height: clamp(1.45rem, 5vw, 1.9rem);
+  object-fit: contain;
+  width: auto;
+}
+
+/* Chapter bubbles: same palette/rotation as the landing menu, header scale. */
+.chapterNav {
+  flex: 1;
+  min-width: 0;
+}
+
+.chapterList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chapterCell {
+  display: flex;
+}
+
+/* `.root a` also sets a colour, so keep the pill label above it. */
+.root .bubbleLink {
+  align-items: center;
+  background: var(--bubble-bg);
+  border-radius: 999px;
+  box-shadow: 0 0.9rem 1.8rem rgba(2, 5, 10, 0.35);
+  color: #05070a;
+  display: flex;
+  font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-size: 0.72rem;
+  justify-content: center;
+  letter-spacing: -0.01em;
+  min-height: 44px;
+  padding: 0.55rem 1.05rem;
+  text-align: center;
+  text-transform: lowercase;
+  transform: rotate(var(--bubble-rot));
+  transition:
+    transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 200ms ease;
+  white-space: nowrap;
+}
+
+.root .bubbleLink:hover {
+  background: var(--bubble-hover-bg);
+  transform: rotate(0deg) scale(1.06);
+}
+
+.root .bubbleLink:focus-visible {
+  outline: 2px solid #8cc8ff;
+  outline-offset: 2px;
+  transform: rotate(0deg);
 }
 
 .main {
   margin: 0 auto;
   max-width: 75rem;
-  padding: clamp(3rem, 8vw, 7rem) clamp(1.15rem, 4.5vw, 1.7rem) clamp(5rem, 10vw, 8rem);
+  padding: clamp(1.5rem, 5vw, 3.5rem) clamp(1.15rem, 4.5vw, 1.7rem) clamp(5rem, 10vw, 8rem);
   position: relative;
 }
 
-.kicker {
-  color: #f0a145;
-  font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
-  font-size: 0.72rem;
-  letter-spacing: 0.14em;
-  margin: 0 0 1.4rem;
-  text-transform: uppercase;
+/* ---------- hero (profile block) ---------- */
+
+.hero {
+  margin: 0 auto;
+  max-width: 60rem;
+  text-align: left;
 }
 
-.title {
+.heroArt {
+  align-items: flex-start;
+  display: flex;
+  gap: clamp(2.5rem, 10vw, 13rem);
+  justify-content: center;
+  margin-bottom: clamp(2.5rem, 6vw, 4rem);
+}
+
+.heroTile {
+  aspect-ratio: 1;
+  border: 1px solid rgba(219, 237, 255, 0.14);
+  border-radius: 22%;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.55),
+    0 2px 8px rgba(0, 0, 0, 0.4);
+  display: block;
+  flex: 0 0 auto;
+  overflow: hidden;
+  width: clamp(6.5rem, 15vw, 10.5rem);
+}
+
+.heroTile img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.heroTitle {
   font-family: var(--font-newsreader), Newsreader, Georgia, serif;
-  font-size: clamp(2.05rem, 5vw, 5.6rem);
+  font-size: clamp(2.5rem, 7.6vw, 5.4rem);
   font-weight: 400;
-  letter-spacing: -0.065em;
-  line-height: 0.9;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.heroTitleLine {
+  display: block;
+}
+
+.heroStar {
+  color: #f0a145;
+}
+
+.identity {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin: clamp(2rem, 5vw, 3.25rem) 0 1.1rem;
+}
+
+.avatarWrap {
+  border: 1px solid rgba(219, 237, 255, 0.2);
+  border-radius: 50%;
+  display: block;
+  flex: 0 0 auto;
+  height: 2.1rem;
+  overflow: hidden;
+  width: 2.1rem;
+}
+
+.avatar {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.identityName {
+  color: rgba(241, 235, 221, 0.85);
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+.identityDot {
+  color: rgba(241, 235, 221, 0.45);
+  font-size: 0.45rem;
+}
+
+.identityEns {
+  color: rgba(241, 235, 221, 0.55);
+  font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+}
+
+.bio {
+  margin: 0 0 1.35rem;
+  max-width: 34rem;
+}
+
+.bioLine {
+  color: rgba(241, 235, 221, 0.62);
+  font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-size: clamp(0.98rem, 1.6vw, 1.25rem);
+  letter-spacing: 0.015em;
+  line-height: 1.4;
   margin: 0;
 }
 
-.lede {
-  color: rgba(241, 235, 221, 0.72);
-  font-size: clamp(1.05rem, 1.5vw, 1.3rem);
-  line-height: 1.45;
-  margin: 1.75rem 0 0;
-  max-width: 30rem;
+.coCreate {
+  align-items: center;
+  background: rgba(219, 237, 255, 0.05);
+  border: 1px solid rgba(219, 237, 255, 0.18);
+  border-radius: 999px;
+  color: #f1ebdd;
+  display: inline-flex;
+  font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-size: 0.68rem;
+  gap: 0.55rem;
+  letter-spacing: 0.08em;
+  min-height: 44px;
+  padding: 0.6rem 1.1rem;
+  text-transform: uppercase;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+
+.coCreate:hover {
+  background: rgba(219, 237, 255, 0.09);
+  border-color: rgba(240, 161, 69, 0.5);
+}
+
+.coCreateDot {
+  background: #f0a145;
+  border-radius: 50%;
+  display: block;
+  height: 0.45rem;
+  width: 0.45rem;
+}
+
+/* ---------- gallery ---------- */
+
+.gallery {
+  margin-top: clamp(3rem, 8vw, 5.5rem);
+}
+
+.galleryHeader {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  justify-content: space-between;
+}
+
+.galleryTitle {
+  font-family: var(--font-newsreader), Newsreader, Georgia, serif;
+  font-size: clamp(1.7rem, 3.4vw, 2.6rem);
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  margin: 0;
 }
 
 .count {
@@ -93,7 +297,7 @@
   font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
   font-size: 0.72rem;
   letter-spacing: 0.12em;
-  margin: 1rem 0 0;
+  margin: 0;
   text-transform: uppercase;
 }
 
@@ -101,7 +305,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
-  margin: 2.6rem 0 2.2rem;
+  margin: 1.8rem 0 2rem;
 }
 
 .searchLabel {
@@ -114,9 +318,9 @@
 
 .search {
   appearance: none;
-  background: rgba(219, 237, 255, 0.05);
-  border: 1px solid rgba(219, 237, 255, 0.16);
-  border-radius: 999px;
+  background: rgba(219, 237, 255, 0.06);
+  border: 1px solid rgba(219, 237, 255, 0.14);
+  border-radius: 0.9rem;
   color: #f1ebdd;
   font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
   font-size: 0.82rem;
@@ -134,7 +338,7 @@
 .search:focus-visible,
 .filterButton:focus-visible,
 .card:focus-visible,
-.openLink:focus-visible {
+.coCreate:focus-visible {
   outline: 2px solid #8cc8ff;
   outline-offset: 2px;
 }
@@ -184,7 +388,7 @@
 /* Grid: 4 columns on wide screens, 2 on tablets, 1 on phones. */
 .grid {
   display: grid;
-  gap: 1.4rem;
+  gap: 1.1rem;
   grid-template-columns: 1fr;
   list-style: none;
   margin: 0;
@@ -208,39 +412,76 @@
   min-width: 0;
 }
 
+/* App Store listing cell: squircle icon + meta + VIEW pill, description below. */
 .card {
   appearance: none;
-  background: rgba(219, 237, 255, 0.04);
-  border: 1px solid rgba(219, 237, 255, 0.1);
-  border-radius: 1.1rem;
+  background: rgba(219, 237, 255, 0.045);
+  border: 1px solid rgba(219, 237, 255, 0.09);
+  border-radius: 1.2rem;
   color: inherit;
   cursor: pointer;
   display: flex;
   flex-direction: column;
+  gap: 0.8rem;
   overflow: hidden;
-  padding: 0;
+  padding: 0.95rem;
   text-align: left;
   transition: background 200ms ease, border-color 200ms ease, transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
   width: 100%;
 }
 
 .card:hover {
-  background: rgba(219, 237, 255, 0.07);
-  border-color: rgba(219, 237, 255, 0.22);
-  transform: translateY(-3px);
+  background: rgba(219, 237, 255, 0.075);
+  border-color: rgba(219, 237, 255, 0.2);
+  transform: translateY(-2px);
 }
 
-.cardImageWrap {
-  aspect-ratio: 4 / 3;
-  background: linear-gradient(160deg, rgba(140, 200, 255, 0.1), rgba(240, 106, 71, 0.08) 55%, rgba(5, 7, 10, 0.4));
+.card:active {
+  transform: scale(0.99);
+  transition-duration: 120ms;
+}
+
+.cardTop {
+  align-items: center;
+  display: flex;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+/* iOS app icon: ~22.5% corner radius approximates the squircle; the
+   ::after sheen re-creates the gloss pass iOS applies to icon artwork. */
+.appIcon {
+  aspect-ratio: 1;
+  background: linear-gradient(160deg, rgba(140, 200, 255, 0.14), rgba(240, 106, 71, 0.1) 55%, rgba(5, 7, 10, 0.45));
+  border: 1px solid rgba(219, 237, 255, 0.12);
+  border-radius: 22.5%;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   justify-content: center;
   overflow: hidden;
-  width: 100%;
+  position: relative;
+  transition: transform 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 4.4rem;
 }
 
-.cardImage {
+.card:hover .appIcon {
+  transform: scale(1.05);
+}
+
+.appIcon::after,
+.dialogIcon::after {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.04) 42%, transparent 60%);
+  content: "";
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.appIconImage {
   display: block;
   height: 100%;
   object-fit: cover;
@@ -250,41 +491,80 @@
 .imageFallback {
   color: rgba(241, 235, 221, 0.4);
   font-family: var(--font-newsreader), Newsreader, Georgia, serif;
-  font-size: 3rem;
+  font-size: 1.8rem;
   letter-spacing: -0.04em;
 }
 
-.cardBody {
+.cardMeta {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 1rem 1.05rem 1.15rem;
+  flex: 1;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
 .cardName {
   font-family: var(--font-newsreader), Newsreader, Georgia, serif;
-  font-size: 1.05rem;
+  font-size: 1rem;
   letter-spacing: -0.015em;
-  line-height: 1.15;
+  line-height: 1.18;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .cardRole {
   color: #f0a145;
   font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
-  font-size: 0.66rem;
-  letter-spacing: 0.08em;
+  font-size: 0.6rem;
+  letter-spacing: 0.07em;
   line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.cardCategory {
+  color: rgba(241, 235, 221, 0.42);
+  font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-size: 0.58rem;
+  letter-spacing: 0.07em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* iOS GET-style capsule: solid system blue, dark label. */
+.viewPill {
+  background: #8cc8ff;
+  border-radius: 999px;
+  color: #05070a;
+  flex: 0 0 auto;
+  font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  padding: 0.4rem 0.85rem;
+  text-transform: uppercase;
+  transition: background 160ms ease;
+}
+
+.card:hover .viewPill {
+  background: #aedaff;
 }
 
 .cardDescription {
-  color: rgba(241, 235, 221, 0.6);
+  border-top: 1px solid rgba(219, 237, 255, 0.08);
+  color: rgba(241, 235, 221, 0.58);
   display: -webkit-box;
   font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   letter-spacing: 0.02em;
   line-height: 1.45;
   overflow: hidden;
+  padding-top: 0.7rem;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -292,38 +572,63 @@
 /* ---------- detail dialog (Radix portals to <body>) ---------- */
 
 .dialogContent {
-  background: #0b0e12;
+  background: linear-gradient(180deg, rgba(140, 200, 255, 0.05), transparent 12rem), #0b0e12;
   border: 1px solid rgba(219, 237, 255, 0.16);
-  border-radius: 1.25rem;
+  border-radius: 1.5rem;
   color: #f1ebdd;
   font-family: var(--font-newsreader), Newsreader, Georgia, serif;
   max-height: min(85svh, 52rem);
-  max-width: min(92vw, 40rem);
+  max-width: min(92vw, 38rem);
   overflow-y: auto;
-  padding: 0 0 1.5rem;
+  padding: 1.75rem;
   scrollbar-width: thin;
 }
 
 .dialogContent > button {
-  /* The ui/dialog close button — keep it visible on the dark surface. */
+  /* The ui/dialog close button — frosted circle, always visible on dark. */
+  align-items: center;
+  background: rgba(219, 237, 255, 0.07);
+  border: 1px solid rgba(219, 237, 255, 0.12);
+  border-radius: 999px;
   color: rgba(241, 235, 221, 0.7);
+  display: inline-flex;
+  height: 2.1rem;
+  justify-content: center;
+  right: 1.15rem;
+  top: 1.15rem;
+  width: 2.1rem;
 }
 
 .dialogContent > button:hover {
+  background: rgba(219, 237, 255, 0.13);
   color: #f1ebdd;
 }
 
-.dialogImageWrap {
-  aspect-ratio: 16 / 9;
-  background: linear-gradient(160deg, rgba(140, 200, 255, 0.12), rgba(240, 106, 71, 0.1) 55%, rgba(5, 7, 10, 0.5));
-  display: flex;
+.dialogTop {
   align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  width: 100%;
+  display: flex;
+  gap: 1.25rem;
+  min-width: 0;
 }
 
-.dialogImage {
+.dialogIcon {
+  aspect-ratio: 1;
+  background: linear-gradient(160deg, rgba(140, 200, 255, 0.14), rgba(240, 106, 71, 0.1) 55%, rgba(5, 7, 10, 0.45));
+  border: 1px solid rgba(219, 237, 255, 0.14);
+  border-radius: 22.5%;
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  width: 7rem;
+}
+
+.dialogIconImage {
   display: block;
   height: 100%;
   object-fit: cover;
@@ -333,17 +638,18 @@
 .dialogHeader {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 1.4rem 1.5rem 0;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0;
   text-align: left;
 }
 
 .dialogTitle {
   font-family: var(--font-newsreader), Newsreader, Georgia, serif;
-  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-size: clamp(1.55rem, 3.4vw, 2.05rem);
   font-weight: 400;
-  letter-spacing: -0.04em;
-  line-height: 1.05;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
   margin: 0;
 }
 
@@ -357,54 +663,107 @@
   text-transform: uppercase;
 }
 
+.dialogCategory {
+  color: rgba(241, 235, 221, 0.45);
+  font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* App Store "About" section: label + hairline divider above the copy. */
+.dialogAbout {
+  border-top: 1px solid rgba(219, 237, 255, 0.1);
+  margin-top: 1.5rem;
+  padding-top: 1.15rem;
+}
+
+.dialogAboutTitle {
+  color: rgba(241, 235, 221, 0.92);
+  font-family: var(--font-newsreader), Newsreader, Georgia, serif;
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  margin: 0 0 0.55rem;
+}
+
 .dialogDescription {
   color: rgba(241, 235, 221, 0.75);
   font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   letter-spacing: 0.02em;
-  line-height: 1.55;
-  margin: 0.4rem 0 0;
+  line-height: 1.6;
+  margin: 0;
   text-align: left;
 }
 
 .dialogTags {
+  border-top: 1px solid rgba(219, 237, 255, 0.1);
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
   list-style: none;
-  margin: 0;
-  padding: 0.9rem 1.5rem 0;
+  margin: 1.35rem 0 0;
+  padding: 1rem 0 0;
 }
 
 .dialogTag {
-  background: rgba(240, 106, 71, 0.09);
-  border: 1px solid rgba(240, 106, 71, 0.32);
-  color: rgba(241, 235, 221, 0.86);
+  background: rgba(219, 237, 255, 0.06);
+  border: 1px solid rgba(219, 237, 255, 0.14);
+  border-radius: 999px;
+  color: rgba(241, 235, 221, 0.8);
   font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   letter-spacing: 0.06em;
-  padding: 0.38rem 0.55rem;
+  padding: 0.4rem 0.7rem;
   text-transform: uppercase;
 }
 
-.openLink {
+.openPill {
   align-items: center;
-  border-bottom: 1px solid rgba(109, 200, 215, 0.5);
-  color: #f1ebdd;
+  background: #8cc8ff;
+  border-radius: 999px;
+  box-shadow: 0 8px 22px rgba(140, 200, 255, 0.22);
+  color: #05070a;
   display: inline-flex;
   font-family: var(--font-azeret-mono), "Azeret Mono", ui-monospace, Consolas, monospace;
-  font-size: 0.75rem;
-  gap: 0.6rem;
-  letter-spacing: 0.08em;
-  margin: 1.5rem 1.5rem 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  gap: 0.45rem;
+  letter-spacing: 0.05em;
+  margin-top: 0.55rem;
   min-height: 44px;
-  padding-bottom: 0.55rem;
+  padding: 0.55rem 1.35rem;
   text-transform: uppercase;
-  transition: color 160ms ease, border-color 160ms ease;
+  transition: background 160ms ease, transform 160ms ease;
   width: fit-content;
 }
 
-.openLink:hover {
-  border-color: #6dc8d7;
-  color: #6dc8d7;
+.openPill:hover {
+  background: #aedaff;
+  transform: translateY(-1px);
+}
+
+.openPill:focus-visible {
+  outline: 2px solid #8cc8ff;
+  outline-offset: 2px;
+}
+
+@media (max-width: 420px) {
+  .heroArt {
+    gap: 1.6rem;
+  }
+
+  .heroTitle {
+    font-size: clamp(1.9rem, 9vw, 2.5rem);
+  }
+
+  .appIcon {
+    width: 3.9rem;
+  }
+
+  .viewPill {
+    padding: 0.3rem 0.6rem;
+  }
 }
